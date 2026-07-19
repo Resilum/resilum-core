@@ -1,0 +1,5 @@
+services:
+  eval:
+    build: .
+    # Network is needed to clone the repos and fetch crates at run time.
+    # Run: docker compose run --rm eval
