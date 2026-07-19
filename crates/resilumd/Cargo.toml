@@ -1,0 +1,9 @@
+[package]
+name = "resilumd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Resilum node daemon (Linux/server; packaged into the container image)."
+
+[dependencies]
+resilum-core = { path = "../resilum-core" }
