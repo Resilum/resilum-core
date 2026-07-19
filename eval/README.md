@@ -1,7 +1,7 @@
 # RNS stack evaluation
 
 Decide which Rust Reticulum stack `resilum-core` sits on. This is the ADR-002
-gate: **do not wire a stack into the core until one passes here.**
+gate. **Result: leviculum chosen — see `../docs/adr-003-rns-stack.md`.**
 
 ## Run
 
@@ -12,46 +12,53 @@ docker run --rm resilum-eval          # needs network to clone + fetch crates
 ```
 
 (or `docker compose run --rm eval`). The script clones both candidates, builds
-them, and lists what they produced. Then read the cloned sources under
-`work/<name>/` to judge the API, and fill the table below.
+them, and lists what they produced.
 
 ## Candidates
 
-- **reticulum-rs** — `github.com/BeechatNetworkSystemsLtd/Reticulum-rs`. Umbrella
-  crate (`-core`, `-transport`, `-rpc`); TCP/UDP/I2P/LoRa/packet-radio; ships a
-  C-ABI (`rns-embedded-ffi`) and `tcp_client`/`tcp_server` examples.
-- **leviculum** — `codeberg.org/Lew_Palm/leviculum`. `no_std` `reticulum-core`;
-  builds `lnsd`/`lncp`/`lns`; targets embedded + mobile.
+- **reticulum-rs** — `github.com/BeechatNetworkSystemsLtd/Reticulum-rs`.
+- **leviculum** — `codeberg.org/Lew_Palm/leviculum`.
 
-Both are wire-compatible with the reference and both are marked *not yet
+Both are wire-compatible with the reference; both marked *not yet
 production-ready* (early 2026).
 
-## Comparison (fill from the run + source reading)
+## Comparison (filled from a run on 2026-07-19)
 
 | Criterion | reticulum-rs | leviculum |
 |---|---|---|
-| Builds cleanly (glibc) | | |
-| Builds for musl / Android target | | |
-| TCP / UDP | | |
-| I2P (tunneled) | | |
-| LoRa (RNode) | | |
-| Packet radio | | |
-| C-ABI FFI for Dart | rns-embedded-ffi | ? |
-| `no_std` / embedded core | | reticulum-core |
-| Resource (segmented file transfer, for OTA) | | ✓ (reported) |
-| API fit for our `Node` model | | |
-| Wire-compat verified vs a node | | |
-| Activity / license | | |
+| License | **MIT** (permissive) | **AGPL-3.0** (copyleft, network clause) |
+| Last commit | ~3 weeks | within a day (very active) |
+| Builds here | not tested | ✅ `leviculum-ffi` built (23s) |
+| C-ABI FFI for Dart | ❌ none in repo | ✅ `leviculum-ffi` + cbindgen `leviculum.h` |
+| TCP client/server | ✓ | ✓ |
+| UDP | example | ✓ (`lev_builder_add_udp`) |
+| AutoInterface | — | ✓ (`lev_builder_add_auto_interface`) |
+| LoRa | Kaonic (their HW) | ✓ (tested on real hardware) |
+| Serial | ✓ | ✓ |
+| Resource (for OTA) | ? | ✓ (`lev_send_resource` …) |
+| `no_std` / embedded | yes | ✓ (`leviculum-core` + `-nrf`/`-micron`) |
+| Wire-compat vs | implicit | ✓ drop-in `rnsd`/`rncp`/`rnstatus`, interop-tested |
+| musl static / multi-arch | ? | ✓ ships musl `.deb` (amd64+arm64) |
+| Mobile target | embeddable | ✓ explicit ("future Android app") |
+| Quality signals | examples | fuzz + interop tests, nightly releases |
 
-## What "fit for our Node model" means
+## Verdict
 
-`resilum-core` exposes `Node { new / start / stop / send / poll_event }`. The
-chosen stack must let us implement those on top of it: bring up interfaces from
-config, drive discovery, and open Links for egress. A ready C-ABI (reticulum-rs)
-is a plus for the mobile FFI, but the deciding factor is transport coverage +
-whether the API maps cleanly onto our node lifecycle.
+**leviculum.** It wins on nearly every axis for our needs (ready rich FFI with
+cbindgen, Resource for OTA, drop-in interop, musl-static multi-arch,
+explicit mobile target, most active). The one deciding tradeoff was its
+**AGPL-3.0** license, which propagates to the whole project — accepted, since
+Resilum is open FOSS.
+
+reticulum-rs (MIT) would have been the fallback if a permissive license were
+required, at the cost of writing the FFI ourselves and narrower transports.
+
+## Known gap
+
+leviculum's multi-segment file **send** > 1 MB is not implemented yet (receiving
+works) — Codeberg #27. Matters for RNS-Resource OTA of large APKs; track upstream.
 
 ## Note
 
-Tor-onion dialing (our `SocksTCPClientInterface`) is Resilum's own logic and is
-reimplemented on top of whichever stack wins — it is not a selection criterion.
+Tor-onion dialing (our `SocksTCPClientInterface`) is Resilum's own logic on top
+of whichever stack wins — not a selection criterion.
