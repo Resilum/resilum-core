@@ -48,3 +48,10 @@ target (`cargo-ndk` for Android, `cargo-lipo`/XCFramework for iOS) and loaded vi
 
 Use **rustup** (not a distro package) — the mobile cross-compile targets are
 added with `rustup target add <triple>`. Edition 2024.
+
+## License
+
+**AGPL-3.0-only.** The core builds on the leviculum Rust Reticulum stack
+(AGPL-3.0), whose copyleft propagates to the whole project — core, daemon and
+the mobile app. See `docs/adr-003-rns-stack.md`. Add the full license text:
+`curl -o LICENSE https://www.gnu.org/licenses/agpl-3.0.txt`.
