@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/resilum-core",
+    "crates/resilumd",
+    "crates/resilum-ffi",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+license = "MIT"

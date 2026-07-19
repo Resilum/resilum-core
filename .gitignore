@@ -1,0 +1,12 @@
+# Rust build output
+/target
+**/*.rs.bk
+*.pdb
+
+# Keep Cargo.lock committed (workspace has binaries)
+
+# Signing / secrets — never commit
+keys/
+*.pem
+*.key
+secrets.*
