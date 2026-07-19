@@ -1,0 +1,8 @@
+[package]
+name = "resilum-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared core for a Resilum node: transports, discovery, egress policy."
+
+[dependencies]
