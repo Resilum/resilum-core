@@ -14,7 +14,7 @@ pub mod pump;
 pub mod spec;
 pub mod supervisor;
 
-pub use config::Config;
+pub use config::{Config, EgressListen};
 pub use error::{Error, Result};
 pub use event::Event;
 
@@ -22,6 +22,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use leviculum_std::api::Node as LevNode;
+use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 
 use crate::egress::CandidateRegistry;
@@ -59,9 +60,8 @@ impl Node {
         if self.engine.is_some() {
             return Err(Error::AlreadyRunning);
         }
-        let mut engine = engine::build_node(&self.config)?
-            .build()
-            .map_err(|e| Error::Engine(e.to_string()))?;
+        let (builder, identity) = engine::build_node(&self.config)?;
+        let mut engine = builder.build().map_err(|e| Error::Engine(e.to_string()))?;
         // leviculum's lifecycle is async; block the caller.
         self.runtime
             .block_on(engine.start())
@@ -71,9 +71,23 @@ impl Node {
         let bridge_tasks = bridge::tasks_for(&self.config.specs);
         {
             let _guard = self.runtime.enter();
+            let router = Arc::new(link::LinkRouter::default());
+            let (inbound_tx, inbound_rx) = mpsc::unbounded_channel();
+            // Subscribe before forward publishes so no event is missed.
+            let link_bus = self.events.subscribe();
+            self.tasks
+                .push(tokio::spawn(link::run(router, link_bus, inbound_tx)));
             if let Some(rx) = event_rx {
                 self.tasks
                     .push(tokio::spawn(dispatch::forward(self.events.clone(), rx)));
+            }
+            if let Some(cfg) = self.config.egress.clone() {
+                self.tasks.push(tokio::spawn(egress::listen::run(
+                    engine.clone(),
+                    identity,
+                    cfg,
+                    inbound_rx,
+                )));
             }
             self.tasks.extend(supervisor::spawn_all(bridge_tasks));
         }

@@ -6,7 +6,7 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
 
-use leviculum_std::api::{self, NodeBuilder};
+use leviculum_std::api::{self, Identity, NodeBuilder};
 
 use crate::{Config, Error, Result};
 
@@ -71,8 +71,9 @@ fn split_host_port(value: &str) -> (&str, &str) {
     }
 }
 
-/// Write the rendered config to disk and build a leviculum node from it.
-pub(crate) fn build_node(config: &Config) -> Result<NodeBuilder> {
+/// Write the rendered config to disk and build a leviculum node builder from
+/// it. The identity is returned so egress destinations bind to the same one.
+pub(crate) fn build_node(config: &Config) -> Result<(NodeBuilder, Identity)> {
     let dir = config
         .storage_path
         .clone()
@@ -82,10 +83,12 @@ pub(crate) fn build_node(config: &Config) -> Result<NodeBuilder> {
     fs::write(&config_path, render_config(config))
         .map_err(|e| Error::Config(format!("write config: {e}")))?;
     // TODO: load-or-generate a stable identity from `storage_path`.
-    Ok(NodeBuilder::new()
-        .identity(api::generate_identity())
+    let identity = api::generate_identity();
+    let builder = NodeBuilder::new()
+        .identity(identity.clone())
         .storage_path(dir)
-        .config_file(config_path))
+        .config_file(config_path);
+    Ok((builder, identity))
 }
 
 #[cfg(test)]

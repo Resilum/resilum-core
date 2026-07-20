@@ -1,6 +1,26 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::spec::Specs;
+
+/// Egress listen side: advertise `service` and forward inbound links to a local
+/// TCP `target`.
+#[derive(Clone, Debug)]
+pub struct EgressListen {
+    pub service: String,
+    pub target: String,
+    pub announce_interval: Duration,
+}
+
+impl EgressListen {
+    pub fn new(service: impl Into<String>, target: impl Into<String>) -> Self {
+        Self {
+            service: service.into(),
+            target: target.into(),
+            announce_interval: Duration::from_secs(600),
+        }
+    }
+}
 
 /// Typed node configuration. Grows as the port progresses.
 #[derive(Clone, Debug, Default)]
@@ -16,6 +36,8 @@ pub struct Config {
     pub discover_interfaces: bool,
     /// Max discovered interfaces to auto-connect concurrently; `0` disables it.
     pub autoconnect_max: usize,
+    /// Egress listen side; when set, run an exit endpoint.
+    pub egress: Option<EgressListen>,
     /// Bridge/VPN/covert specs to run under supervision.
     pub specs: Specs,
 }
@@ -29,6 +51,7 @@ impl Config {
             bootstrap: Vec::new(),
             discover_interfaces: true,
             autoconnect_max: 5,
+            egress: None,
             specs: Specs::default(),
         }
     }
