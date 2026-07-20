@@ -8,6 +8,8 @@ pub enum Error {
     AlreadyRunning,
     NotRunning,
     Config(String),
+    /// Failure surfaced by the underlying Reticulum engine (leviculum).
+    Engine(String),
 }
 
 impl fmt::Display for Error {
@@ -16,6 +18,7 @@ impl fmt::Display for Error {
             Error::AlreadyRunning => write!(f, "node already running"),
             Error::NotRunning => write!(f, "node not running"),
             Error::Config(m) => write!(f, "config error: {m}"),
+            Error::Engine(m) => write!(f, "engine error: {m}"),
         }
     }
 }

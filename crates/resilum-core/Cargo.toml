@@ -6,3 +6,6 @@ license.workspace = true
 description = "Shared core for a Resilum node: transports, discovery, egress policy."
 
 [dependencies]
+# Pinned by commit; bump deliberately. AGPL-3.0 (see ADR-003).
+leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "03121dc109da0d327a74a6a3fb60a15cb7ed2a0e" }
+tokio = { version = "1", features = ["rt-multi-thread"] }
