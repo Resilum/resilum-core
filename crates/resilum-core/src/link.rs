@@ -45,13 +45,15 @@ impl LinkRouter {
     }
 }
 
-/// Drain the node-event bus onto sessions until it closes. Established links
-/// with no attached session are reported on `inbound` when this node did not
-/// initiate them (responder side).
+pub type Inbound = (LinkId, mpsc::UnboundedReceiver<LinkMsg>);
+
+/// Drain the node-event bus onto sessions until it closes. Responder-side links
+/// are attached here, before reporting on `inbound`, so no data event can slip
+/// in before the listen side owns the session.
 pub async fn run(
     router: Arc<LinkRouter>,
     mut bus: broadcast::Receiver<Arc<NodeEvent>>,
-    inbound: mpsc::UnboundedSender<LinkId>,
+    inbound: mpsc::UnboundedSender<Inbound>,
 ) {
     loop {
         match bus.recv().await {
@@ -62,17 +64,18 @@ pub async fn run(
     }
 }
 
-fn route(router: &LinkRouter, inbound: &mpsc::UnboundedSender<LinkId>, ev: &NodeEvent) {
+fn route(router: &LinkRouter, inbound: &mpsc::UnboundedSender<Inbound>, ev: &NodeEvent) {
     match ev {
         NodeEvent::LinkEstablished {
             link_id,
             is_initiator,
         } => {
             if !router.deliver(link_id, LinkMsg::Established) && !is_initiator {
-                let _ = inbound.send(*link_id);
+                let _ = inbound.send((*link_id, router.attach(*link_id)));
             }
         }
-        NodeEvent::LinkDataReceived { link_id, data } => {
+        // reliable channel stream; raw LinkDataReceived is a separate path
+        NodeEvent::MessageReceived { link_id, data, .. } => {
             router.deliver(link_id, LinkMsg::Data(data.clone()));
         }
         NodeEvent::LinkClosed { link_id, .. } => {
@@ -98,6 +101,15 @@ mod tests {
         }
     }
 
+    fn message(link_id: LinkId, data: &[u8]) -> NodeEvent {
+        NodeEvent::MessageReceived {
+            link_id,
+            msgtype: 0,
+            sequence: 0,
+            data: data.to_vec(),
+        }
+    }
+
     #[test]
     fn routes_established_and_data_to_attached_session() {
         let router = LinkRouter::default();
@@ -105,14 +117,7 @@ mod tests {
         let (itx, mut irx) = mpsc::unbounded_channel();
 
         route(&router, &itx, &established(lid(1), true));
-        route(
-            &router,
-            &itx,
-            &NodeEvent::LinkDataReceived {
-                link_id: lid(1),
-                data: b"hi".to_vec(),
-            },
-        );
+        route(&router, &itx, &message(lid(1), b"hi"));
 
         assert_eq!(rx.try_recv().unwrap(), LinkMsg::Established);
         assert_eq!(rx.try_recv().unwrap(), LinkMsg::Data(b"hi".to_vec()));
@@ -120,13 +125,16 @@ mod tests {
     }
 
     #[test]
-    fn surfaces_unclaimed_responder_link() {
+    fn surfaces_and_attaches_responder_link() {
         let router = LinkRouter::default();
         let (itx, mut irx) = mpsc::unbounded_channel();
 
         route(&router, &itx, &established(lid(2), false));
+        let (id, mut rx) = irx.try_recv().unwrap();
+        assert_eq!(id, lid(2));
 
-        assert_eq!(irx.try_recv().unwrap(), lid(2));
+        route(&router, &itx, &message(lid(2), b"x"));
+        assert_eq!(rx.try_recv().unwrap(), LinkMsg::Data(b"x".to_vec()));
     }
 
     #[test]
