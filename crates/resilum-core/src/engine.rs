@@ -21,6 +21,9 @@ pub(crate) fn render_config(config: &Config) -> String {
     let _ = writeln!(out, "  discover_interfaces = {}", yes_no(discover));
     let cap = if discover { config.autoconnect_max } else { 0 };
     let _ = writeln!(out, "  autoconnect_discovered_interfaces = {cap}");
+    if let Some(identity) = &config.network_identity {
+        let _ = writeln!(out, "  network_identity = {}", identity.display());
+    }
     let _ = writeln!(out, "\n[interfaces]");
 
     if discover {
@@ -37,6 +40,9 @@ pub(crate) fn render_config(config: &Config) -> String {
              listen_ip = {host}\n    listen_port = {port}\n    discoverable = yes\n    \
              mode = gateway\n"
         );
+        if let Some(name) = &config.discovery_name {
+            let _ = writeln!(out, "    discovery_name = {name}");
+        }
     }
     for (i, anchor) in config.bootstrap.iter().enumerate() {
         let (host, port) = split_host_port(anchor);
@@ -45,6 +51,26 @@ pub(crate) fn render_config(config: &Config) -> String {
             "\n  [[Bootstrap {i}]]\n    type = TCPClientInterface\n    enabled = yes\n    \
              target_host = {host}\n    target_port = {port}\n"
         );
+    }
+    for (i, anchor) in config.bootstrap_only.iter().enumerate() {
+        let (host, port) = split_host_port(anchor);
+        let _ = write!(
+            out,
+            "\n  [[Bootstrap-only {i}]]\n    type = TCPClientInterface\n    enabled = yes\n    \
+             target_host = {host}\n    target_port = {port}\n    bootstrap_only = yes\n"
+        );
+    }
+    if let Some(i2p) = &config.i2p {
+        let _ = write!(
+            out,
+            "\n  [[I2P]]\n    type = I2PInterface\n    enabled = yes\n"
+        );
+        if i2p.connectable {
+            let _ = writeln!(out, "    connectable = yes");
+        }
+        if !i2p.peers.is_empty() {
+            let _ = writeln!(out, "    peers = {}", i2p.peers.join(", "));
+        }
     }
     for covert in &config.specs.covert {
         let Some(command) = &covert.command else {
@@ -63,10 +89,11 @@ fn yes_no(b: bool) -> &'static str {
     if b { "yes" } else { "no" }
 }
 
-/// Split `host:port` (IPv6 in brackets) into `(host, port)`.
+/// Split `host:port` into `(host, port)`. Brackets are kept: leviculum rebuilds
+/// the address as `format!("{host}:{port}")`, which needs `[..]` for IPv6.
 fn split_host_port(value: &str) -> (&str, &str) {
     match value.rsplit_once(':') {
-        Some((host, port)) => (host.trim_start_matches('[').trim_end_matches(']'), port),
+        Some((host, port)) => (host, port),
         None => (value, ""),
     }
 }
@@ -105,7 +132,7 @@ mod tests {
         let ini = render_config(&cfg);
         assert!(ini.contains("autoconnect_discovered_interfaces = 5"));
         assert!(ini.contains("type = AutoInterface"));
-        assert!(ini.contains("listen_ip = ::"));
+        assert!(ini.contains("listen_ip = [::]"));
         assert!(ini.contains("listen_port = 4242"));
         assert!(ini.contains("target_host = anchor.example"));
         assert!(ini.contains("target_port = 4343"));
@@ -121,6 +148,31 @@ mod tests {
         assert!(ini.contains("discover_interfaces = no"));
         assert!(ini.contains("autoconnect_discovered_interfaces = 0"));
         assert!(!ini.contains("AutoInterface"));
+    }
+
+    #[test]
+    fn default_network_renders_anchors_and_discovery() {
+        let ini = render_config(&Config::default_network("node"));
+        assert!(ini.contains("listen_port = 4242"));
+        assert!(ini.contains("discovery_name = resilum"));
+        assert!(ini.contains("target_host = istanbul.reserve.network"));
+        assert!(ini.contains("bootstrap_only = yes"));
+        assert!(ini.contains("target_host = [200:3953:999b:282e:e526:bcd2:c329:31a]"));
+    }
+
+    #[test]
+    fn renders_i2p_interface() {
+        let cfg = Config {
+            i2p: Some(crate::config::I2pInterface {
+                connectable: true,
+                peers: vec!["a.b32.i2p".into()],
+            }),
+            ..Config::minimal("test")
+        };
+        let ini = render_config(&cfg);
+        assert!(ini.contains("type = I2PInterface"));
+        assert!(ini.contains("connectable = yes"));
+        assert!(ini.contains("peers = a.b32.i2p"));
     }
 
     #[test]
