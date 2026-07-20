@@ -1,0 +1,30 @@
+# Example resilumd config. Pass with: resilumd --config resilumd.example.yaml
+
+instance_name: my-node
+
+# Persist identity and RNS state across restarts (omit for ephemeral).
+storage_path: /var/lib/resilumd
+
+# Auto-discover and mesh with peers on the local segment.
+discover: true
+
+# Optional public TCP listener, so remote peers can reach this node.
+# listen: "[::]:4242"
+
+# Optional always-on anchors to bridge into the wider mesh.
+bootstrap:
+  - anchor.example:4343
+
+# Be an exit: forward inbound links to a local SOCKS/service endpoint.
+# egress:
+#   service: socks-egress
+#   target: 127.0.0.1:1080
+#   exit_country: DE          # ISO code advertised to consumers; omit for unknown
+
+# Be a consumer: accept local TCP and forward through the fastest egress.
+# connect:
+#   services: [socks-egress, tor]
+#   listen_tcp: 127.0.0.1:10808
+#   use_own: smart            # smart | true | false
+#   allow_countries: []
+#   deny_countries: []

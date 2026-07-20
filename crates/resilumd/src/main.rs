@@ -1,50 +1,63 @@
-//! resilumd — thin daemon wrapping `resilum-core`.
-//!
-//! The Linux/server frontend; the container image packages this binary.
-//! Skeleton: builds a node, starts it, drains queued events, stops. Config
-//! loading and signal handling are TODO.
+//! resilumd — thin daemon wrapping `resilum-core`: load a YAML config, start a
+//! node, run until SIGINT/SIGTERM, then stop cleanly.
 
-use resilum_core::{Config, Event, Node};
+mod config;
+
+use std::path::PathBuf;
+use std::sync::mpsc;
+
+use resilum_core::Node;
 
 fn main() {
-    // TODO: load config from a file/env instead of this placeholder.
-    let config = Config::minimal("resilumd");
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
 
-    let mut node = match Node::new(config) {
-        Ok(node) => node,
+    let Some(path) = config_path() else {
+        eprintln!("usage: resilumd --config <path.yaml>");
+        std::process::exit(2);
+    };
+
+    let cfg = match config::load(&path) {
+        Ok(cfg) => cfg,
         Err(e) => {
-            eprintln!("[resilumd] failed to build node: {e}");
+            eprintln!("[resilumd] config error: {e}");
             std::process::exit(1);
         }
     };
 
+    let mut node = match Node::new(cfg) {
+        Ok(node) => node,
+        Err(e) => {
+            eprintln!("[resilumd] build node: {e}");
+            std::process::exit(1);
+        }
+    };
     if let Err(e) = node.start() {
-        eprintln!("[resilumd] failed to start: {e}");
+        eprintln!("[resilumd] start: {e}");
         std::process::exit(1);
     }
-    println!("[resilumd] started (skeleton — no transports yet)");
+    tracing::info!(instance = node.config().instance_name.as_str(), "started");
 
-    // TODO: replace with a real run loop + signal handling (SIGINT/SIGTERM).
-    while let Some(event) = node.poll_event() {
-        log_event(&event);
+    let (tx, rx) = mpsc::channel();
+    if let Err(e) = ctrlc::set_handler(move || {
+        let _ = tx.send(());
+    }) {
+        eprintln!("[resilumd] signal handler: {e}");
     }
+    let _ = rx.recv(); // block until SIGINT/SIGTERM
 
-    let _ = node.stop();
+    tracing::info!("stopping");
+    if let Err(e) = node.stop() {
+        eprintln!("[resilumd] stop: {e}");
+    }
 }
 
-fn log_event(event: &Event) {
-    match event {
-        Event::Started => println!("[resilumd] event: started"),
-        Event::Stopped => println!("[resilumd] event: stopped"),
-        Event::PeerDiscovered(hash) => {
-            println!("[resilumd] event: peer discovered ({} bytes)", hash.len());
-        }
-        Event::Received { source, data } => {
-            println!(
-                "[resilumd] event: received {} bytes from a {}-byte hash",
-                data.len(),
-                source.len()
-            );
-        }
+/// `--config <path>` / `-c <path>`, or a single positional path.
+fn config_path() -> Option<PathBuf> {
+    let mut args = std::env::args().skip(1);
+    match args.next()?.as_str() {
+        "--config" | "-c" => args.next().map(PathBuf::from),
+        positional => Some(PathBuf::from(positional)),
     }
 }
