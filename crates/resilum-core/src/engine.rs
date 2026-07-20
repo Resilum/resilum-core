@@ -6,9 +6,9 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
 
-use leviculum_std::api::{self, Identity, NodeBuilder};
+use leviculum_std::api::{Identity, NodeBuilder};
 
-use crate::{Config, Error, Result};
+use crate::{Config, Error, Result, identity};
 
 /// Render the-compatible Reticulum INI config from `Config`.
 pub(crate) fn render_config(config: &Config) -> String {
@@ -82,8 +82,7 @@ pub(crate) fn build_node(config: &Config) -> Result<(NodeBuilder, Identity)> {
     let config_path: PathBuf = dir.join("config");
     fs::write(&config_path, render_config(config))
         .map_err(|e| Error::Config(format!("write config: {e}")))?;
-    // TODO: load-or-generate a stable identity from `storage_path`.
-    let identity = api::generate_identity();
+    let identity = identity::load_or_create(&dir);
     let builder = NodeBuilder::new()
         .identity(identity.clone())
         .storage_path(dir)
