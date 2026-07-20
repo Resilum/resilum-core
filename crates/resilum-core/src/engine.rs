@@ -10,9 +10,6 @@ use leviculum_std::api::{self, NodeBuilder};
 
 use crate::{Config, Error, Result};
 
-/// Auto-connect cap for discovered interfaces (parity).
-const AUTOCONNECT_MAX: usize = 5;
-
 /// Render the-compatible Reticulum INI config from `Config`.
 pub(crate) fn render_config(config: &Config) -> String {
     let discover = config.discover_interfaces;
@@ -22,7 +19,7 @@ pub(crate) fn render_config(config: &Config) -> String {
     let _ = writeln!(out, "  share_instance = yes");
     let _ = writeln!(out, "  instance_name = {}", config.instance_name);
     let _ = writeln!(out, "  discover_interfaces = {}", yes_no(discover));
-    let cap = if discover { AUTOCONNECT_MAX } else { 0 };
+    let cap = if discover { config.autoconnect_max } else { 0 };
     let _ = writeln!(out, "  autoconnect_discovered_interfaces = {cap}");
     let _ = writeln!(out, "\n[interfaces]");
 
@@ -47,6 +44,16 @@ pub(crate) fn render_config(config: &Config) -> String {
             out,
             "\n  [[Bootstrap {i}]]\n    type = TCPClientInterface\n    enabled = yes\n    \
              target_host = {host}\n    target_port = {port}\n"
+        );
+    }
+    for covert in &config.specs.covert {
+        let Some(command) = &covert.command else {
+            continue;
+        };
+        let _ = write!(
+            out,
+            "\n  [[covert/{}]]\n    type = PipeInterface\n    enabled = yes\n    command = {command}\n",
+            covert.carrier
         );
     }
     out
@@ -112,5 +119,17 @@ mod tests {
         assert!(ini.contains("discover_interfaces = no"));
         assert!(ini.contains("autoconnect_discovered_interfaces = 0"));
         assert!(!ini.contains("AutoInterface"));
+    }
+
+    #[test]
+    fn covert_spec_renders_a_pipe_interface() {
+        let mut cfg = Config::minimal("test");
+        cfg.specs =
+            crate::spec::load("covert:\n  - carrier: icmp\n    command: rns-over-icmp --peer x\n")
+                .unwrap();
+        let ini = render_config(&cfg);
+        assert!(ini.contains("[[covert/icmp]]"));
+        assert!(ini.contains("type = PipeInterface"));
+        assert!(ini.contains("command = rns-over-icmp --peer x"));
     }
 }

@@ -14,6 +14,7 @@ pub struct CovertSpec {
     pub mtu: u32,
     pub bitrate: u64,
     pub identity: String,
+    pub command: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -33,6 +34,8 @@ pub(super) struct RawCovert {
     bitrate: Option<u64>,
     #[serde(default)]
     identity: Option<String>,
+    #[serde(default)]
+    command: Option<String>,
 }
 
 impl RawCovert {
@@ -56,6 +59,7 @@ impl RawCovert {
             mtu,
             bitrate,
             identity: self.identity.unwrap_or_default(),
+            command: self.command,
         })
     }
 }

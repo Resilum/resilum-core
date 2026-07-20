@@ -14,6 +14,8 @@ pub struct Config {
     pub bootstrap: Vec<String>,
     /// Enable the local-segment AutoInterface.
     pub discover_interfaces: bool,
+    /// Max discovered interfaces to auto-connect concurrently; `0` disables it.
+    pub autoconnect_max: usize,
     /// Bridge/VPN/covert specs to run under supervision.
     pub specs: Specs,
 }
@@ -26,6 +28,7 @@ impl Config {
             listen: None,
             bootstrap: Vec::new(),
             discover_interfaces: true,
+            autoconnect_max: 5,
             specs: Specs::default(),
         }
     }
