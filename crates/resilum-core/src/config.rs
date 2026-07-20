@@ -9,6 +9,8 @@ use crate::spec::Specs;
 pub struct EgressListen {
     pub service: String,
     pub target: String,
+    /// Advertised exit country; `*` means unknown.
+    pub exit_country: String,
     pub announce_interval: Duration,
 }
 
@@ -17,7 +19,33 @@ impl EgressListen {
         Self {
             service: service.into(),
             target: target.into(),
+            exit_country: "*".into(),
             announce_interval: Duration::from_secs(600),
+        }
+    }
+}
+
+/// Connect side: accept local TCP on `listen_tcp` and forward each connection
+/// through the fastest eligible egress candidate for one of `services`.
+#[derive(Clone, Debug)]
+pub struct ConnectConfig {
+    pub services: Vec<String>,
+    pub listen_tcp: String,
+    /// Own-candidate policy: `smart` (prefer others, fall back to own), `true`
+    /// (allow own), `false` (never own).
+    pub use_own: String,
+    pub allow_country: Vec<String>,
+    pub deny_country: Vec<String>,
+}
+
+impl ConnectConfig {
+    pub fn new(service: impl Into<String>, listen_tcp: impl Into<String>) -> Self {
+        Self {
+            services: vec![service.into()],
+            listen_tcp: listen_tcp.into(),
+            use_own: "smart".into(),
+            allow_country: Vec::new(),
+            deny_country: Vec::new(),
         }
     }
 }
@@ -38,6 +66,8 @@ pub struct Config {
     pub autoconnect_max: usize,
     /// Egress listen side; when set, run an exit endpoint.
     pub egress: Option<EgressListen>,
+    /// Connect side; when set, accept local TCP and forward through egress.
+    pub connect: Option<ConnectConfig>,
     /// Bridge/VPN/covert specs to run under supervision.
     pub specs: Specs,
 }
@@ -52,6 +82,7 @@ impl Config {
             discover_interfaces: true,
             autoconnect_max: 5,
             egress: None,
+            connect: None,
             specs: Specs::default(),
         }
     }

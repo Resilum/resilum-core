@@ -788,6 +788,7 @@ dependencies = [
  "leviculum-std",
  "regex",
  "serde",
+ "serde_json",
  "serde_yaml_ng",
  "tokio",
  "tracing",

@@ -1,6 +1,7 @@
 //! Shared core for a Resilum node, built on the leviculum Reticulum stack.
 //! Consumed by `resilumd` and, via `resilum-ffi`, the mobile app.
 
+pub mod announce_payload;
 mod bridge;
 mod config;
 pub mod discovery;
@@ -14,7 +15,7 @@ pub mod pump;
 pub mod spec;
 pub mod supervisor;
 
-pub use config::{Config, EgressListen};
+pub use config::{Config, ConnectConfig, EgressListen};
 pub use error::{Error, Result};
 pub use event::Event;
 
@@ -73,10 +74,35 @@ impl Node {
             let _guard = self.runtime.enter();
             let router = Arc::new(link::LinkRouter::default());
             let (inbound_tx, inbound_rx) = mpsc::unbounded_channel();
-            // Subscribe before forward publishes so no event is missed.
+            // Subscribe every bus consumer before forward starts publishing.
             let link_bus = self.events.subscribe();
-            self.tasks
-                .push(tokio::spawn(link::run(router, link_bus, inbound_tx)));
+            self.tasks.push(tokio::spawn(link::run(
+                router.clone(),
+                link_bus,
+                inbound_tx,
+            )));
+            if let Some(connect) = self.config.connect.clone() {
+                for service in &connect.services {
+                    let bus = self.events.subscribe();
+                    self.tasks.push(tokio::spawn(egress::discover::run(
+                        self.registry.clone(),
+                        service.clone(),
+                        bus,
+                    )));
+                }
+                self.tasks.push(tokio::spawn(egress::connect::run(
+                    engine.clone(),
+                    router.clone(),
+                    self.registry.clone(),
+                    connect.clone(),
+                )));
+                self.tasks.push(tokio::spawn(egress::monitor::run(
+                    engine.clone(),
+                    router.clone(),
+                    self.registry.clone(),
+                    connect,
+                )));
+            }
             if let Some(rx) = event_rx {
                 self.tasks
                     .push(tokio::spawn(dispatch::forward(self.events.clone(), rx)));

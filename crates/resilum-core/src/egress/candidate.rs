@@ -79,4 +79,28 @@ impl CandidateRegistry {
         let map = self.by_service.lock().expect("registry lock");
         map.values().flat_map(|m| m.values().cloned()).collect()
     }
+
+    /// Write back probe results. `Some((link_rtt, egress_side))` marks healthy
+    /// and records both legs; `None` marks unhealthy. `now` timestamps the probe.
+    pub fn record_probe(
+        &self,
+        service: &str,
+        dest_hash: &[u8],
+        result: Option<(f64, f64)>,
+        now: f64,
+    ) {
+        let mut map = self.by_service.lock().expect("registry lock");
+        let Some(cand) = map.get_mut(service).and_then(|svc| svc.get_mut(dest_hash)) else {
+            return;
+        };
+        match result {
+            Some((link_rtt, egress_side)) => {
+                cand.link_rtt = Some(link_rtt);
+                cand.egress_side = Some(egress_side);
+                cand.healthy = true;
+            }
+            None => cand.healthy = false,
+        }
+        cand.last_probe = Some(now);
+    }
 }

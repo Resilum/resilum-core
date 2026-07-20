@@ -39,7 +39,8 @@ pub async fn run(
     let dest = build_destination(identity, &cfg.service);
     let dest_hash = *dest.hash();
     engine.register_destination(dest);
-    let announcer = announce_loop(engine.clone(), dest_hash, cfg.announce_interval);
+    let payload = crate::announce_payload::pack(None, &cfg.exit_country, &[]);
+    let announcer = announce_loop(engine.clone(), dest_hash, cfg.announce_interval, payload);
 
     while let Some((link_id, from_link)) = inbound.recv().await {
         let handle = engine.accept_link(&link_id);
@@ -52,10 +53,11 @@ fn announce_loop(
     engine: Arc<LevNode>,
     dest_hash: DestinationHash,
     interval: Duration,
+    payload: Vec<u8>,
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
         loop {
-            let _ = engine.announce(&dest_hash, None).await;
+            let _ = engine.announce(&dest_hash, Some(&payload)).await;
             tokio::time::sleep(interval).await;
         }
     })
