@@ -9,4 +9,6 @@ fn a_fresh_node_is_idle() {
     assert!(node.poll_event().is_none());
     // send is rejected until the node is started
     assert!(node.send(b"dest", b"data").is_err());
+    // the egress registry is exposed and starts empty
+    assert!(node.registry().all().is_empty());
 }

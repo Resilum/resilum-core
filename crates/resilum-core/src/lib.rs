@@ -1,6 +1,7 @@
 //! Shared core for a Resilum node, built on the leviculum Reticulum stack.
 //! Consumed by `resilumd` and, via `resilum-ffi`, the mobile app.
 
+mod bridge;
 mod config;
 pub mod egress;
 mod engine;
@@ -14,8 +15,12 @@ pub use error::{Error, Result};
 pub use event::Event;
 
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use leviculum_std::api::Node as LevNode;
+use tokio::task::JoinHandle;
+
+use crate::egress::CandidateRegistry;
 
 /// A Resilum node: owns the leviculum engine (with its tokio runtime) and an
 /// outbound event queue.
@@ -23,6 +28,8 @@ pub struct Node {
     config: Config,
     runtime: tokio::runtime::Runtime,
     engine: Option<LevNode>,
+    registry: Arc<CandidateRegistry>,
+    tasks: Vec<JoinHandle<()>>,
     events: VecDeque<Event>,
 }
 
@@ -36,6 +43,8 @@ impl Node {
             config,
             runtime,
             engine: None,
+            registry: Arc::new(CandidateRegistry::default()),
+            tasks: Vec::new(),
             events: VecDeque::new(),
         })
     }
@@ -51,12 +60,20 @@ impl Node {
         self.runtime
             .block_on(engine.start())
             .map_err(|e| Error::Engine(e.to_string()))?;
+        let tasks = bridge::tasks_for(&self.config.specs);
+        self.tasks = {
+            let _guard = self.runtime.enter();
+            supervisor::spawn_all(tasks)
+        };
         self.engine = Some(engine);
         self.events.push_back(Event::Started);
         Ok(())
     }
 
     pub fn stop(&mut self) -> Result<()> {
+        for task in self.tasks.drain(..) {
+            task.abort();
+        }
         if let Some(mut engine) = self.engine.take() {
             self.runtime
                 .block_on(engine.stop())
@@ -83,5 +100,10 @@ impl Node {
 
     pub fn config(&self) -> &Config {
         &self.config
+    }
+
+    /// The shared egress candidate registry.
+    pub fn registry(&self) -> &Arc<CandidateRegistry> {
+        &self.registry
     }
 }

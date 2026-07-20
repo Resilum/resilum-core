@@ -19,7 +19,7 @@ struct Doc {
 }
 
 /// The three validated spec families parsed from one config document.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Specs {
     pub bridges: Vec<BridgeSpec>,
     pub vpn: Vec<VpnSpec>,

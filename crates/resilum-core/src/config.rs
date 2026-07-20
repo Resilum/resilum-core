@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::spec::Specs;
+
 /// Typed node configuration. Grows as the port progresses.
 #[derive(Clone, Debug, Default)]
 pub struct Config {
@@ -12,6 +14,8 @@ pub struct Config {
     pub bootstrap: Vec<String>,
     /// Enable the local-segment AutoInterface.
     pub discover_interfaces: bool,
+    /// Bridge/VPN/covert specs to run under supervision.
+    pub specs: Specs,
 }
 
 impl Config {
@@ -22,6 +26,7 @@ impl Config {
             listen: None,
             bootstrap: Vec::new(),
             discover_interfaces: true,
+            specs: Specs::default(),
         }
     }
 }
