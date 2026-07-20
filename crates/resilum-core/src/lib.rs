@@ -3,6 +3,7 @@
 
 mod bridge;
 mod config;
+pub mod discovery;
 pub mod dispatch;
 pub mod egress;
 mod engine;
