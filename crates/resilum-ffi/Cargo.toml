@@ -10,3 +10,6 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 resilum-core = { path = "../resilum-core" }
+
+[lints]
+workspace = true

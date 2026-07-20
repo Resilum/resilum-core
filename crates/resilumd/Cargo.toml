@@ -7,3 +7,6 @@ description = "Resilum node daemon (Linux/server; packaged into the container im
 
 [dependencies]
 resilum-core = { path = "../resilum-core" }
+
+[lints]
+workspace = true

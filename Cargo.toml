@@ -12,3 +12,6 @@ edition = "2024"
 # AGPL-3.0 because the core links the leviculum Rust Reticulum stack, which is
 # AGPL-3.0. The copyleft propagates to the whole project (core + daemon + mobile).
 license = "AGPL-3.0-only"
+
+[workspace.lints.clippy]
+all = "warn"
