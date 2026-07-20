@@ -2,6 +2,7 @@
 //! Consumed by `resilumd` and, via `resilum-ffi`, the mobile app.
 
 mod config;
+pub mod egress;
 mod engine;
 mod error;
 mod event;
