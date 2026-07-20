@@ -23,7 +23,7 @@ fn node_starts_on_real_engine() {
     let cfg = Config {
         storage_path: Some(dir.clone()),
         discover_interfaces: false,
-        ..Config::minimal("smoke")
+        ..Config::minimal(format!("smoke-bare-{}", std::process::id()))
     };
 
     let mut node = Node::new(cfg).expect("new");
@@ -42,18 +42,23 @@ fn node_starts_on_real_engine() {
 #[test]
 fn tcp_listener_from_config_binds() {
     let dir = temp_dir("listen");
-    let port = free_port();
-    let cfg = Config {
-        storage_path: Some(dir.clone()),
-        discover_interfaces: false,
-        listen: Some(format!("127.0.0.1:{port}")),
-        ..Config::minimal("smoke")
-    };
 
-    let mut node = Node::new(cfg).expect("new");
-    node.start().expect("start");
+    // free_port() drops its probe socket, which can leave the port briefly
+    // unbindable; retry with a fresh port until the engine takes one.
+    let (mut node, port) = (0..10)
+        .find_map(|_| {
+            let port = free_port();
+            let cfg = Config {
+                storage_path: Some(dir.clone()),
+                discover_interfaces: false,
+                listen: Some(format!("127.0.0.1:{port}")),
+                ..Config::minimal(format!("smoke-listen-{}", std::process::id()))
+            };
+            let mut node = Node::new(cfg).expect("new");
+            node.start().is_ok().then_some((node, port))
+        })
+        .expect("engine started with a listener");
 
-    // Poll: the interface spawns asynchronously after start returns.
     let mut connected = false;
     for _ in 0..40 {
         if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
