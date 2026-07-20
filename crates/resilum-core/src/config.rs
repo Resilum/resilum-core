@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-/// Typed node configuration — the equivalent of `network config`'s
-/// `[interfaces]` plus bridge specs. Grows as the port progresses.
+/// Typed node configuration. Grows as the port progresses.
 #[derive(Clone, Debug, Default)]
 pub struct Config {
     pub instance_name: String,

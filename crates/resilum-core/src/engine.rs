@@ -1,6 +1,5 @@
-//! `Config` → a configured leviculum `NodeBuilder`. The analog of rendering
-//! `network config`'s `[interfaces]`: a TCP listener, TCP clients to anchors,
-//! and the local-segment AutoInterface.
+//! Builds leviculum interfaces from `Config`: a TCP listener, TCP clients to
+//! anchors, and the local-segment AutoInterface.
 
 use leviculum_std::api::{self, NodeBuilder};
 

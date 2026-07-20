@@ -1,5 +1,5 @@
-//! Supervised async tasks with exponential backoff — the in-process analog of
-//! the supervisor. A failing task restarts without taking the node down.
+//! Supervised async tasks with exponential backoff: a failing task restarts
+//! without taking the node down.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use tokio::task::JoinHandle;
 
-/// Restart delays after consecutive failures, matching supervisor.
+/// Restart delays after consecutive failures.
 const BACKOFF_SECS: [u64; 6] = [1, 2, 5, 15, 30, 60];
 
 fn backoff(fails: usize) -> Duration {

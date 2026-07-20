@@ -5,6 +5,7 @@ mod config;
 mod engine;
 mod error;
 mod event;
+pub mod spec;
 pub mod supervisor;
 
 pub use config::Config;
@@ -45,7 +46,7 @@ impl Node {
         let mut engine = engine::configure_builder(&self.config)?
             .build()
             .map_err(|e| Error::Engine(e.to_string()))?;
-        // leviculum's lifecycle is async; block the caller like `resilum-ffi`.
+        // leviculum's lifecycle is async; block the caller.
         self.runtime
             .block_on(engine.start())
             .map_err(|e| Error::Engine(e.to_string()))?;
