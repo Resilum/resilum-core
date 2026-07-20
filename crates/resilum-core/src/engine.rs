@@ -1,65 +1,116 @@
-//! Builds leviculum interfaces from `Config`: a TCP listener, TCP clients to
-//! anchors, and the local-segment AutoInterface.
+//! Renders a Reticulum config file from `Config` and builds a leviculum node
+//! from it. Interfaces, discovery auto-connect and (later) Pipe transports all
+//! come from the rendered config, driven the same way as the project.
+
+use std::fmt::Write as _;
+use std::fs;
+use std::path::PathBuf;
 
 use leviculum_std::api::{self, NodeBuilder};
 
 use crate::{Config, Error, Result};
 
-pub(crate) fn configure_builder(config: &Config) -> Result<NodeBuilder> {
-    // TODO: load-or-generate a stable identity from `storage_path`.
-    let mut builder = NodeBuilder::new().identity(api::generate_identity());
+/// Auto-connect cap for discovered interfaces (parity).
+const AUTOCONNECT_MAX: usize = 5;
 
-    if let Some(path) = &config.storage_path {
-        builder = builder.storage_path(path.clone());
+/// Render the-compatible Reticulum INI config from `Config`.
+pub(crate) fn render_config(config: &Config) -> String {
+    let discover = config.discover_interfaces;
+    let mut out = String::new();
+    let _ = writeln!(out, "[reticulum]");
+    let _ = writeln!(out, "  enable_transport = yes");
+    let _ = writeln!(out, "  share_instance = yes");
+    let _ = writeln!(out, "  instance_name = {}", config.instance_name);
+    let _ = writeln!(out, "  discover_interfaces = {}", yes_no(discover));
+    let cap = if discover { AUTOCONNECT_MAX } else { 0 };
+    let _ = writeln!(out, "  autoconnect_discovered_interfaces = {cap}");
+    let _ = writeln!(out, "\n[interfaces]");
+
+    if discover {
+        let _ = write!(
+            out,
+            "\n  [[LAN AutoDiscovery]]\n    type = AutoInterface\n    enabled = yes\n"
+        );
     }
     if let Some(listen) = &config.listen {
-        let addr = listen
-            .parse()
-            .map_err(|_| Error::Config(format!("bad listen address: {listen}")))?;
-        builder = builder.add_tcp_server(addr);
+        let (host, port) = split_host_port(listen);
+        let _ = write!(
+            out,
+            "\n  [[Public TCP listener]]\n    type = TCPServerInterface\n    enabled = yes\n    \
+             listen_ip = {host}\n    listen_port = {port}\n    discoverable = yes\n    \
+             mode = gateway\n"
+        );
     }
-    for anchor in &config.bootstrap {
-        let addr = anchor
-            .parse()
-            .map_err(|_| Error::Config(format!("bad bootstrap address: {anchor}")))?;
-        builder = builder.add_tcp_client(addr);
+    for (i, anchor) in config.bootstrap.iter().enumerate() {
+        let (host, port) = split_host_port(anchor);
+        let _ = write!(
+            out,
+            "\n  [[Bootstrap {i}]]\n    type = TCPClientInterface\n    enabled = yes\n    \
+             target_host = {host}\n    target_port = {port}\n"
+        );
     }
-    if config.discover_interfaces {
-        builder = builder.add_auto_interface();
+    out
+}
+
+fn yes_no(b: bool) -> &'static str {
+    if b { "yes" } else { "no" }
+}
+
+/// Split `host:port` (IPv6 in brackets) into `(host, port)`.
+fn split_host_port(value: &str) -> (&str, &str) {
+    match value.rsplit_once(':') {
+        Some((host, port)) => (host.trim_start_matches('[').trim_end_matches(']'), port),
+        None => (value, ""),
     }
-    Ok(builder)
+}
+
+/// Write the rendered config to disk and build a leviculum node from it.
+pub(crate) fn build_node(config: &Config) -> Result<NodeBuilder> {
+    let dir = config
+        .storage_path
+        .clone()
+        .unwrap_or_else(|| std::env::temp_dir().join(format!("resilum-{}", config.instance_name)));
+    fs::create_dir_all(&dir).map_err(|e| Error::Config(format!("config dir: {e}")))?;
+    let config_path: PathBuf = dir.join("config");
+    fs::write(&config_path, render_config(config))
+        .map_err(|e| Error::Config(format!("write config: {e}")))?;
+    // TODO: load-or-generate a stable identity from `storage_path`.
+    Ok(NodeBuilder::new()
+        .identity(api::generate_identity())
+        .storage_path(dir)
+        .config_file(config_path))
 }
 
 #[cfg(test)]
 mod tests {
-    use super::configure_builder;
-    use crate::{Config, Error};
+    use super::render_config;
+    use crate::Config;
 
     #[test]
-    fn maps_a_wellformed_config() {
+    fn renders_listener_bootstrap_and_autoconnect() {
         let cfg = Config {
             listen: Some("[::]:4242".into()),
-            bootstrap: vec!["203.0.113.10:4242".into()],
+            bootstrap: vec!["anchor.example:4343".into()],
             ..Config::minimal("test")
         };
-        assert!(configure_builder(&cfg).is_ok());
+        let ini = render_config(&cfg);
+        assert!(ini.contains("autoconnect_discovered_interfaces = 5"));
+        assert!(ini.contains("type = AutoInterface"));
+        assert!(ini.contains("listen_ip = ::"));
+        assert!(ini.contains("listen_port = 4242"));
+        assert!(ini.contains("target_host = anchor.example"));
+        assert!(ini.contains("target_port = 4343"));
     }
 
     #[test]
-    fn rejects_bad_listen() {
+    fn no_discovery_disables_autoconnect_and_auto_interface() {
         let cfg = Config {
-            listen: Some("nope".into()),
-            ..Config::minimal("test")
+            discover_interfaces: false,
+            ..Config::minimal("x")
         };
-        assert!(matches!(configure_builder(&cfg), Err(Error::Config(_))));
-    }
-
-    #[test]
-    fn rejects_bad_bootstrap() {
-        let cfg = Config {
-            bootstrap: vec!["nope".into()],
-            ..Config::minimal("test")
-        };
-        assert!(matches!(configure_builder(&cfg), Err(Error::Config(_))));
+        let ini = render_config(&cfg);
+        assert!(ini.contains("discover_interfaces = no"));
+        assert!(ini.contains("autoconnect_discovered_interfaces = 0"));
+        assert!(!ini.contains("AutoInterface"));
     }
 }

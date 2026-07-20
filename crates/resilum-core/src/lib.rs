@@ -57,7 +57,7 @@ impl Node {
         if self.engine.is_some() {
             return Err(Error::AlreadyRunning);
         }
-        let mut engine = engine::configure_builder(&self.config)?
+        let mut engine = engine::build_node(&self.config)?
             .build()
             .map_err(|e| Error::Engine(e.to_string()))?;
         // leviculum's lifecycle is async; block the caller.
