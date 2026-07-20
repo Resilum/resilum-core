@@ -1,5 +1,4 @@
-//! Load-or-create the node identity, persisted as raw private-key bytes under
-//! the storage path so destination hashes survive restarts.
+//! Persist the node identity so destination hashes survive restarts.
 
 use std::path::Path;
 
@@ -7,17 +6,19 @@ use leviculum_std::api::{self, Identity};
 
 const FILE: &str = "identity";
 
-/// Load the identity from `<dir>/identity`, or generate and persist one. Returns
-/// a fresh unpersisted identity when the file cannot be read or written.
 pub(crate) fn load_or_create(dir: &Path) -> Identity {
-    let path = dir.join(FILE);
-    if let Ok(bytes) = std::fs::read(&path)
+    load_or_create_at(&dir.join(FILE))
+}
+
+/// Loads `path`, else generates and persists a fresh identity at `0600`.
+pub(crate) fn load_or_create_at(path: &Path) -> Identity {
+    if let Ok(bytes) = std::fs::read(path)
         && let Ok(identity) = Identity::from_private_key_bytes(&bytes)
     {
         return identity;
     }
     let identity = api::generate_identity();
-    persist(&path, &identity);
+    persist(path, &identity);
     identity
 }
 

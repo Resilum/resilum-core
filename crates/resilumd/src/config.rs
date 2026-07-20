@@ -21,6 +21,9 @@ pub struct FileConfig {
     pub bootstrap: Vec<String>,
     #[serde(default = "yes")]
     pub discover: bool,
+    /// Override the discovery-identity path (relative to storage, or absolute).
+    #[serde(default)]
+    pub network_identity: Option<String>,
     #[serde(default)]
     pub i2p: Option<I2pFile>,
     #[serde(default)]
@@ -89,6 +92,9 @@ impl FileConfig {
         }
         cfg.bootstrap.extend(self.bootstrap);
         cfg.discover_interfaces = self.discover;
+        if let Some(path) = self.network_identity {
+            cfg.network_identity = Some(path.into());
+        }
         cfg.i2p = self.i2p.map(|i| I2pInterface {
             connectable: i.connectable,
             peers: i.peers,

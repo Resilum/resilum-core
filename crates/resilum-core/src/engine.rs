@@ -1,6 +1,4 @@
-//! Renders a Reticulum config file from `Config` and builds a leviculum node
-//! from it. Interfaces, discovery auto-connect and (later) Pipe transports all
-//! come from the rendered config, driven the same way as the project.
+//! Renders the Reticulum INI config from `Config` and builds a leviculum node.
 
 use std::fmt::Write as _;
 use std::fs;
@@ -10,7 +8,6 @@ use leviculum_std::api::{Identity, NodeBuilder};
 
 use crate::{Config, Error, Result, identity};
 
-/// Render the-compatible Reticulum INI config from `Config`.
 pub(crate) fn render_config(config: &Config) -> String {
     let discover = config.discover_interfaces;
     let mut out = String::new();
@@ -98,8 +95,7 @@ fn split_host_port(value: &str) -> (&str, &str) {
     }
 }
 
-/// Write the rendered config to disk and build a leviculum node builder from
-/// it. The identity is returned so egress destinations bind to the same one.
+/// Returns the identity too, so egress destinations bind to the same one.
 pub(crate) fn build_node(config: &Config) -> Result<(NodeBuilder, Identity)> {
     let dir = config
         .storage_path
@@ -110,11 +106,31 @@ pub(crate) fn build_node(config: &Config) -> Result<(NodeBuilder, Identity)> {
     fs::write(&config_path, render_config(config))
         .map_err(|e| Error::Config(format!("write config: {e}")))?;
     let identity = identity::load_or_create(&dir);
+    // Pre-create at 0600; leviculum would otherwise write it world-readable.
+    if let Some(network_identity) = &config.network_identity {
+        identity::load_or_create_at(&resolve_under(network_identity, &dir));
+    }
     let builder = NodeBuilder::new()
         .identity(identity.clone())
         .storage_path(dir)
         .config_file(config_path);
     Ok((builder, identity))
+}
+
+/// Mirrors leviculum's path resolution: `~/` expands, relative resolves under `storage`.
+fn resolve_under(path: &std::path::Path, storage: &std::path::Path) -> PathBuf {
+    let expanded = match path.strip_prefix("~") {
+        Ok(rest) => match std::env::var_os("HOME") {
+            Some(home) => PathBuf::from(home).join(rest),
+            None => path.to_path_buf(),
+        },
+        Err(_) => path.to_path_buf(),
+    };
+    if expanded.is_absolute() {
+        expanded
+    } else {
+        storage.join(expanded)
+    }
 }
 
 #[cfg(test)]
@@ -155,6 +171,7 @@ mod tests {
         let ini = render_config(&Config::default_network("node"));
         assert!(ini.contains("listen_port = 4242"));
         assert!(ini.contains("discovery_name = resilum"));
+        assert!(ini.contains("network_identity = network_identity"));
         assert!(ini.contains("target_host = istanbul.reserve.network"));
         assert!(ini.contains("bootstrap_only = yes"));
         assert!(ini.contains("target_host = [200:3953:999b:282e:e526:bcd2:c329:31a]"));

@@ -3,24 +3,19 @@ use std::time::Duration;
 
 use crate::spec::Specs;
 
-/// Native I2P interface (leviculum `I2PInterface` over the local i2pd SAM at
-/// 127.0.0.1:7656). Yggdrasil needs no dedicated type — bind `listen`/`bootstrap`
-/// to Yggdrasil addresses (or `[::]`), it is plain TCP over the overlay.
+/// Native I2P interface over the local i2pd SAM. Yggdrasil needs no dedicated
+/// type: it is plain TCP over the overlay, reached via `listen`/`bootstrap`.
 #[derive(Clone, Debug, Default)]
 pub struct I2pInterface {
-    /// Open a local inbound endpoint, i.e. be reachable over I2P.
     pub connectable: bool,
-    /// Remote `.b32.i2p` peers to dial.
     pub peers: Vec<String>,
 }
 
-/// Egress listen side: advertise `service` and forward inbound links to a local
-/// TCP `target`.
 #[derive(Clone, Debug)]
 pub struct EgressListen {
     pub service: String,
     pub target: String,
-    /// Advertised exit country; `*` means unknown.
+    /// `*` means unknown.
     pub exit_country: String,
     pub announce_interval: Duration,
 }
@@ -36,14 +31,11 @@ impl EgressListen {
     }
 }
 
-/// Connect side: accept local TCP on `listen_tcp` and forward each connection
-/// through the fastest eligible egress candidate for one of `services`.
 #[derive(Clone, Debug)]
 pub struct ConnectConfig {
     pub services: Vec<String>,
     pub listen_tcp: String,
-    /// Own-candidate policy: `smart` (prefer others, fall back to own), `true`
-    /// (allow own), `false` (never own).
+    /// `smart` | `true` | `false`.
     pub use_own: String,
     pub allow_country: Vec<String>,
     pub deny_country: Vec<String>,
@@ -61,33 +53,23 @@ impl ConnectConfig {
     }
 }
 
-/// Typed node configuration. Grows as the port progresses.
 #[derive(Clone, Debug, Default)]
 pub struct Config {
     pub instance_name: String,
-    /// leviculum `storage_path`; state is not persisted when unset.
     pub storage_path: Option<PathBuf>,
-    /// Public TCP listen address, e.g. `[::]:4242`.
     pub listen: Option<String>,
-    /// `discovery_name` advertised on the public listener (needs `network_identity`).
+    /// Needs `network_identity` to take effect.
     pub discovery_name: Option<String>,
-    /// Private-discovery identity path; enables signed interface discovery.
     pub network_identity: Option<PathBuf>,
-    /// Persistent anchor `host:port` addresses.
     pub bootstrap: Vec<String>,
-    /// Bootstrap-only anchors (`bootstrap_only = yes`): used to learn paths.
+    /// Rendered with `bootstrap_only = yes`.
     pub bootstrap_only: Vec<String>,
-    /// Enable the local-segment AutoInterface.
     pub discover_interfaces: bool,
-    /// Native I2P interface, when reachability over I2P is wanted.
     pub i2p: Option<I2pInterface>,
-    /// Max discovered interfaces to auto-connect concurrently; `0` disables it.
+    /// `0` disables auto-connect.
     pub autoconnect_max: usize,
-    /// Egress listen side; when set, run an exit endpoint.
     pub egress: Option<EgressListen>,
-    /// Connect side; when set, accept local TCP and forward through egress.
     pub connect: Option<ConnectConfig>,
-    /// Bridge/VPN/covert specs to run under supervision.
     pub specs: Specs,
 }
 
@@ -110,14 +92,14 @@ impl Config {
         }
     }
 
-    /// The out-of-the-box network: a discoverable public listener plus the same
-    /// public and Yggdrasil anchors the project ships, so a bare node
-    /// joins the global mesh automatically.
+    /// A bare node that joins the global mesh: the public and Yggdrasil anchors
+    /// the project ships, plus a discoverable listener.
     pub fn default_network(instance_name: impl Into<String>) -> Self {
         use crate::defaults;
         Self {
             listen: Some(defaults::DEFAULT_LISTEN.into()),
             discovery_name: Some(defaults::DISCOVERY_NAME.into()),
+            network_identity: Some(defaults::NETWORK_IDENTITY_FILE.into()),
             bootstrap: defaults::YGG_ANCHORS
                 .iter()
                 .map(|s| s.to_string())
