@@ -2,7 +2,7 @@
 //! link_rtt/egress_side back to the registry, so the selector sees measured
 //! effective_latency.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -46,9 +46,9 @@ pub async fn run(
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
     cfg: ConnectConfig,
+    skip: HashMap<String, HashSet<Vec<u8>>>,
 ) {
     let targets = resolve_targets();
-    let skip = HashMap::new();
     let base = Instant::now();
     loop {
         sleep(TICK).await;

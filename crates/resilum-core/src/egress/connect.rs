@@ -1,7 +1,7 @@
 //! Connect side: accept local TCP and forward each connection through the
 //! fastest eligible egress candidate, chosen per connection and kept sticky.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -22,11 +22,11 @@ pub async fn run(
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
     cfg: ConnectConfig,
+    skip: HashMap<String, HashSet<Vec<u8>>>,
 ) {
     let Ok(listener) = TcpListener::bind(&cfg.listen_tcp).await else {
         return;
     };
-    let skip = HashMap::new();
     let mut current: Option<Vec<u8>> = None;
     while let Ok((tcp, _)) = listener.accept().await {
         let candidates = registry.all();

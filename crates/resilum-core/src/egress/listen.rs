@@ -17,6 +17,14 @@ use crate::pump::pump;
 
 const APP_NAME: &str = "resilum";
 
+/// The destination hash this node announces for `service`, for self-skip.
+pub(crate) fn dest_hash(identity: Identity, service: &str) -> Vec<u8> {
+    build_destination(identity, service)
+        .hash()
+        .as_bytes()
+        .to_vec()
+}
+
 fn build_destination(identity: Identity, service: &str) -> Destination {
     Destination::new(
         Some(identity),

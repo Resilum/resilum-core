@@ -20,7 +20,7 @@ pub use config::{Config, ConnectConfig, EgressListen};
 pub use error::{Error, Result};
 pub use event::Event;
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
 use leviculum_std::api::Node as LevNode;
@@ -83,6 +83,12 @@ impl Node {
                 inbound_tx,
             )));
             if let Some(connect) = self.config.connect.clone() {
+                // Skip this node's own egress announce when selecting a peer.
+                let mut skip: HashMap<String, HashSet<Vec<u8>>> = HashMap::new();
+                if let Some(own) = &self.config.egress {
+                    let hash = egress::listen::dest_hash(identity.clone(), &own.service);
+                    skip.entry(own.service.clone()).or_default().insert(hash);
+                }
                 for service in &connect.services {
                     let bus = self.events.subscribe();
                     self.tasks.push(tokio::spawn(egress::discover::run(
@@ -96,12 +102,14 @@ impl Node {
                     router.clone(),
                     self.registry.clone(),
                     connect.clone(),
+                    skip.clone(),
                 )));
                 self.tasks.push(tokio::spawn(egress::monitor::run(
                     engine.clone(),
                     router.clone(),
                     self.registry.clone(),
                     connect,
+                    skip,
                 )));
             }
             if let Some(rx) = event_rx {
