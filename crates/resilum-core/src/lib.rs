@@ -9,6 +9,7 @@ pub mod egress;
 mod engine;
 mod error;
 mod event;
+pub mod link;
 pub mod spec;
 pub mod supervisor;
 
