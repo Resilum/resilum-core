@@ -3,6 +3,7 @@
 
 mod bridge;
 mod config;
+pub mod dispatch;
 pub mod egress;
 mod engine;
 mod error;
@@ -29,8 +30,9 @@ pub struct Node {
     runtime: tokio::runtime::Runtime,
     engine: Option<LevNode>,
     registry: Arc<CandidateRegistry>,
+    events: dispatch::Events,
     tasks: Vec<JoinHandle<()>>,
-    events: VecDeque<Event>,
+    event_queue: VecDeque<Event>,
 }
 
 impl Node {
@@ -44,8 +46,9 @@ impl Node {
             runtime,
             engine: None,
             registry: Arc::new(CandidateRegistry::default()),
+            events: dispatch::Events::new(1024),
             tasks: Vec::new(),
-            events: VecDeque::new(),
+            event_queue: VecDeque::new(),
         })
     }
 
@@ -60,13 +63,18 @@ impl Node {
         self.runtime
             .block_on(engine.start())
             .map_err(|e| Error::Engine(e.to_string()))?;
-        let tasks = bridge::tasks_for(&self.config.specs);
-        self.tasks = {
+        let event_rx = engine.take_event_receiver();
+        let bridge_tasks = bridge::tasks_for(&self.config.specs);
+        {
             let _guard = self.runtime.enter();
-            supervisor::spawn_all(tasks)
-        };
+            if let Some(rx) = event_rx {
+                self.tasks
+                    .push(tokio::spawn(dispatch::forward(self.events.clone(), rx)));
+            }
+            self.tasks.extend(supervisor::spawn_all(bridge_tasks));
+        }
         self.engine = Some(engine);
-        self.events.push_back(Event::Started);
+        self.event_queue.push_back(Event::Started);
         Ok(())
     }
 
@@ -78,7 +86,7 @@ impl Node {
             self.runtime
                 .block_on(engine.stop())
                 .map_err(|e| Error::Engine(e.to_string()))?;
-            self.events.push_back(Event::Stopped);
+            self.event_queue.push_back(Event::Stopped);
         }
         Ok(())
     }
@@ -95,7 +103,7 @@ impl Node {
     }
 
     pub fn poll_event(&mut self) -> Option<Event> {
-        self.events.pop_front()
+        self.event_queue.pop_front()
     }
 
     pub fn config(&self) -> &Config {
@@ -105,5 +113,10 @@ impl Node {
     /// The shared egress candidate registry.
     pub fn registry(&self) -> &Arc<CandidateRegistry> {
         &self.registry
+    }
+
+    /// The node-event bus; subsystems subscribe to receive engine events.
+    pub fn events(&self) -> &dispatch::Events {
+        &self.events
     }
 }
