@@ -29,7 +29,7 @@ use crate::egress::CandidateRegistry;
 pub struct Node {
     config: Config,
     runtime: tokio::runtime::Runtime,
-    engine: Option<LevNode>,
+    engine: Option<Arc<LevNode>>,
     registry: Arc<CandidateRegistry>,
     events: dispatch::Events,
     tasks: Vec<JoinHandle<()>>,
@@ -65,6 +65,7 @@ impl Node {
             .block_on(engine.start())
             .map_err(|e| Error::Engine(e.to_string()))?;
         let event_rx = engine.take_event_receiver();
+        let engine = Arc::new(engine);
         let bridge_tasks = bridge::tasks_for(&self.config.specs);
         {
             let _guard = self.runtime.enter();
@@ -83,10 +84,15 @@ impl Node {
         for task in self.tasks.drain(..) {
             task.abort();
         }
-        if let Some(mut engine) = self.engine.take() {
-            self.runtime
-                .block_on(engine.stop())
-                .map_err(|e| Error::Engine(e.to_string()))?;
+        if let Some(engine) = self.engine.take() {
+            match Arc::try_unwrap(engine) {
+                Ok(mut engine) => self
+                    .runtime
+                    .block_on(engine.stop())
+                    .map_err(|e| Error::Engine(e.to_string()))?,
+                // A clone still lingers; leviculum's Drop tears the engine down.
+                Err(_shared) => {}
+            }
             self.event_queue.push_back(Event::Stopped);
         }
         Ok(())
@@ -94,6 +100,11 @@ impl Node {
 
     pub fn is_running(&self) -> bool {
         self.engine.is_some()
+    }
+
+    /// Shared engine handle for runtime tasks; `None` before start / after stop.
+    pub fn engine(&self) -> Option<Arc<LevNode>> {
+        self.engine.clone()
     }
 
     pub fn send(&mut self, _dest: &[u8], _data: &[u8]) -> Result<()> {

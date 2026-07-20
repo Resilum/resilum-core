@@ -34,7 +34,13 @@ fn node_starts_on_real_engine() {
         "engine rejected rendered config: {started:?}"
     );
     assert!(node.is_running());
+
+    let engine = node.engine().expect("engine handle after start");
+    assert!(engine.is_running(), "shared engine handle drives &self ops");
+    drop(engine); // release the clone so stop() reclaims exclusive ownership
+
     node.stop().expect("stop");
+    assert!(node.engine().is_none(), "engine handle cleared after stop");
 
     let _ = std::fs::remove_dir_all(dir);
 }
