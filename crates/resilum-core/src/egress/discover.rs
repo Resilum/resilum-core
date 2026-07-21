@@ -1,43 +1,49 @@
-//! Populate the candidate registry from egress announces.
+//! Populate the candidate registry from egress announces, and drop (and tear
+//! down active links to) peers whose announce stops parsing.
 
 use std::sync::Arc;
 
 use leviculum_std::NodeEvent;
-use leviculum_std::api::Destination;
+use leviculum_std::api::{Destination, Node as LevNode};
 use tokio::sync::broadcast;
 
 use crate::announce_payload;
-use crate::egress::CandidateRegistry;
+use crate::egress::{ActiveLinks, CandidateRegistry};
 
 const APP_NAME: &str = "resilum";
 
-/// Consume announces for `service`, upserting parsed peers into `registry` and
-/// dropping peers whose announce no longer parses. Runs until the bus closes.
 pub async fn run(
+    engine: Arc<LevNode>,
     registry: Arc<CandidateRegistry>,
+    active: Arc<ActiveLinks>,
     service: String,
     mut bus: broadcast::Receiver<Arc<NodeEvent>>,
 ) {
     let want = Destination::compute_name_hash(APP_NAME, &["bridge", "tcp", &service]);
     loop {
-        match bus.recv().await {
-            Ok(ev) => consume(&registry, &service, &want, &ev),
+        let ev = match bus.recv().await {
+            Ok(ev) => ev,
             Err(broadcast::error::RecvError::Lagged(_)) => continue,
             Err(broadcast::error::RecvError::Closed) => break,
+        };
+        let NodeEvent::AnnounceReceived { announce, .. } = &*ev else {
+            continue;
+        };
+        if announce.name_hash().as_slice() != want {
+            continue;
         }
-    }
-}
-
-fn consume(registry: &CandidateRegistry, service: &str, want: &[u8], ev: &NodeEvent) {
-    let NodeEvent::AnnounceReceived { announce, .. } = ev else {
-        return;
-    };
-    if announce.name_hash().as_slice() != want {
-        return;
-    }
-    let dest_hash = announce.destination_hash().as_bytes().to_vec();
-    match announce_payload::parse(announce.app_data()) {
-        Some(p) => registry.upsert(service, dest_hash, &p.exit_country, p.capabilities),
-        None => registry.remove(service, &dest_hash),
+        let dest_hash = announce.destination_hash().as_bytes();
+        match announce_payload::parse(announce.app_data()) {
+            Some(p) => registry.upsert(
+                &service,
+                dest_hash.to_vec(),
+                &p.exit_country,
+                p.capabilities,
+            ),
+            None => {
+                registry.remove(&service, dest_hash);
+                active.teardown_for(&engine, dest_hash).await;
+            }
+        }
     }
 }

@@ -29,6 +29,35 @@ pub struct Probe {
     pub e2e: f64,
 }
 
+/// How a service's egress latency is measured. Extend with a variant (and a
+/// `for_service` mapping) to latency-probe a non-SOCKS service.
+pub enum ProbeStrategy {
+    /// SOCKS5 CONNECT to a clearnet target (socks-egress, tor, i2p).
+    Socks,
+}
+
+impl ProbeStrategy {
+    /// The strategy for `service`, or `None` when it is not latency-probed.
+    pub fn for_service(service: &str) -> Option<Self> {
+        match service {
+            "socks-egress" | "tor" | "i2p" => Some(Self::Socks),
+            _ => None,
+        }
+    }
+
+    async fn measure(
+        &self,
+        handle: &LinkHandle,
+        from_link: &mut UnboundedReceiver<LinkMsg>,
+        host: Ipv4Addr,
+        port: u16,
+    ) -> Option<Probe> {
+        match self {
+            Self::Socks => socks_probe(handle, from_link, host, port).await,
+        }
+    }
+}
+
 /// Probe targets by precedence: `RESILUM_EGRESS_PROBE_TARGETS` (comma-separated
 /// `IPv4:port`) over built-in anycast defaults.
 pub fn resolve_targets() -> Vec<(Ipv4Addr, u16)> {
@@ -59,11 +88,14 @@ pub async fn e2e_probe(
     engine: &Arc<LevNode>,
     router: &Arc<LinkRouter>,
     candidate: &Candidate,
+    strategy: &ProbeStrategy,
     targets: &[(Ipv4Addr, u16)],
 ) -> Option<Probe> {
     for (host, port) in targets {
         let (mut handle, link_id, mut from_link) = dial(engine, router, candidate).await?;
-        let result = socks_probe(&handle, &mut from_link, *host, *port).await;
+        let result = strategy
+            .measure(&handle, &mut from_link, *host, *port)
+            .await;
         router.detach(&link_id);
         let _ = handle.close().await;
         if result.is_some() {
@@ -127,5 +159,13 @@ mod tests {
         assert_eq!(parse_one("1.1.1.1:0"), None);
         assert_eq!(parse_one("host.name:443"), None);
         assert_eq!(parse_one("1.1.1.1"), None);
+    }
+
+    #[test]
+    fn socks_services_have_a_strategy_others_do_not() {
+        assert!(ProbeStrategy::for_service("socks-egress").is_some());
+        assert!(ProbeStrategy::for_service("tor").is_some());
+        assert!(ProbeStrategy::for_service("i2p").is_some());
+        assert!(ProbeStrategy::for_service("yggdrasil").is_none());
     }
 }

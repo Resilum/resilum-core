@@ -1,5 +1,4 @@
 //! Bidirectional byte pump between a TCP stream and one link session.
-//! Either side ending tears down the pump.
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -8,8 +7,6 @@ use crate::link::LinkMsg;
 
 const CHUNK: usize = 8 * 1024;
 
-/// `from_link` carries inbound link bytes for the TCP peer; `to_link` collects
-/// TCP bytes for the link driver to send. Returns when either side ends.
 pub async fn pump<S>(
     mut tcp: S,
     mut from_link: UnboundedReceiver<LinkMsg>,
@@ -18,6 +15,7 @@ pub async fn pump<S>(
     S: AsyncRead + AsyncWrite + Unpin,
 {
     let mut buf = vec![0u8; CHUNK];
+    let mut tcp_read_done = false;
     loop {
         tokio::select! {
             msg = from_link.recv() => match msg {
@@ -27,10 +25,14 @@ pub async fn pump<S>(
                     }
                 }
                 Some(LinkMsg::Established) => {}
-                Some(LinkMsg::Closed) | None => break,
+                Some(LinkMsg::Closed) | None => {
+                    let _ = tcp.shutdown().await;
+                    break;
+                }
             },
-            read = tcp.read(&mut buf) => match read {
-                Ok(0) | Err(_) => break,
+            // TCP EOF stops only this direction; link→TCP keeps flowing for the reply.
+            read = tcp.read(&mut buf), if !tcp_read_done => match read {
+                Ok(0) | Err(_) => tcp_read_done = true,
                 Ok(n) => {
                     if to_link.send(buf[..n].to_vec()).is_err() {
                         break;
@@ -65,7 +67,7 @@ mod tests {
     #[tokio::test]
     async fn tcp_bytes_reach_the_link_channel() {
         let (side, mut peer) = tokio::io::duplex(256);
-        let (_ltx, lrx) = mpsc::unbounded_channel();
+        let (ltx, lrx) = mpsc::unbounded_channel();
         let (otx, mut orx) = mpsc::unbounded_channel();
         let task = tokio::spawn(pump(side, lrx, otx));
 
@@ -73,6 +75,24 @@ mod tests {
         assert_eq!(orx.recv().await.unwrap(), b"world".to_vec());
 
         drop(peer);
+        drop(ltx);
+        task.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn reply_flows_after_the_client_half_closes() {
+        let (side, mut peer) = tokio::io::duplex(256);
+        let (ltx, lrx) = mpsc::unbounded_channel();
+        let (otx, _orx) = mpsc::unbounded_channel();
+        let task = tokio::spawn(pump(side, lrx, otx));
+
+        peer.shutdown().await.unwrap(); // client stops sending (our TCP read hits EOF)
+        ltx.send(LinkMsg::Data(b"resp".to_vec())).unwrap();
+        let mut got = [0u8; 4];
+        peer.read_exact(&mut got).await.unwrap();
+        assert_eq!(&got, b"resp");
+
+        ltx.send(LinkMsg::Closed).unwrap();
         task.await.unwrap();
     }
 

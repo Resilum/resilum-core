@@ -10,7 +10,7 @@ use leviculum_std::api::Node as LevNode;
 use tokio::time::{Instant, sleep};
 
 use crate::config::ConnectConfig;
-use crate::egress::probe::{e2e_probe, resolve_targets};
+use crate::egress::probe::{ProbeStrategy, e2e_probe, resolve_targets};
 use crate::egress::{Candidate, CandidateRegistry, eligible};
 use crate::link::LinkRouter;
 
@@ -61,10 +61,14 @@ pub async fn run(
         );
         let now = base.elapsed().as_secs_f64();
         for c in top_k(elig, TOP_K) {
+            // Services without a probe strategy are left unmeasured, not probed.
+            let Some(strategy) = ProbeStrategy::for_service(&c.service) else {
+                continue;
+            };
             if !due_for_probe(&c, now, PROBE_INTERVAL) {
                 continue;
             }
-            let result = e2e_probe(&engine, &router, &c, &targets)
+            let result = e2e_probe(&engine, &router, &c, &strategy, &targets)
                 .await
                 .map(|p| (p.link_rtt, egress_side_from_probe(p.e2e, p.link_rtt)));
             registry.record_probe(

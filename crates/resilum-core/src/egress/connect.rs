@@ -11,7 +11,7 @@ use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::time::{Instant, timeout_at};
 
 use crate::config::ConnectConfig;
-use crate::egress::{Candidate, CandidateRegistry, choose_best, eligible};
+use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, choose_best, eligible};
 use crate::link::{LinkMsg, LinkRouter};
 use crate::pump::pump;
 
@@ -21,6 +21,7 @@ pub async fn run(
     engine: Arc<LevNode>,
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
+    active: Arc<ActiveLinks>,
     cfg: ConnectConfig,
     skip: HashMap<String, HashSet<Vec<u8>>>,
 ) {
@@ -43,7 +44,13 @@ pub async fn run(
         match choose_best(&elig, incumbent) {
             Some(chosen) => {
                 current = Some(chosen.dest_hash.clone());
-                tokio::spawn(session(engine.clone(), router.clone(), chosen.clone(), tcp));
+                tokio::spawn(session(
+                    engine.clone(),
+                    router.clone(),
+                    active.clone(),
+                    chosen.clone(),
+                    tcp,
+                ));
             }
             None => drop(tcp),
         }
@@ -53,12 +60,20 @@ pub async fn run(
 async fn session(
     engine: Arc<LevNode>,
     router: Arc<LinkRouter>,
+    active: Arc<ActiveLinks>,
     candidate: Candidate,
     tcp: TcpStream,
 ) {
     let Some((mut handle, link_id, from_link)) = dial(&engine, &router, &candidate).await else {
         return;
     };
+    let dest_bytes: [u8; 16] = candidate
+        .dest_hash
+        .as_slice()
+        .try_into()
+        .expect("dial validated the hash length");
+    active.register(dest_bytes, link_id);
+
     let (to_link, mut to_link_rx) = mpsc::unbounded_channel();
     let pumping = tokio::spawn(pump(tcp, from_link, to_link));
     while let Some(bytes) = to_link_rx.recv().await {
@@ -67,6 +82,7 @@ async fn session(
         }
     }
     let _ = pumping.await;
+    active.deregister(&dest_bytes, &link_id);
     router.detach(&link_id);
     let _ = handle.close().await;
 }

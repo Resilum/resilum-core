@@ -90,10 +90,13 @@ impl Node {
                     let hash = egress::listen::dest_hash(identity.clone(), &own.service);
                     skip.entry(own.service.clone()).or_default().insert(hash);
                 }
+                let active = Arc::new(egress::ActiveLinks::default());
                 for service in &connect.services {
                     let bus = self.events.subscribe();
                     self.tasks.push(tokio::spawn(egress::discover::run(
+                        engine.clone(),
                         self.registry.clone(),
+                        active.clone(),
                         service.clone(),
                         bus,
                     )));
@@ -102,6 +105,7 @@ impl Node {
                     engine.clone(),
                     router.clone(),
                     self.registry.clone(),
+                    active,
                     connect.clone(),
                     skip.clone(),
                 )));
