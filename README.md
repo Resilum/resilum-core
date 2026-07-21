@@ -26,7 +26,7 @@ in blindly.
 
 ## Layout
 
-```
+```text
 crates/
   resilum-core/   library: node API, transports, discovery, egress policy
   resilumd/       thin daemon binary — the Linux/server frontend (goes in Docker)
@@ -35,7 +35,7 @@ crates/
 
 ## Build
 
-```
+```sh
 cargo build --workspace
 cargo test -p resilum-core
 ```

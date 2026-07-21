@@ -8,8 +8,8 @@
 # (x86_64-unknown-linux-musl / aarch64-unknown-linux-musl).
 
 # ---- build: static musl binary ----
-FROM rust:1-alpine AS build
-RUN apk add --no-cache musl-dev
+FROM rust:1.97-alpine3.24 AS build
+RUN apk add --no-cache musl-dev=1.2.6-r2
 WORKDIR /src
 # Draft: copy everything. Optimize later with a Cargo.toml/Cargo.lock deps-cache
 # layer so source-only changes don't re-fetch/rebuild dependencies.

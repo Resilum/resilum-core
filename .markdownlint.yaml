@@ -1,0 +1,7 @@
+default: true
+
+# Tables and fenced code blocks (ASCII diagrams) can't wrap; keep prose at 80.
+MD013:
+  line_length: 80
+  tables: false
+  code_blocks: false

@@ -1,3 +1,4 @@
+---
 # Example resilumd config. Pass with: resilumd --config resilumd.example.yaml
 
 instance_name: my-node
@@ -32,7 +33,7 @@ bootstrap:
 # egress:
 #   service: socks-egress
 #   target: 127.0.0.1:1080
-#   exit_country: DE          # ISO code advertised to consumers; omit for unknown
+#   exit_country: DE          # ISO code advertised to peers; omit for unknown
 
 # Be a consumer: accept local TCP and forward through the fastest egress.
 # connect:
