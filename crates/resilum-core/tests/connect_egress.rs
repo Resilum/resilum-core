@@ -83,6 +83,11 @@ fn connect_forwards_a_local_connection_through_egress() {
         false
     });
     assert!(discovered, "egress candidate was discovered");
+    assert_eq!(
+        connect.socks_port(),
+        listen_tcp,
+        "bound SOCKS port is reported"
+    );
 
     let mut stream = (0..40)
         .find_map(|_| {

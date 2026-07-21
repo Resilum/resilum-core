@@ -24,6 +24,7 @@ pub use error::{Error, Result};
 pub use event::Event;
 
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::api::Node as LevNode;
@@ -42,6 +43,7 @@ pub struct Node {
     events: dispatch::Events,
     tasks: Vec<JoinHandle<()>>,
     event_queue: event::Queue,
+    socks_port: Arc<AtomicU16>,
 }
 
 impl Node {
@@ -58,6 +60,7 @@ impl Node {
             events: dispatch::Events::new(1024),
             tasks: Vec::new(),
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
+            socks_port: Arc::new(AtomicU16::new(0)),
         })
     }
 
@@ -109,6 +112,7 @@ impl Node {
                     router.clone(),
                     self.registry.clone(),
                     active,
+                    self.socks_port.clone(),
                     connect.clone(),
                     skip.clone(),
                 )));
@@ -159,6 +163,12 @@ impl Node {
 
     pub fn is_running(&self) -> bool {
         self.engine.is_some()
+    }
+
+    /// The bound local SOCKS/connect port, or `0` if the connect listener is not
+    /// up (no connect config, or not yet bound).
+    pub fn socks_port(&self) -> u16 {
+        self.socks_port.load(Ordering::Relaxed)
     }
 
     /// Shared engine handle for runtime tasks; `None` before start / after stop.

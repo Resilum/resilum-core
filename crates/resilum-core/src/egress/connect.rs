@@ -3,6 +3,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU16, Ordering};
 use std::time::Duration;
 
 use leviculum_std::api::{DestinationHash, LinkHandle, LinkId, Node as LevNode};
@@ -22,12 +23,16 @@ pub async fn run(
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
     active: Arc<ActiveLinks>,
+    socks_port: Arc<AtomicU16>,
     cfg: ConnectConfig,
     skip: HashMap<String, HashSet<Vec<u8>>>,
 ) {
     let Ok(listener) = TcpListener::bind(&cfg.listen_tcp).await else {
         return;
     };
+    if let Ok(addr) = listener.local_addr() {
+        socks_port.store(addr.port(), Ordering::Relaxed);
+    }
     let mut current: Option<Vec<u8>> = None;
     while let Ok((tcp, _)) = listener.accept().await {
         let candidates = registry.all();

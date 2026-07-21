@@ -7,12 +7,15 @@ use resilum_core::{Config, Node};
 
 use crate::{RESILUM_ERR_FAILED, RESILUM_ERR_NULL, RESILUM_OK, guard, set_error};
 
+/// An opaque node handle.
+pub struct ResilumNode(pub(crate) Node);
+
 /// Build a node from a YAML config; null on error (see `resilum_last_error`).
 ///
 /// # Safety
 /// `yaml` must be a valid NUL-terminated string or null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_new_from_yaml(yaml: *const c_char) -> *mut Node {
+pub unsafe extern "C" fn resilum_node_new_from_yaml(yaml: *const c_char) -> *mut ResilumNode {
     guard(std::ptr::null_mut(), || {
         if yaml.is_null() {
             set_error("null config");
@@ -30,7 +33,7 @@ pub unsafe extern "C" fn resilum_node_new_from_yaml(yaml: *const c_char) -> *mut
             }
         };
         match Node::new(config) {
-            Ok(node) => Box::into_raw(Box::new(node)),
+            Ok(node) => Box::into_raw(Box::new(ResilumNode(node))),
             Err(e) => {
                 set_error(e.to_string());
                 std::ptr::null_mut()
@@ -42,12 +45,12 @@ pub unsafe extern "C" fn resilum_node_new_from_yaml(yaml: *const c_char) -> *mut
 /// # Safety
 /// `node` must be a live pointer from `resilum_node_new_from_yaml`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_start(node: *mut Node) -> c_int {
+pub unsafe extern "C" fn resilum_node_start(node: *mut ResilumNode) -> c_int {
     guard(RESILUM_ERR_FAILED, || {
         let Some(node) = (unsafe { node.as_mut() }) else {
             return RESILUM_ERR_NULL;
         };
-        match node.start() {
+        match node.0.start() {
             Ok(()) => RESILUM_OK,
             Err(e) => {
                 set_error(e.to_string());
@@ -60,12 +63,12 @@ pub unsafe extern "C" fn resilum_node_start(node: *mut Node) -> c_int {
 /// # Safety
 /// `node` must be a live pointer from `resilum_node_new_from_yaml`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_stop(node: *mut Node) -> c_int {
+pub unsafe extern "C" fn resilum_node_stop(node: *mut ResilumNode) -> c_int {
     guard(RESILUM_ERR_FAILED, || {
         let Some(node) = (unsafe { node.as_mut() }) else {
             return RESILUM_ERR_NULL;
         };
-        match node.stop() {
+        match node.0.stop() {
             Ok(()) => RESILUM_OK,
             Err(e) => {
                 set_error(e.to_string());
@@ -80,17 +83,28 @@ pub unsafe extern "C" fn resilum_node_stop(node: *mut Node) -> c_int {
 /// # Safety
 /// `node` must be a live pointer from `resilum_node_new_from_yaml`, or null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_is_running(node: *const Node) -> c_int {
+pub unsafe extern "C" fn resilum_node_is_running(node: *const ResilumNode) -> c_int {
     guard(0, || match unsafe { node.as_ref() } {
-        Some(node) if node.is_running() => 1,
+        Some(node) if node.0.is_running() => 1,
         _ => 0,
+    })
+}
+
+/// The bound local SOCKS port, or 0 if the connect listener is not up.
+///
+/// # Safety
+/// `node` must be a live pointer from `resilum_node_new_from_yaml`, or null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn resilum_node_socks_port(node: *const ResilumNode) -> u16 {
+    guard(0, || {
+        (unsafe { node.as_ref() }).map_or(0, |node| node.0.socks_port())
     })
 }
 
 /// # Safety
 /// `node` must come from `resilum_node_new_from_yaml` and be freed at most once.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_free(node: *mut Node) {
+pub unsafe extern "C" fn resilum_node_free(node: *mut ResilumNode) {
     if !node.is_null() {
         drop(unsafe { Box::from_raw(node) });
     }

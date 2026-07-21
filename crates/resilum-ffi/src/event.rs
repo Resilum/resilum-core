@@ -2,11 +2,11 @@
 
 use std::os::raw::c_int;
 
-use resilum_core::{Event, Node};
+use resilum_core::Event;
 
 use crate::{
     RESILUM_EVENT_NONE, RESILUM_EVENT_PEER_DISCOVERED, RESILUM_EVENT_RECEIVED,
-    RESILUM_EVENT_STARTED, RESILUM_EVENT_STOPPED, guard,
+    RESILUM_EVENT_STARTED, RESILUM_EVENT_STOPPED, ResilumNode, guard,
 };
 
 /// An event popped from a node. Opaque; release with `resilum_event_free`.
@@ -31,12 +31,12 @@ impl ResilumEvent {
 /// # Safety
 /// `node` must be a live pointer from `resilum_node_new_from_yaml`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_poll_event(node: *mut Node) -> *mut ResilumEvent {
+pub unsafe extern "C" fn resilum_node_poll_event(node: *mut ResilumNode) -> *mut ResilumEvent {
     guard(std::ptr::null_mut(), || {
         let Some(node) = (unsafe { node.as_mut() }) else {
             return std::ptr::null_mut();
         };
-        let event = match node.poll_event() {
+        let event = match node.0.poll_event() {
             None => return std::ptr::null_mut(),
             Some(Event::Started) => ResilumEvent::bare(RESILUM_EVENT_STARTED),
             Some(Event::Stopped) => ResilumEvent::bare(RESILUM_EVENT_STOPPED),
