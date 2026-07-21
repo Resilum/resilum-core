@@ -6,10 +6,13 @@ license.workspace = true
 description = "C-ABI wrapper over resilum-core for Dart FFI (mobile)."
 
 [lib]
-crate-type = ["cdylib", "staticlib"]
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 resilum-core = { path = "../resilum-core" }
+
+[build-dependencies]
+cbindgen = "0.29"
 
 [lints]
 workspace = true

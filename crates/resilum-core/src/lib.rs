@@ -4,6 +4,7 @@
 pub mod announce_payload;
 mod bridge;
 mod config;
+mod config_file;
 mod defaults;
 pub mod discovery;
 pub mod dispatch;
@@ -18,6 +19,7 @@ pub mod spec;
 pub mod supervisor;
 
 pub use config::{Config, ConnectConfig, EgressListen, I2pInterface};
+pub use config_file::from_yaml;
 pub use error::{Error, Result};
 pub use event::Event;
 

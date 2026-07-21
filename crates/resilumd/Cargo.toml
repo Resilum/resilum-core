@@ -7,8 +7,6 @@ description = "Resilum node daemon (Linux/server; packaged into the container im
 
 [dependencies]
 resilum-core = { path = "../resilum-core" }
-serde = { version = "1", features = ["derive"] }
-serde_yaml_ng = "0.10"
 ctrlc = { version = "3", features = ["termination"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

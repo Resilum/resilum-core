@@ -3,6 +3,9 @@
 **/*.rs.bk
 *.pdb
 
+# cbindgen-generated FFI header (regenerated on build)
+crates/resilum-ffi/resilum.h
+
 # Keep Cargo.lock committed (workspace has binaries)
 
 # Signing / secrets — never commit
