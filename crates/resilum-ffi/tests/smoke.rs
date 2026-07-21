@@ -13,10 +13,14 @@ fn lifecycle_via_ffi() {
 
     assert_eq!(unsafe { resilum_node_start(node) }, RESILUM_OK);
     assert_eq!(unsafe { resilum_node_is_running(node) }, 1);
-    assert_eq!(
-        unsafe { resilum_node_poll_event(node) },
-        RESILUM_EVENT_STARTED
-    );
+
+    let event = unsafe { resilum_node_poll_event(node) };
+    assert!(!event.is_null());
+    assert_eq!(unsafe { resilum_event_kind(event) }, RESILUM_EVENT_STARTED);
+    let mut len = 99usize;
+    assert!(unsafe { resilum_event_source(event, &mut len) }.is_null());
+    assert_eq!(len, 0);
+    unsafe { resilum_event_free(event) };
 
     assert_eq!(unsafe { resilum_node_stop(node) }, RESILUM_OK);
     assert_eq!(unsafe { resilum_node_is_running(node) }, 0);

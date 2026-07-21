@@ -46,15 +46,23 @@ pub struct CandidateRegistry {
 }
 
 impl CandidateRegistry {
-    pub fn upsert(&self, service: &str, dest_hash: Vec<u8>, exit_country: &str, caps: Vec<String>) {
+    /// Returns `true` when the candidate was newly discovered (not just refreshed).
+    pub fn upsert(
+        &self,
+        service: &str,
+        dest_hash: Vec<u8>,
+        exit_country: &str,
+        caps: Vec<String>,
+    ) -> bool {
         let mut map = self.by_service.lock().expect("registry lock");
-        let cand = map
-            .entry(service.to_owned())
-            .or_default()
+        let svc = map.entry(service.to_owned()).or_default();
+        let is_new = !svc.contains_key(&dest_hash);
+        let cand = svc
             .entry(dest_hash.clone())
             .or_insert_with(|| Candidate::new(dest_hash, service));
         cand.exit_country = exit_country.to_owned();
         cand.capabilities = caps;
+        is_new
     }
 
     pub fn remove(&self, service: &str, dest_hash: &[u8]) {

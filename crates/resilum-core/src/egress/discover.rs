@@ -7,8 +7,10 @@ use leviculum_std::NodeEvent;
 use leviculum_std::api::{Destination, Node as LevNode};
 use tokio::sync::broadcast;
 
+use crate::Event;
 use crate::announce_payload;
 use crate::egress::{ActiveLinks, CandidateRegistry};
+use crate::event::{self, Queue};
 
 const APP_NAME: &str = "resilum";
 
@@ -16,6 +18,7 @@ pub async fn run(
     engine: Arc<LevNode>,
     registry: Arc<CandidateRegistry>,
     active: Arc<ActiveLinks>,
+    events: Queue,
     service: String,
     mut bus: broadcast::Receiver<Arc<NodeEvent>>,
 ) {
@@ -34,12 +37,16 @@ pub async fn run(
         }
         let dest_hash = announce.destination_hash().as_bytes();
         match announce_payload::parse(announce.app_data()) {
-            Some(p) => registry.upsert(
-                &service,
-                dest_hash.to_vec(),
-                &p.exit_country,
-                p.capabilities,
-            ),
+            Some(p) => {
+                if registry.upsert(
+                    &service,
+                    dest_hash.to_vec(),
+                    &p.exit_country,
+                    p.capabilities,
+                ) {
+                    event::push(&events, Event::PeerDiscovered(dest_hash.to_vec()));
+                }
+            }
             None => {
                 registry.remove(&service, dest_hash);
                 active.teardown_for(&engine, dest_hash).await;

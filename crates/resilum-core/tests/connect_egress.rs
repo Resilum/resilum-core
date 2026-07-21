@@ -102,6 +102,14 @@ fn connect_forwards_a_local_connection_through_egress() {
     let mut buf = [0u8; 4];
     let got = stream.read_exact(&mut buf);
 
+    // discovery surfaced the egress peer, with its destination hash
+    let mut discovered_hash = None;
+    while let Some(event) = connect.poll_event() {
+        if let resilum_core::Event::PeerDiscovered(hash) = event {
+            discovered_hash = Some(hash);
+        }
+    }
+
     connect.stop().ok();
     egress.stop().ok();
     let _ = std::fs::remove_dir_all(temp_dir("egress"));
@@ -109,4 +117,8 @@ fn connect_forwards_a_local_connection_through_egress() {
 
     got.expect("round-trip through the mesh");
     assert_eq!(&buf, b"ping");
+    assert!(
+        discovered_hash.is_some_and(|h| !h.is_empty()),
+        "PeerDiscovered event carried a hash"
+    );
 }

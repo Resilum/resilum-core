@@ -24,7 +24,7 @@ pub use error::{Error, Result};
 pub use event::Event;
 
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use leviculum_std::api::Node as LevNode;
 use tokio::sync::mpsc;
@@ -41,7 +41,7 @@ pub struct Node {
     registry: Arc<CandidateRegistry>,
     events: dispatch::Events,
     tasks: Vec<JoinHandle<()>>,
-    event_queue: VecDeque<Event>,
+    event_queue: event::Queue,
 }
 
 impl Node {
@@ -57,7 +57,7 @@ impl Node {
             registry: Arc::new(CandidateRegistry::default()),
             events: dispatch::Events::new(1024),
             tasks: Vec::new(),
-            event_queue: VecDeque::new(),
+            event_queue: Arc::new(Mutex::new(VecDeque::new())),
         })
     }
 
@@ -99,6 +99,7 @@ impl Node {
                         engine.clone(),
                         self.registry.clone(),
                         active.clone(),
+                        self.event_queue.clone(),
                         service.clone(),
                         bus,
                     )));
@@ -134,7 +135,7 @@ impl Node {
             self.tasks.extend(supervisor::spawn_all(bridge_tasks));
         }
         self.engine = Some(engine);
-        self.event_queue.push_back(Event::Started);
+        event::push(&self.event_queue, Event::Started);
         Ok(())
     }
 
@@ -151,7 +152,7 @@ impl Node {
                 // A clone still lingers; leviculum's Drop tears the engine down.
                 Err(_shared) => {}
             }
-            self.event_queue.push_back(Event::Stopped);
+            event::push(&self.event_queue, Event::Stopped);
         }
         Ok(())
     }
@@ -173,7 +174,7 @@ impl Node {
     }
 
     pub fn poll_event(&mut self) -> Option<Event> {
-        self.event_queue.pop_front()
+        self.event_queue.lock().expect("event queue").pop_front()
     }
 
     pub fn config(&self) -> &Config {
