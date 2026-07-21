@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::NodeEvent;
-use leviculum_std::api::LinkId;
+use leviculum_std::api::{DestinationHash, LinkId};
 use tokio::sync::{broadcast, mpsc};
 
 /// A message routed to one link session, in arrival order.
@@ -45,7 +45,9 @@ impl LinkRouter {
     }
 }
 
-pub type Inbound = (LinkId, mpsc::UnboundedReceiver<LinkMsg>);
+/// A responder-side link: its id, the local destination it targeted (so the
+/// listen side can pick the matching service), and the attached byte channel.
+pub type Inbound = (LinkId, DestinationHash, mpsc::UnboundedReceiver<LinkMsg>);
 
 /// Drain the node-event bus onto sessions until it closes. Responder-side links
 /// are attached here, before reporting on `inbound`, so no data event can slip
@@ -69,9 +71,10 @@ fn route(router: &LinkRouter, inbound: &mpsc::UnboundedSender<Inbound>, ev: &Nod
         NodeEvent::LinkEstablished {
             link_id,
             is_initiator,
+            destination_hash,
         } => {
             if !router.deliver(link_id, LinkMsg::Established) && !is_initiator {
-                let _ = inbound.send((*link_id, router.attach(*link_id)));
+                let _ = inbound.send((*link_id, *destination_hash, router.attach(*link_id)));
             }
         }
         // reliable channel stream; raw LinkDataReceived is a separate path
@@ -98,6 +101,7 @@ mod tests {
         NodeEvent::LinkEstablished {
             link_id,
             is_initiator,
+            destination_hash: DestinationHash::new([7; 16]),
         }
     }
 
@@ -130,8 +134,9 @@ mod tests {
         let (itx, mut irx) = mpsc::unbounded_channel();
 
         route(&router, &itx, &established(lid(2), false));
-        let (id, mut rx) = irx.try_recv().unwrap();
+        let (id, dest, mut rx) = irx.try_recv().unwrap();
         assert_eq!(id, lid(2));
+        assert_eq!(dest, DestinationHash::new([7; 16]));
 
         route(&router, &itx, &message(lid(2), b"x"));
         assert_eq!(rx.try_recv().unwrap(), LinkMsg::Data(b"x".to_vec()));

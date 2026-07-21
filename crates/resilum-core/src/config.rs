@@ -68,7 +68,7 @@ pub struct Config {
     pub i2p: Option<I2pInterface>,
     /// `0` disables auto-connect.
     pub autoconnect_max: usize,
-    pub egress: Option<EgressListen>,
+    pub egress: Vec<EgressListen>,
     pub connect: Option<ConnectConfig>,
     pub specs: Specs,
 }
@@ -86,7 +86,7 @@ impl Config {
             discover_interfaces: true,
             i2p: None,
             autoconnect_max: 5,
-            egress: None,
+            egress: Vec::new(),
             connect: None,
             specs: Specs::default(),
         }

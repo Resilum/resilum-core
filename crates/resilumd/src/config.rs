@@ -27,7 +27,7 @@ pub struct FileConfig {
     #[serde(default)]
     pub i2p: Option<I2pFile>,
     #[serde(default)]
-    pub egress: Option<EgressFile>,
+    pub egress: Vec<EgressFile>,
     #[serde(default)]
     pub connect: Option<ConnectFile>,
 }
@@ -99,14 +99,18 @@ impl FileConfig {
             connectable: i.connectable,
             peers: i.peers,
         });
-        cfg.egress = self.egress.map(|e| {
-            let mut egress = EgressListen::new(e.service, e.target);
-            egress.exit_country = e.exit_country;
-            if let Some(secs) = e.announce_interval_secs {
-                egress.announce_interval = Duration::from_secs(secs);
-            }
-            egress
-        });
+        cfg.egress = self
+            .egress
+            .into_iter()
+            .map(|e| {
+                let mut egress = EgressListen::new(e.service, e.target);
+                egress.exit_country = e.exit_country;
+                if let Some(secs) = e.announce_interval_secs {
+                    egress.announce_interval = Duration::from_secs(secs);
+                }
+                egress
+            })
+            .collect();
         cfg.connect = self.connect.map(|c| ConnectConfig {
             services: c.services,
             listen_tcp: c.listen_tcp,
@@ -130,9 +134,11 @@ default_anchors: false
 listen: '[::]:4242'
 bootstrap: [anchor.example:4343]
 egress:
-  service: socks-egress
-  target: 127.0.0.1:1080
-  exit_country: DE
+  - service: socks-egress
+    target: 127.0.0.1:1080
+    exit_country: DE
+  - service: tor
+    target: 127.0.0.1:9050
 connect:
   services: [socks-egress, tor]
   listen_tcp: 127.0.0.1:10808
@@ -142,9 +148,10 @@ connect:
             .into_core();
         assert_eq!(cfg.instance_name, "node-a");
         assert_eq!(cfg.bootstrap, vec!["anchor.example:4343"]);
-        let egress = cfg.egress.unwrap();
-        assert_eq!(egress.service, "socks-egress");
-        assert_eq!(egress.exit_country, "DE");
+        assert_eq!(cfg.egress.len(), 2);
+        assert_eq!(cfg.egress[0].service, "socks-egress");
+        assert_eq!(cfg.egress[0].exit_country, "DE");
+        assert_eq!(cfg.egress[1].service, "tor");
         let connect = cfg.connect.unwrap();
         assert_eq!(connect.services, vec!["socks-egress", "tor"]);
         assert_eq!(connect.use_own, "smart"); // default
@@ -156,7 +163,7 @@ connect:
             .unwrap()
             .into_core();
         assert!(cfg.discover_interfaces);
-        assert!(cfg.egress.is_none());
+        assert!(cfg.egress.is_empty());
         assert!(!cfg.bootstrap.is_empty());
         assert!(!cfg.bootstrap_only.is_empty());
         assert!(cfg.listen.is_some());

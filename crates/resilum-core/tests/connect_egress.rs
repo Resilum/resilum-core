@@ -49,7 +49,7 @@ fn start_egress(echo: u16) -> (Node, u16) {
                 storage_path: Some(dir.clone()),
                 discover_interfaces: false,
                 listen: Some(format!("127.0.0.1:{port}")),
-                egress: Some(egress),
+                egress: vec![egress],
                 ..Config::minimal(format!("ce-egress-{}", std::process::id()))
             };
             let mut node = Node::new(cfg).expect("new");

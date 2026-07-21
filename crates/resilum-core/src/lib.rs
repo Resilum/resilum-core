@@ -84,9 +84,9 @@ impl Node {
                 inbound_tx,
             )));
             if let Some(connect) = self.config.connect.clone() {
-                // Skip this node's own egress announce when selecting a peer.
+                // Skip this node's own egress announces when selecting a peer.
                 let mut skip: HashMap<String, HashSet<Vec<u8>>> = HashMap::new();
-                if let Some(own) = &self.config.egress {
+                for own in &self.config.egress {
                     let hash = egress::listen::dest_hash(identity.clone(), &own.service);
                     skip.entry(own.service.clone()).or_default().insert(hash);
                 }
@@ -117,11 +117,11 @@ impl Node {
                 self.tasks
                     .push(tokio::spawn(dispatch::forward(self.events.clone(), rx)));
             }
-            if let Some(cfg) = self.config.egress.clone() {
+            if !self.config.egress.is_empty() {
                 self.tasks.push(tokio::spawn(egress::listen::run(
                     engine.clone(),
                     identity,
-                    cfg,
+                    self.config.egress.clone(),
                     inbound_rx,
                 )));
             }

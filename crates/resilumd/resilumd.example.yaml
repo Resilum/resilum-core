@@ -29,11 +29,14 @@ bootstrap:
 #   peers:                         # dial specific .b32.i2p peers
 #     - somebase32.b32.i2p
 
-# Be an exit: forward inbound links to a local SOCKS/service endpoint.
+# Be an exit: one entry per service, each forwarding inbound links for its
+# destination to a local endpoint.
 # egress:
-#   service: socks-egress
-#   target: 127.0.0.1:1080
-#   exit_country: DE          # ISO code advertised to peers; omit for unknown
+#   - service: socks-egress
+#     target: 127.0.0.1:1080
+#     exit_country: DE        # ISO code advertised to peers; omit for unknown
+#   - service: tor
+#     target: 127.0.0.1:9050
 
 # Be a consumer: accept local TCP and forward through the fastest egress.
 # connect:

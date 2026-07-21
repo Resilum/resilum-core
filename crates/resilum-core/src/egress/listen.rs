@@ -1,6 +1,7 @@
-//! Egress listen side: register a destination, announce it, and forward each
-//! inbound link to a fixed local TCP endpoint.
+//! Egress listen side: register a destination per service, announce each, and
+//! forward every inbound link to its service's local TCP endpoint.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -36,25 +37,39 @@ fn build_destination(identity: Identity, service: &str) -> Destination {
     .expect("IN/SINGLE destination with an identity is always valid")
 }
 
-/// Register the egress destination and forward inbound links to `cfg.target`
-/// until the router's `inbound` closes.
+/// Register and announce one destination per service, then forward each inbound
+/// link to its service's target until the router's `inbound` closes.
 pub async fn run(
     engine: Arc<LevNode>,
     identity: Identity,
-    cfg: EgressListen,
+    services: Vec<EgressListen>,
     mut inbound: UnboundedReceiver<Inbound>,
 ) {
-    let dest = build_destination(identity, &cfg.service);
-    let dest_hash = *dest.hash();
-    engine.register_destination(dest);
-    let payload = crate::announce_payload::pack(None, &cfg.exit_country, &[]);
-    let announcer = announce_loop(engine.clone(), dest_hash, cfg.announce_interval, payload);
-
-    while let Some((link_id, from_link)) = inbound.recv().await {
-        let handle = engine.accept_link(&link_id);
-        tokio::spawn(session(handle, from_link, cfg.target.clone()));
+    let mut targets: HashMap<[u8; 16], String> = HashMap::new();
+    let mut announcers = Vec::new();
+    for cfg in &services {
+        let dest = build_destination(identity.clone(), &cfg.service);
+        let dest_hash = *dest.hash();
+        engine.register_destination(dest);
+        let payload = crate::announce_payload::pack(None, &cfg.exit_country, &[]);
+        announcers.push(announce_loop(
+            engine.clone(),
+            dest_hash,
+            cfg.announce_interval,
+            payload,
+        ));
+        targets.insert(*dest_hash.as_bytes(), cfg.target.clone());
     }
-    announcer.abort();
+
+    while let Some((link_id, dest_hash, from_link)) = inbound.recv().await {
+        if let Some(target) = targets.get(dest_hash.as_bytes()) {
+            let handle = engine.accept_link(&link_id);
+            tokio::spawn(session(handle, from_link, target.clone()));
+        }
+    }
+    for announcer in announcers {
+        announcer.abort();
+    }
 }
 
 fn announce_loop(
