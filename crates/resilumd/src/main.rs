@@ -3,6 +3,7 @@
 
 mod config;
 mod i2pd_export;
+mod ygg_seed;
 
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -39,12 +40,21 @@ fn main() {
             };
             std::process::exit(i2pd_export::run(keys, out));
         }
+        Some("ygg-seed-keys") => {
+            let Some(cfg) = argv.get(1) else {
+                eprintln!("usage: resilumd ygg-seed-keys <yggdrasil.conf>");
+                std::process::exit(2);
+            };
+            std::process::exit(ygg_seed::run(cfg));
+        }
         _ => {}
     }
 
     let Some(path) = config_path(&argv) else {
         eprintln!("usage: resilumd [--config] <path.yaml>");
         eprintln!("       resilumd generate-identity <path>");
+        eprintln!("       resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
+        eprintln!("       resilumd ygg-seed-keys <yggdrasil.conf>");
         std::process::exit(2);
     };
 
