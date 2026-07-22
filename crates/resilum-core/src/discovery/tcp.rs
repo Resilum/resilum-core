@@ -10,6 +10,7 @@ use tokio::sync::Notify;
 
 use super::DiscoveryPlugin;
 use super::cache;
+use crate::announce_cap::CapController;
 use crate::config::{DiscoveryService, EndpointFormat};
 
 pub struct TcpDiscovered {
@@ -23,6 +24,8 @@ pub struct TcpDiscovered {
     trigger: Arc<Notify>,
     // Persistent peer cache; None disables persistence (attach still works).
     cache_path: Option<PathBuf>,
+    // Registers each attached interface for adaptive announce-cap control.
+    cap_controller: Arc<CapController>,
 }
 
 impl TcpDiscovered {
@@ -31,6 +34,7 @@ impl TcpDiscovered {
         engine: Arc<LevNode>,
         trigger: Arc<Notify>,
         cache_path: Option<PathBuf>,
+        cap_controller: Arc<CapController>,
     ) -> Self {
         Self {
             cfg,
@@ -38,6 +42,7 @@ impl TcpDiscovered {
             handles: Mutex::new(HashMap::new()),
             trigger,
             cache_path,
+            cap_controller,
         }
     }
 }
@@ -68,6 +73,7 @@ impl DiscoveryPlugin for TcpDiscovered {
         {
             Ok(handle) => {
                 tracing::info!(service = %self.cfg.service, %name, "attached discovered peer");
+                self.cap_controller.attach(handle.id());
                 guard.insert(name, handle);
                 self.trigger.notify_waiters();
                 if let Some(path) = &self.cache_path {

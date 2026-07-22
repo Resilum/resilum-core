@@ -18,6 +18,7 @@ use leviculum_std::api::Destination;
 use leviculum_std::api::Node as LevNode;
 use tokio::sync::Notify;
 
+use crate::announce_cap::CapController;
 use crate::config::DiscoveryService;
 
 pub(super) const APP_NAME: &str = "resilum";
@@ -75,6 +76,7 @@ pub fn build_from_services(
     engine: Arc<LevNode>,
     trigger: Arc<Notify>,
     storage_root: Option<&std::path::Path>,
+    cap_controller: Arc<CapController>,
 ) -> Discovery {
     let mut d = Discovery::default();
     for cfg in services {
@@ -84,6 +86,7 @@ pub fn build_from_services(
             engine.clone(),
             trigger.clone(),
             cache_path.clone(),
+            cap_controller.clone(),
         ));
         warm_start(plugin.as_ref(), cache_path.as_deref());
         d.register(&cfg.service.clone(), plugin);

@@ -1,6 +1,7 @@
 //! Shared core for a Resilum node, built on the leviculum Reticulum stack.
 //! Consumed by `resilumd` and, via `resilum-ffi`, the mobile app.
 
+pub mod announce_cap;
 pub mod announce_payload;
 mod bridge;
 mod config;

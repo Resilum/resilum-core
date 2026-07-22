@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use super::Node;
+use crate::announce_cap;
 use crate::error::{Error, Result};
 use crate::event::{self, Event};
 use crate::{bridge, discovery, dispatch, egress, engine, link, supervisor};
@@ -35,11 +36,15 @@ impl Node {
             )));
             if !self.config.discovery.is_empty() {
                 let storage_root = self.config.storage_path.as_deref();
+                let cap_controller = announce_cap::CapController::new(engine.clone());
+                self.tasks
+                    .push(tokio::spawn(announce_cap::run(cap_controller.clone())));
                 let discovery = Arc::new(discovery::build_from_services(
                     &self.config.discovery,
                     engine.clone(),
                     self.discovery_trigger.clone(),
                     storage_root,
+                    cap_controller,
                 ));
                 let bus = self.events.subscribe();
                 self.tasks
