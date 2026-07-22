@@ -48,7 +48,7 @@ pub async fn run(
     cfg: ConnectConfig,
     skip: HashMap<String, HashSet<Vec<u8>>>,
 ) {
-    let targets = resolve_targets();
+    let targets = resolve_targets(&cfg.probe_targets);
     let base = Instant::now();
     loop {
         sleep(TICK).await;

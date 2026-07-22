@@ -4,10 +4,11 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 
 use super::Node;
-use crate::announce_cap;
 use crate::error::{Error, Result};
 use crate::event::{self, Event};
-use crate::{bridge, discovery, dispatch, egress, engine, link, supervisor};
+use crate::{
+    announce_cap, announce_trigger, bridge, discovery, dispatch, egress, engine, link, supervisor,
+};
 
 impl Node {
     pub fn start(&mut self) -> Result<()> {
@@ -39,6 +40,10 @@ impl Node {
                 let cap_controller = announce_cap::CapController::new(engine.clone());
                 self.tasks
                     .push(tokio::spawn(announce_cap::run(cap_controller.clone())));
+                self.tasks.push(tokio::spawn(announce_trigger::run(
+                    engine.clone(),
+                    self.discovery_trigger.clone(),
+                )));
                 let discovery = Arc::new(discovery::build_from_services(
                     &self.config.discovery,
                     engine.clone(),
@@ -80,16 +85,26 @@ impl Node {
                     skip.entry(own.service.clone()).or_default().insert(hash);
                 }
                 let active = Arc::new(egress::ActiveLinks::default());
-                for service in &connect.services {
-                    let bus = self.events.subscribe();
-                    self.tasks.push(tokio::spawn(egress::discover::run(
-                        engine.clone(),
-                        self.registry.clone(),
-                        active.clone(),
-                        self.event_queue.clone(),
-                        service.clone(),
-                        bus,
-                    )));
+                if let Some(target) = connect.target {
+                    // Explicit target bypasses discovery: seed the registry
+                    // directly under the first service and skip announce handlers.
+                    if let Some(first) = connect.services.first() {
+                        self.registry
+                            .upsert(first, target.to_vec(), "*", Vec::new());
+                    }
+                } else {
+                    for service in &connect.services {
+                        let bus = self.events.subscribe();
+                        self.tasks.push(tokio::spawn(egress::discover::run(
+                            engine.clone(),
+                            self.registry.clone(),
+                            active.clone(),
+                            self.event_queue.clone(),
+                            service.clone(),
+                            skip.get(service).cloned().unwrap_or_default(),
+                            bus,
+                        )));
+                    }
                 }
                 self.tasks.push(tokio::spawn(egress::connect::run(
                     engine.clone(),

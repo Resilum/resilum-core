@@ -115,6 +115,8 @@ impl FileConfig {
             use_own: c.use_own,
             allow_country: c.allow_countries,
             deny_country: c.deny_countries,
+            target: None,
+            probe_targets: Vec::new(),
         });
         cfg
     }

@@ -3,6 +3,7 @@
 
 pub mod announce_cap;
 pub mod announce_payload;
+pub mod announce_trigger;
 mod bridge;
 mod config;
 mod config_file;

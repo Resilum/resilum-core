@@ -1,4 +1,4 @@
-//! The default network from the project's network config.
+//! Default network anchors.
 
 // leviculum ignores `bootstrap_only`, so these currently stay connected.
 pub(crate) const PUBLIC_ANCHORS: &[&str] = &[

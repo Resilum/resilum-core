@@ -1,6 +1,6 @@
 //! Announce payload: a small JSON envelope carrying the running version and,
-//! optionally, endpoint / exit country / capabilities. Wire-compatible with the
-//! bridge (`{"v":"0.0.0","ep":..,"co":..,"cap":[..]}`).
+//! optionally, endpoint / exit country / capabilities.
+//! Wire: `{"v":"0.0.0","ep":..,"co":..,"cap":[..]}`.
 
 use serde::{Deserialize, Serialize};
 

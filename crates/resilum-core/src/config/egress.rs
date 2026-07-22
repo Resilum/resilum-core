@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use super::default_announce_interval;
+
 #[derive(Clone, Debug)]
 pub struct EgressListen {
     pub service: String,
@@ -15,7 +17,7 @@ impl EgressListen {
             service: service.into(),
             target: target.into(),
             exit_country: "*".into(),
-            announce_interval: Duration::from_secs(600),
+            announce_interval: default_announce_interval(),
         }
     }
 }
@@ -28,6 +30,11 @@ pub struct ConnectConfig {
     pub use_own: String,
     pub allow_country: Vec<String>,
     pub deny_country: Vec<String>,
+    /// Explicit destination hash to dial, bypassing discovery.
+    pub target: Option<[u8; 16]>,
+    /// Custom probe targets (IPv4 literal `host:port`), override the env var
+    /// and built-in defaults when non-empty.
+    pub probe_targets: Vec<(String, u16)>,
 }
 
 impl ConnectConfig {
@@ -38,6 +45,8 @@ impl ConnectConfig {
             use_own: "smart".into(),
             allow_country: Vec::new(),
             deny_country: Vec::new(),
+            target: None,
+            probe_targets: Vec::new(),
         }
     }
 }

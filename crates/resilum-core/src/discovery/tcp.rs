@@ -18,9 +18,7 @@ pub struct TcpDiscovered {
     engine: Arc<LevNode>,
     // Dropping a TcpClientHandle detaches its interface; hold them here.
     handles: Mutex<HashMap<String, TcpClientHandle>>,
-    // Woken on every successful attach so the produce loop re-announces at once
-    // — the mesh sees us paired with a fresh peer within a tick, not after up
-    // to `discovery_announce_interval`. Follows announce_trigger.
+    // Fires on every successful attach so the produce loop re-announces at once.
     trigger: Arc<Notify>,
     // Persistent peer cache; None disables persistence (attach still works).
     cache_path: Option<PathBuf>,

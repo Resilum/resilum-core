@@ -1,6 +1,6 @@
 //! Adaptive per-interface announce cap: idle links let announces converge the
-//! topology fast; once real traffic starts on an interface we drop the share to
-//! ~1 % so data has the channel. `announce_cap`.
+//! topology fast; once real traffic starts we drop the share to 1 % so data
+//! has the channel.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -34,9 +34,7 @@ impl CapController {
         })
     }
 
-    /// Start tracking an interface. Sets the cap to IDLE at once so an
-    /// unconfigured link converges topology fast; skip silently for interfaces
-    /// without a rate-limited cap entry (bitrate == 0).
+    /// Start tracking an interface; set the cap to IDLE at once.
     pub fn attach(&self, id: InterfaceId) {
         self.entries
             .lock()

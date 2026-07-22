@@ -58,9 +58,18 @@ impl ProbeStrategy {
     }
 }
 
-/// Probe targets by precedence: `RESILUM_EGRESS_PROBE_TARGETS` (comma-separated
-/// `IPv4:port`) over built-in anycast defaults.
-pub fn resolve_targets() -> Vec<(Ipv4Addr, u16)> {
+/// Probe targets by precedence: explicit `cli` (from ConnectConfig) over the
+/// `RESILUM_EGRESS_PROBE_TARGETS` env var over built-in anycast defaults.
+pub fn resolve_targets(cli: &[(String, u16)]) -> Vec<(Ipv4Addr, u16)> {
+    if !cli.is_empty() {
+        let parsed: Vec<_> = cli
+            .iter()
+            .filter_map(|(h, p)| Some((h.parse().ok()?, *p)))
+            .collect();
+        if !parsed.is_empty() {
+            return parsed;
+        }
+    }
     match std::env::var(PROBE_TARGETS_ENV) {
         Ok(raw) => {
             let parsed: Vec<_> = raw.split(',').filter_map(parse_one).collect();

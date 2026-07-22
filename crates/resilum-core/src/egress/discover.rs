@@ -1,6 +1,7 @@
 //! Populate the candidate registry from egress announces, and drop (and tear
 //! down active links to) peers whose announce stops parsing.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use leviculum_std::NodeEvent;
@@ -20,6 +21,7 @@ pub async fn run(
     active: Arc<ActiveLinks>,
     events: Queue,
     service: String,
+    skip: HashSet<Vec<u8>>,
     mut bus: broadcast::Receiver<Arc<NodeEvent>>,
 ) {
     let want = Destination::compute_name_hash(APP_NAME, &["bridge", "tcp", &service]);
@@ -36,6 +38,9 @@ pub async fn run(
             continue;
         }
         let dest_hash = announce.destination_hash().as_bytes();
+        if skip.contains(dest_hash.as_slice()) {
+            continue;
+        }
         match announce_payload::parse(announce.app_data()) {
             Some(p) => {
                 if registry.upsert(

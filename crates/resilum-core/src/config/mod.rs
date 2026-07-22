@@ -9,6 +9,16 @@ use std::time::Duration;
 
 use crate::spec::Specs;
 
+/// Default announce interval (600s), overridable by the
+/// `RESILUM_BRIDGE_ANNOUNCE_INTERVAL` env var (seconds).
+pub fn default_announce_interval() -> Duration {
+    std::env::var("RESILUM_BRIDGE_ANNOUNCE_INTERVAL")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .map(Duration::from_secs)
+        .unwrap_or_else(|| Duration::from_secs(600))
+}
+
 /// Native I2P interface over the local i2pd SAM. Yggdrasil needs no dedicated
 /// type: it is plain TCP over the overlay, reached via `listen`/`bootstrap`.
 #[derive(Clone, Debug, Default)]
@@ -38,8 +48,8 @@ pub struct Config {
     /// its transport when their announce arrives.
     pub discovery: Vec<DiscoveryService>,
     /// How often the produce loop re-announces each discovery endpoint.
-    /// 600 s matches the bridge; a mobile client should shorten this or
-    /// use the trigger API to re-announce on network-change events.
+    /// A mobile client should shorten this or use the trigger API on
+    /// network-change events.
     pub discovery_announce_interval: Duration,
     pub specs: Specs,
 }
@@ -60,13 +70,13 @@ impl Config {
             egress: Vec::new(),
             connect: None,
             discovery: Vec::new(),
-            discovery_announce_interval: Duration::from_secs(600),
+            discovery_announce_interval: default_announce_interval(),
             specs: Specs::default(),
         }
     }
 
-    /// A bare node that joins the global mesh: the public and Yggdrasil anchors
-    /// the project ships, plus a discoverable listener.
+    /// A bare node that joins the global mesh: default public + Yggdrasil
+    /// anchors plus a discoverable listener.
     pub fn default_network(instance_name: impl Into<String>) -> Self {
         use crate::defaults;
         Self {
