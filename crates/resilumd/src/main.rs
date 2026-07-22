@@ -25,7 +25,7 @@ fn main() {
             if let Some(parent) = path.parent()
                 && let Err(e) = std::fs::create_dir_all(parent)
             {
-                eprintln!("[resilumd] mkdir {}: {e}", parent.display());
+                tracing::error!(path = %parent.display(), error = %e, "mkdir failed");
                 std::process::exit(1);
             }
             resilum_core::identity::load_or_create_at(&path);
@@ -51,7 +51,7 @@ fn main() {
     let cfg = match config::load(&path) {
         Ok(cfg) => cfg,
         Err(e) => {
-            eprintln!("[resilumd] config error: {e}");
+            tracing::error!(error = %e, "config load failed");
             std::process::exit(1);
         }
     };
@@ -59,12 +59,12 @@ fn main() {
     let mut node = match Node::new(cfg) {
         Ok(node) => node,
         Err(e) => {
-            eprintln!("[resilumd] build node: {e}");
+            tracing::error!(error = %e, "build node failed");
             std::process::exit(1);
         }
     };
     if let Err(e) = node.start() {
-        eprintln!("[resilumd] start: {e}");
+        tracing::error!(error = %e, "start failed");
         std::process::exit(1);
     }
     tracing::info!(instance = node.config().instance_name.as_str(), "started");
@@ -73,13 +73,13 @@ fn main() {
     if let Err(e) = ctrlc::set_handler(move || {
         let _ = tx.send(());
     }) {
-        eprintln!("[resilumd] signal handler: {e}");
+        tracing::error!(error = %e, "signal handler install failed");
     }
     let _ = rx.recv(); // block until SIGINT/SIGTERM
 
     tracing::info!("stopping");
     if let Err(e) = node.stop() {
-        eprintln!("[resilumd] stop: {e}");
+        tracing::error!(error = %e, "stop failed");
     }
 }
 

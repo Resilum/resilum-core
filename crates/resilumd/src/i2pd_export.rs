@@ -21,9 +21,10 @@ pub fn run(keys_path: &str, hostname_path: &str) -> i32 {
         return 0;
     }
     if !wait_for_keys(Path::new(keys_path)) {
-        eprintln!(
-            "[i2pd-export] {keys_path} did not appear within {}s",
-            WAIT_TIMEOUT.as_secs()
+        tracing::error!(
+            keys = %keys_path,
+            timeout_s = WAIT_TIMEOUT.as_secs(),
+            "keys file did not appear"
         );
         return 1;
     }
@@ -33,7 +34,7 @@ pub fn run(keys_path: &str, hostname_path: &str) -> i32 {
             0
         }
         Err(e) => {
-            eprintln!("[i2pd-export] {e}");
+            tracing::error!(error = %e, "hostname export failed");
             1
         }
     }
