@@ -16,12 +16,17 @@ use std::os::fd::AsRawFd;
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
 use super::wire;
+use crate::covert::carrier::CarrierServer;
 
 const ETH_P_IP: u16 = wire::ETH_P_IP;
 const ETH_P_IPV6: u16 = wire::ETH_P_IPV6;
+const IPV4_OVERHEAD: usize = 20 + 8;
+const IPV6_OVERHEAD: usize = 40 + 8;
+pub use super::client::DEFAULT_MTU;
 
 pub struct IcmpServer {
     ident: u16,
+    mtu: usize,
     send4: Socket,
     send6: Option<Socket>,
     sniff4: Socket,
@@ -30,12 +35,17 @@ pub struct IcmpServer {
 
 impl IcmpServer {
     pub fn new(ident: u16) -> io::Result<Self> {
+        Self::with_mtu(ident, DEFAULT_MTU)
+    }
+
+    pub fn with_mtu(ident: u16, mtu: usize) -> io::Result<Self> {
         let send4 = raw_send(Domain::IPV4, Protocol::ICMPV4)?;
         let send6 = raw_send(Domain::IPV6, Protocol::ICMPV6).ok();
         let sniff4 = sniff_socket(ETH_P_IP)?;
         let sniff6 = sniff_socket(ETH_P_IPV6).ok();
         Ok(Self {
             ident,
+            mtu,
             send4,
             send6,
             sniff4,
@@ -86,6 +96,24 @@ impl IcmpServer {
             }
         }
         Ok(None)
+    }
+}
+
+impl CarrierServer for IcmpServer {
+    type ReplyTo = IpAddr;
+    fn capacity_for(&self, reply_to: &Self::ReplyTo) -> usize {
+        self.mtu
+            - if reply_to.is_ipv6() {
+                IPV6_OVERHEAD
+            } else {
+                IPV4_OVERHEAD
+            }
+    }
+    fn send_response(&self, reply_to: &Self::ReplyTo, wire: &[u8]) -> io::Result<()> {
+        self.send_reply(*reply_to, wire)
+    }
+    fn recv_request(&self, buf: &mut [u8]) -> io::Result<Option<(Self::ReplyTo, Vec<u8>)>> {
+        self.recv_request(buf)
     }
 }
 

@@ -13,17 +13,31 @@ use std::time::Duration;
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
 use super::wire;
+use crate::covert::carrier::CarrierClient;
+
+/// Default MTU used when the caller supplies none. The tunnel operator can
+/// override per-carrier from the covert config (see `spec::covert::CovertSpec`).
+pub const DEFAULT_MTU: usize = 1400;
+const IPV4_OVERHEAD: usize = 20 + 8;
+const IPV6_OVERHEAD: usize = 40 + 8;
 
 pub struct IcmpClient {
     server: IpAddr,
     ident: u16,
+    mtu: usize,
     sock: Socket,
 }
 
 impl IcmpClient {
-    /// Open the ICMP socket for `server`. `ident` is the tunnel id both peers
-    /// derive from the server's public key (see [`super::id::tunnel_id`]).
+    /// Open the ICMP socket for `server` with the default MTU.
     pub fn new(server: IpAddr, ident: u16) -> io::Result<Self> {
+        Self::with_mtu(server, ident, DEFAULT_MTU)
+    }
+
+    /// Open the ICMP socket with a custom MTU (from `CovertSpec::mtu`).
+    /// `ident` is the tunnel id both peers derive from the server's public key
+    /// (see [`super::id::tunnel_id`]).
+    pub fn with_mtu(server: IpAddr, ident: u16, mtu: usize) -> io::Result<Self> {
         let (domain, proto) = match server {
             IpAddr::V4(_) => (Domain::IPV4, Protocol::ICMPV4),
             IpAddr::V6(_) => (Domain::IPV6, Protocol::ICMPV6),
@@ -33,6 +47,7 @@ impl IcmpClient {
         Ok(Self {
             server,
             ident,
+            mtu,
             sock,
         })
     }
@@ -56,5 +71,22 @@ impl IcmpClient {
         let body = &buf[..n];
         let v6 = self.server.is_ipv6();
         Ok(wire::payload_of_reply(body, self.ident, v6).map(<[u8]>::to_vec))
+    }
+}
+
+impl CarrierClient for IcmpClient {
+    fn capacity(&self) -> usize {
+        self.mtu
+            - if self.server.is_ipv6() {
+                IPV6_OVERHEAD
+            } else {
+                IPV4_OVERHEAD
+            }
+    }
+    fn send_request(&self, wire: &[u8]) -> io::Result<()> {
+        self.send(wire)
+    }
+    fn recv_response(&self, buf: &mut [u8]) -> io::Result<Option<Vec<u8>>> {
+        self.recv(buf)
     }
 }
