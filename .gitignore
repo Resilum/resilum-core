@@ -13,3 +13,4 @@ keys/
 *.pem
 *.key
 secrets.*
+.codeberg-token
