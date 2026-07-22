@@ -5,6 +5,7 @@ pub use discovery::{DiscoveryService, EndpointFormat};
 pub use egress::{ConnectConfig, EgressListen};
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::spec::Specs;
 
@@ -36,6 +37,10 @@ pub struct Config {
     /// Transport-discovery plugins to run: each attaches discovered peers over
     /// its transport when their announce arrives.
     pub discovery: Vec<DiscoveryService>,
+    /// How often the produce loop re-announces each discovery endpoint.
+    /// 600 s matches the bridge; a mobile client should shorten this or
+    /// use the trigger API to re-announce on network-change events.
+    pub discovery_announce_interval: Duration,
     pub specs: Specs,
 }
 
@@ -55,6 +60,7 @@ impl Config {
             egress: Vec::new(),
             connect: None,
             discovery: Vec::new(),
+            discovery_announce_interval: Duration::from_secs(600),
             specs: Specs::default(),
         }
     }

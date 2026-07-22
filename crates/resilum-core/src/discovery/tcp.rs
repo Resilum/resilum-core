@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use leviculum_std::api::Node as LevNode;
 use leviculum_std::interfaces::TcpClientHandle;
+use tokio::sync::Notify;
 
 use super::DiscoveryPlugin;
 use crate::config::{DiscoveryService, EndpointFormat};
@@ -14,14 +15,19 @@ pub struct TcpDiscovered {
     engine: Arc<LevNode>,
     // Dropping a TcpClientHandle detaches its interface; hold them here.
     handles: Mutex<HashMap<String, TcpClientHandle>>,
+    // Woken on every successful attach so the produce loop re-announces at once
+    // — the mesh sees us paired with a fresh peer within a tick, not after up
+    // to `discovery_announce_interval`. Follows announce_trigger.
+    trigger: Arc<Notify>,
 }
 
 impl TcpDiscovered {
-    pub fn new(cfg: DiscoveryService, engine: Arc<LevNode>) -> Self {
+    pub fn new(cfg: DiscoveryService, engine: Arc<LevNode>, trigger: Arc<Notify>) -> Self {
         Self {
             cfg,
             engine,
             handles: Mutex::new(HashMap::new()),
+            trigger,
         }
     }
 }
@@ -53,6 +59,7 @@ impl DiscoveryPlugin for TcpDiscovered {
             Ok(handle) => {
                 tracing::info!(service = %self.cfg.service, %name, "attached discovered peer");
                 guard.insert(name, handle);
+                self.trigger.notify_waiters();
             }
             Err(e) => {
                 tracing::warn!(service = %self.cfg.service, %name, error = %e, "attach failed");

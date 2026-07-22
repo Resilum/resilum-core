@@ -30,7 +30,7 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::api::Node as LevNode;
-use tokio::sync::mpsc;
+use tokio::sync::{Notify, mpsc};
 use tokio::task::JoinHandle;
 
 use crate::egress::CandidateRegistry;
@@ -46,6 +46,7 @@ pub struct Node {
     tasks: Vec<JoinHandle<()>>,
     event_queue: event::Queue,
     socks_port: Arc<AtomicU16>,
+    discovery_trigger: Arc<Notify>,
 }
 
 impl Node {
@@ -63,6 +64,7 @@ impl Node {
             tasks: Vec::new(),
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             socks_port: Arc::new(AtomicU16::new(0)),
+            discovery_trigger: Arc::new(Notify::new()),
         })
     }
 
@@ -94,10 +96,23 @@ impl Node {
                 let discovery = Arc::new(discovery::build_from_services(
                     &self.config.discovery,
                     engine.clone(),
+                    self.discovery_trigger.clone(),
                 ));
                 let bus = self.events.subscribe();
                 self.tasks
-                    .push(tokio::spawn(discovery::run_consume(discovery, bus)));
+                    .push(tokio::spawn(discovery::run_consume(discovery.clone(), bus)));
+                let destinations = discovery::build_destinations(
+                    &engine,
+                    identity.clone(),
+                    &self.config.discovery,
+                )?;
+                self.tasks.push(tokio::spawn(discovery::run_produce(
+                    engine.clone(),
+                    discovery,
+                    destinations,
+                    self.config.discovery_announce_interval,
+                    self.discovery_trigger.clone(),
+                )));
             }
             if let Some(connect) = self.config.connect.clone() {
                 // Skip this node's own egress announces when selecting a peer.
@@ -185,6 +200,14 @@ impl Node {
     /// Shared engine handle for runtime tasks; `None` before start / after stop.
     pub fn engine(&self) -> Option<Arc<LevNode>> {
         self.engine.clone()
+    }
+
+    /// Wake the discovery produce loop to re-announce endpoints now, without
+    /// waiting for the next tick. Call this on external state changes the
+    /// bridge cannot observe from inside (Flutter posting a network-change
+    /// event through FFI, a hidden-service hostname just becoming ready, etc).
+    pub fn trigger_discovery_announce(&self) {
+        self.discovery_trigger.notify_waiters();
     }
 
     pub fn send(&mut self, _dest: &[u8], _data: &[u8]) -> Result<()> {

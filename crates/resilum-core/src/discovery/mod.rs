@@ -2,21 +2,23 @@
 //! endpoint and reacts to peers advertising the same `resilum.discovery.<svc>`
 //! aspect. Incoming announces route to a plugin by their name-hash.
 
+mod consume;
+mod produce;
 mod tcp;
+pub use consume::run_consume;
+pub use produce::{build_destinations, run_produce};
 pub use tcp::TcpDiscovered;
 
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use leviculum_std::NodeEvent;
 use leviculum_std::api::Destination;
 use leviculum_std::api::Node as LevNode;
-use tokio::sync::broadcast::Receiver;
-use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::Notify;
 
 use crate::config::DiscoveryService;
 
-const APP_NAME: &str = "resilum";
+pub(super) const APP_NAME: &str = "resilum";
 
 /// A transport-specific discovery plugin.
 pub trait DiscoveryPlugin: Send + Sync {
@@ -66,30 +68,23 @@ pub fn name_hash(service: &str) -> Vec<u8> {
     Destination::compute_name_hash(APP_NAME, &["discovery", service]).to_vec()
 }
 
-pub fn build_from_services(services: &[DiscoveryService], engine: Arc<LevNode>) -> Discovery {
+pub fn build_from_services(
+    services: &[DiscoveryService],
+    engine: Arc<LevNode>,
+    trigger: Arc<Notify>,
+) -> Discovery {
     let mut d = Discovery::default();
     for cfg in services {
         d.register(
             &cfg.service.clone(),
-            Arc::new(TcpDiscovered::new(cfg.clone(), engine.clone())),
+            Arc::new(TcpDiscovered::new(
+                cfg.clone(),
+                engine.clone(),
+                trigger.clone(),
+            )),
         );
     }
     d
-}
-
-/// Consume loop: route each `AnnounceReceived` from the event bus to a plugin.
-pub async fn run_consume(discovery: Arc<Discovery>, mut rx: Receiver<Arc<NodeEvent>>) {
-    loop {
-        match rx.recv().await {
-            Ok(event) => {
-                if let NodeEvent::AnnounceReceived { announce, .. } = &*event {
-                    discovery.on_announce(announce.name_hash(), announce.app_data());
-                }
-            }
-            Err(RecvError::Lagged(_)) => {} // announces are periodic; catch the next
-            Err(RecvError::Closed) => return,
-        }
-    }
 }
 
 #[cfg(test)]
