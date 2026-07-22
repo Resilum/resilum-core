@@ -1,6 +1,7 @@
 //! TCP discovery plugin (Tor / I2P / Yggdrasil).
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::api::Node as LevNode;
@@ -8,6 +9,7 @@ use leviculum_std::interfaces::TcpClientHandle;
 use tokio::sync::Notify;
 
 use super::DiscoveryPlugin;
+use super::cache;
 use crate::config::{DiscoveryService, EndpointFormat};
 
 pub struct TcpDiscovered {
@@ -19,15 +21,23 @@ pub struct TcpDiscovered {
     // — the mesh sees us paired with a fresh peer within a tick, not after up
     // to `discovery_announce_interval`. Follows announce_trigger.
     trigger: Arc<Notify>,
+    // Persistent peer cache; None disables persistence (attach still works).
+    cache_path: Option<PathBuf>,
 }
 
 impl TcpDiscovered {
-    pub fn new(cfg: DiscoveryService, engine: Arc<LevNode>, trigger: Arc<Notify>) -> Self {
+    pub fn new(
+        cfg: DiscoveryService,
+        engine: Arc<LevNode>,
+        trigger: Arc<Notify>,
+        cache_path: Option<PathBuf>,
+    ) -> Self {
         Self {
             cfg,
             engine,
             handles: Mutex::new(HashMap::new()),
             trigger,
+            cache_path,
         }
     }
 }
@@ -60,6 +70,13 @@ impl DiscoveryPlugin for TcpDiscovered {
                 tracing::info!(service = %self.cfg.service, %name, "attached discovered peer");
                 guard.insert(name, handle);
                 self.trigger.notify_waiters();
+                if let Some(path) = &self.cache_path {
+                    let mut records = cache::load(path);
+                    cache::upsert(&mut records, payload, cache::now_ts());
+                    if let Err(e) = cache::save(path, &records) {
+                        tracing::warn!(service = %self.cfg.service, error = %e, "cache save failed");
+                    }
+                }
             }
             Err(e) => {
                 tracing::warn!(service = %self.cfg.service, %name, error = %e, "attach failed");

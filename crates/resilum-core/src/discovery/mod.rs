@@ -2,9 +2,11 @@
 //! endpoint and reacts to peers advertising the same `resilum.discovery.<svc>`
 //! aspect. Incoming announces route to a plugin by their name-hash.
 
+mod cache;
 mod consume;
 mod produce;
 mod tcp;
+pub use cache::run_prune_loop;
 pub use consume::run_consume;
 pub use produce::{build_destinations, run_produce};
 pub use tcp::TcpDiscovered;
@@ -72,19 +74,36 @@ pub fn build_from_services(
     services: &[DiscoveryService],
     engine: Arc<LevNode>,
     trigger: Arc<Notify>,
+    storage_root: Option<&std::path::Path>,
 ) -> Discovery {
     let mut d = Discovery::default();
     for cfg in services {
-        d.register(
-            &cfg.service.clone(),
-            Arc::new(TcpDiscovered::new(
-                cfg.clone(),
-                engine.clone(),
-                trigger.clone(),
-            )),
-        );
+        let cache_path = storage_root.map(|r| cache::path_for(r, &cfg.service));
+        let plugin = Arc::new(TcpDiscovered::new(
+            cfg.clone(),
+            engine.clone(),
+            trigger.clone(),
+            cache_path.clone(),
+        ));
+        warm_start(plugin.as_ref(), cache_path.as_deref());
+        d.register(&cfg.service.clone(), plugin);
     }
     d
+}
+
+fn warm_start(plugin: &dyn DiscoveryPlugin, cache_path: Option<&std::path::Path>) {
+    let Some(path) = cache_path else { return };
+    let mut records = cache::load(path);
+    cache::prune(&mut records, cache::TTL_SECONDS, cache::now_ts());
+    let _ = cache::save(path, &records);
+    for endpoint in cache::top_n(&records, cache::TOP_N_ACTIVE) {
+        plugin.consume_endpoint(&endpoint);
+    }
+}
+
+/// The list of enabled service names, for the prune loop.
+pub fn service_names(services: &[DiscoveryService]) -> Vec<String> {
+    services.iter().map(|s| s.service.clone()).collect()
 }
 
 #[cfg(test)]

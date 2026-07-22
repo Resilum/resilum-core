@@ -34,10 +34,12 @@ impl Node {
                 inbound_tx,
             )));
             if !self.config.discovery.is_empty() {
+                let storage_root = self.config.storage_path.as_deref();
                 let discovery = Arc::new(discovery::build_from_services(
                     &self.config.discovery,
                     engine.clone(),
                     self.discovery_trigger.clone(),
+                    storage_root,
                 ));
                 let bus = self.events.subscribe();
                 self.tasks
@@ -54,6 +56,16 @@ impl Node {
                     self.config.discovery_announce_interval,
                     self.discovery_trigger.clone(),
                 )));
+                if let Some(root) = self.config.storage_path.clone() {
+                    let services = self
+                        .config
+                        .discovery
+                        .iter()
+                        .map(|s| s.service.clone())
+                        .collect();
+                    self.tasks
+                        .push(tokio::spawn(discovery::run_prune_loop(root, services)));
+                }
             }
             if let Some(connect) = self.config.connect.clone() {
                 // Skip this node's own egress announces when selecting a peer.
