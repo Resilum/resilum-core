@@ -68,6 +68,20 @@ impl DiscoveryService {
             rns_port: 4242,
         }
     }
+
+    /// I2P b32-destination discovery: peers announced as
+    /// `<b32>.b32.i2p:<port>` are dialed through the local i2pd SAM SOCKS5
+    /// proxy (127.0.0.1:4447).
+    pub fn i2p() -> Self {
+        Self {
+            service: "i2p".into(),
+            name_prefix: "I2PDiscovered".into(),
+            host_suffix: ".b32.i2p".into(),
+            socks_proxy: Some(("127.0.0.1".into(), 4447)),
+            hostname_path: None,
+            rns_port: 4242,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
