@@ -3,11 +3,13 @@
 //! implementation is a `Carrier` impl plus its wire encoding.
 //!
 //! Runtime prerequisites by carrier (implementation-time, not policy):
-//! - `icmp` — client works on Linux + Android non-root via
-//!   `SOCK_DGRAM/IPPROTO_ICMP`; server needs raw sockets (root or `CAP_NET_RAW`).
-//! - `dns` — plain UDP :53, works from a non-privileged app (like iodine).
-//! - `arp`, `ntp`, `dhcp`, `snmp` — planned; either require raw / privileged
-//!   ports, or ride the packet-tunnel API (`VpnService` / `NEPacketTunnelProvider`).
+//! - `icmp` — client works everywhere via `SOCK_DGRAM/IPPROTO_ICMP` (Linux,
+//!   Android with `INTERNET` permission, iOS without entitlements); server
+//!   side needs raw sockets (root or `CAP_NET_RAW`).
+//! - `dns` — plain UDP :53 as a client, works from any non-privileged app.
+//! - `arp`, `ntp`, `dhcp`, `snmp` — planned; either require raw sockets or
+//!   privileged ports, or on mobile ride the packet-tunnel API
+//!   (`VpnService` / `NEPacketTunnelProvider`).
 
 pub mod carrier;
 pub mod icmp;

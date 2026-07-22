@@ -1,9 +1,9 @@
 //! ICMP-echo carrier skeleton.
 //!
 //! Two send/recv modes:
-//! - **`SOCK_DGRAM + IPPROTO_ICMP`** (Linux 2.6.39+, incl. Android with a plain
-//!   `INTERNET` permission — no root, no raw): kernel-managed echo id, useful
-//!   on mobile clients.
+//! - **`SOCK_DGRAM + IPPROTO_ICMP`** — non-privileged echo (Linux, Android with
+//!   plain `INTERNET` permission, iOS without entitlements). Kernel-managed
+//!   echo id, one process = one id. Used by mobile clients.
 //! - **`SOCK_RAW + AF_PACKET + BPF`** (root / `CAP_NET_RAW`): bypasses
 //!   netfilter so the kernel's own echo-reply does not race with ours; used
 //!   on the server side that answers multiple clients.
