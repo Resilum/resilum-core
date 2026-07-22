@@ -1,6 +1,7 @@
 //! resilumd — thin daemon wrapping `resilum-core`: load a YAML config, start a
 //! node, run until SIGINT/SIGTERM, then stop cleanly.
 
+mod bind_config;
 mod config;
 mod i2pd_export;
 mod ygg_seed;
@@ -47,6 +48,12 @@ fn main() {
             };
             std::process::exit(ygg_seed::run(cfg));
         }
+        Some("render-bind-config") => {
+            std::process::exit(bind_config::run(
+                argv.get(1).map(String::as_str),
+                argv.get(2).map(String::as_str),
+            ));
+        }
         _ => {}
     }
 
@@ -55,6 +62,7 @@ fn main() {
         eprintln!("       resilumd generate-identity <path>");
         eprintln!("       resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
         eprintln!("       resilumd ygg-seed-keys <yggdrasil.conf>");
+        eprintln!("       resilumd render-bind-config [<ygg.conf>] [<rns.conf>]");
         std::process::exit(2);
     };
 
