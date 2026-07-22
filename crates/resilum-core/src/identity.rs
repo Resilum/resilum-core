@@ -6,12 +6,12 @@ use leviculum_std::api::{self, Identity};
 
 const FILE: &str = "identity";
 
-pub(crate) fn load_or_create(dir: &Path) -> Identity {
+pub fn load_or_create(dir: &Path) -> Identity {
     load_or_create_at(&dir.join(FILE))
 }
 
 /// Loads `path`, else generates and persists a fresh identity at `0600`.
-pub(crate) fn load_or_create_at(path: &Path) -> Identity {
+pub fn load_or_create_at(path: &Path) -> Identity {
     if let Ok(bytes) = std::fs::read(path)
         && let Ok(identity) = Identity::from_private_key_bytes(&bytes)
     {

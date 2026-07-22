@@ -2,6 +2,7 @@
 //! node, run until SIGINT/SIGTERM, then stop cleanly.
 
 mod config;
+mod i2pd_export;
 
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -13,8 +14,37 @@ fn main() {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .init();
 
-    let Some(path) = config_path() else {
-        eprintln!("usage: resilumd --config <path.yaml>");
+    let argv: Vec<String> = std::env::args().skip(1).collect();
+    match argv.first().map(String::as_str) {
+        Some("generate-identity") => {
+            let Some(out) = argv.get(1) else {
+                eprintln!("usage: resilumd generate-identity <path>");
+                std::process::exit(2);
+            };
+            let path = PathBuf::from(out);
+            if let Some(parent) = path.parent()
+                && let Err(e) = std::fs::create_dir_all(parent)
+            {
+                eprintln!("[resilumd] mkdir {}: {e}", parent.display());
+                std::process::exit(1);
+            }
+            resilum_core::identity::load_or_create_at(&path);
+            tracing::info!(path = %path.display(), "identity written");
+            return;
+        }
+        Some("i2pd-export-hostname") => {
+            let (Some(keys), Some(out)) = (argv.get(1), argv.get(2)) else {
+                eprintln!("usage: resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
+                std::process::exit(2);
+            };
+            std::process::exit(i2pd_export::run(keys, out));
+        }
+        _ => {}
+    }
+
+    let Some(path) = config_path(&argv) else {
+        eprintln!("usage: resilumd [--config] <path.yaml>");
+        eprintln!("       resilumd generate-identity <path>");
         std::process::exit(2);
     };
 
@@ -54,10 +84,9 @@ fn main() {
 }
 
 /// `--config <path>` / `-c <path>`, or a single positional path.
-fn config_path() -> Option<PathBuf> {
-    let mut args = std::env::args().skip(1);
-    match args.next()?.as_str() {
-        "--config" | "-c" => args.next().map(PathBuf::from),
+fn config_path(argv: &[String]) -> Option<PathBuf> {
+    match argv.first()?.as_str() {
+        "--config" | "-c" => argv.get(1).map(PathBuf::from),
         positional => Some(PathBuf::from(positional)),
     }
 }

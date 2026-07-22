@@ -14,7 +14,7 @@ pub mod egress;
 mod engine;
 mod error;
 mod event;
-mod identity;
+pub mod identity;
 pub mod link;
 mod node;
 pub mod pump;
