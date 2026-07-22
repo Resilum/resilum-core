@@ -31,6 +31,45 @@ impl EgressListen {
     }
 }
 
+/// One enabled transport-discovery plugin. Peers announce where they accept
+/// connections over this transport (`resilum.discovery.<service>`); consuming an
+/// announce attaches a TCP client to reach them, optionally through a SOCKS5
+/// proxy (Tor/I2P). Yggdrasil dials the announced IPv6 directly (`socks_proxy`
+/// is `None`).
+#[derive(Clone, Debug)]
+pub struct DiscoveryService {
+    pub service: String,
+    /// Interface-name prefix for a discovered peer, e.g. `TorDiscovered`.
+    pub name_prefix: String,
+    /// Required host suffix an announced endpoint must carry (`.onion`,
+    /// `.b32.i2p`); empty for a bracketed-IPv6 endpoint (Yggdrasil).
+    pub host_suffix: String,
+    /// SOCKS5 proxy every consumed peer is dialed through, or `None` to dial
+    /// the announced host directly.
+    pub socks_proxy: Option<(String, u16)>,
+    /// File holding this node's own reachable address for this transport; read
+    /// when producing our announce. `None` (or an unreadable path) means
+    /// consume-only — we attach discovered peers but do not advertise ourselves.
+    pub hostname_path: Option<PathBuf>,
+    /// Port appended to the produced endpoint (our RNS listener).
+    pub rns_port: u16,
+}
+
+impl DiscoveryService {
+    /// Tor onion-service discovery: peers announced as `<onion>.onion:<port>`
+    /// are dialed through the local Tor SOCKS5 proxy (127.0.0.1:9050).
+    pub fn tor() -> Self {
+        Self {
+            service: "tor".into(),
+            name_prefix: "TorDiscovered".into(),
+            host_suffix: ".onion".into(),
+            socks_proxy: Some(("127.0.0.1".into(), 9050)),
+            hostname_path: None,
+            rns_port: 4242,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ConnectConfig {
     pub services: Vec<String>,
@@ -70,6 +109,9 @@ pub struct Config {
     pub autoconnect_max: usize,
     pub egress: Vec<EgressListen>,
     pub connect: Option<ConnectConfig>,
+    /// Transport-discovery plugins to run: each attaches discovered peers over
+    /// its transport when their announce arrives.
+    pub discovery: Vec<DiscoveryService>,
     pub specs: Specs,
 }
 
@@ -88,6 +130,7 @@ impl Config {
             autoconnect_max: 5,
             egress: Vec::new(),
             connect: None,
+            discovery: Vec::new(),
             specs: Specs::default(),
         }
     }

@@ -2,13 +2,19 @@
 //! endpoint and reacts to peers advertising the same `resilum.discovery.<svc>`
 //! aspect. Incoming announces route to a plugin by their name-hash.
 
+mod tcp;
+pub use tcp::TcpDiscovered;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
 use leviculum_std::NodeEvent;
 use leviculum_std::api::Destination;
+use leviculum_std::api::Node as LevNode;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
+
+use crate::config::DiscoveryService;
 
 const APP_NAME: &str = "resilum";
 
@@ -58,6 +64,17 @@ impl Discovery {
 /// Name-hash of the aspect `resilum.discovery.<service>`.
 pub fn name_hash(service: &str) -> Vec<u8> {
     Destination::compute_name_hash(APP_NAME, &["discovery", service]).to_vec()
+}
+
+pub fn build_from_services(services: &[DiscoveryService], engine: Arc<LevNode>) -> Discovery {
+    let mut d = Discovery::default();
+    for cfg in services {
+        d.register(
+            &cfg.service.clone(),
+            Arc::new(TcpDiscovered::new(cfg.clone(), engine.clone())),
+        );
+    }
+    d
 }
 
 /// Consume loop: route each `AnnounceReceived` from the event bus to a plugin.

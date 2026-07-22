@@ -88,6 +88,15 @@ impl Node {
                 link_bus,
                 inbound_tx,
             )));
+            if !self.config.discovery.is_empty() {
+                let discovery = Arc::new(discovery::build_from_services(
+                    &self.config.discovery,
+                    engine.clone(),
+                ));
+                let bus = self.events.subscribe();
+                self.tasks
+                    .push(tokio::spawn(discovery::run_consume(discovery, bus)));
+            }
             if let Some(connect) = self.config.connect.clone() {
                 // Skip this node's own egress announces when selecting a peer.
                 let mut skip: HashMap<String, HashSet<Vec<u8>>> = HashMap::new();
