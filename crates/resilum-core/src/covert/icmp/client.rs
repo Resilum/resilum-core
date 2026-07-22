@@ -1,0 +1,60 @@
+//! Portable ICMP client: `SOCK_DGRAM + IPPROTO_ICMP{,V6}`. No root, no raw.
+//! Works on Linux (subject to `net.ipv4.ping_group_range`), Android with a
+//! plain `INTERNET` permission and iOS without entitlements.
+//!
+//! The kernel writes the IP header on send and strips it on recv, and it
+//! matches replies to our socket by its bound identifier — foreign echoes
+//! from other pings never reach us.
+
+use std::io;
+use std::net::{IpAddr, SocketAddr};
+use std::time::Duration;
+
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+
+use super::wire;
+
+pub struct IcmpClient {
+    server: IpAddr,
+    ident: u16,
+    sock: Socket,
+}
+
+impl IcmpClient {
+    /// Open the ICMP socket for `server`. `ident` is the tunnel id both peers
+    /// derive from the server's public key (see [`super::id::tunnel_id`]).
+    pub fn new(server: IpAddr, ident: u16) -> io::Result<Self> {
+        let (domain, proto) = match server {
+            IpAddr::V4(_) => (Domain::IPV4, Protocol::ICMPV4),
+            IpAddr::V6(_) => (Domain::IPV6, Protocol::ICMPV6),
+        };
+        let sock = Socket::new(domain, Type::DGRAM, Some(proto))?;
+        sock.set_nonblocking(false)?;
+        Ok(Self {
+            server,
+            ident,
+            sock,
+        })
+    }
+
+    pub fn set_read_timeout(&self, timeout: Option<Duration>) -> io::Result<()> {
+        self.sock.set_read_timeout(timeout)
+    }
+
+    /// Wrap `payload` in an echo-request and send it to the server.
+    pub fn send(&self, payload: &[u8]) -> io::Result<()> {
+        let body = wire::build_echo_request(self.ident, payload, self.server.is_ipv6());
+        let addr: SockAddr = SocketAddr::new(self.server, 0).into();
+        self.sock.send_to(&body, &addr).map(|_| ())
+    }
+
+    /// Block until the next reply arrives, returning its payload when it
+    /// carries our tunnel id (foreign echoes are silently skipped).
+    pub fn recv(&self, buf: &mut [u8]) -> io::Result<Option<Vec<u8>>> {
+        let cell = unsafe { std::slice::from_raw_parts_mut(buf.as_mut_ptr().cast(), buf.len()) };
+        let (n, _addr) = self.sock.recv_from(cell)?;
+        let body = &buf[..n];
+        let v6 = self.server.is_ipv6();
+        Ok(wire::payload_of_reply(body, self.ident, v6).map(<[u8]>::to_vec))
+    }
+}
