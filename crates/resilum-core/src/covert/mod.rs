@@ -12,4 +12,5 @@
 //!   (`VpnService` / `NEPacketTunnelProvider`).
 
 pub mod carrier;
+pub mod engine;
 pub mod icmp;
