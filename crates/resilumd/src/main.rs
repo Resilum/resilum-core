@@ -3,6 +3,7 @@
 
 mod bind_config;
 mod config;
+mod covert;
 mod i2pd_export;
 mod ygg_seed;
 
@@ -54,6 +55,9 @@ fn main() {
                 argv.get(2).map(String::as_str),
             ));
         }
+        Some("covert") => {
+            std::process::exit(covert::run(&argv[1..]));
+        }
         _ => {}
     }
 
@@ -63,6 +67,7 @@ fn main() {
         eprintln!("       resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
         eprintln!("       resilumd ygg-seed-keys <yggdrasil.conf>");
         eprintln!("       resilumd render-bind-config [<ygg.conf>] [<rns.conf>]");
+        eprintln!("       resilumd covert <carrier> <client|server> [flags]");
         std::process::exit(2);
     };
 

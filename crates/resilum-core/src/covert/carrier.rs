@@ -6,6 +6,7 @@
 //! opaque to its shape.
 
 use std::io;
+use std::sync::Arc;
 
 pub trait CarrierClient {
     fn tag_len(&self) -> usize {
@@ -29,4 +30,35 @@ pub trait CarrierServer {
     fn capacity_for(&self, reply_to: &Self::ReplyTo) -> usize;
     fn send_response(&self, reply_to: &Self::ReplyTo, wire: &[u8]) -> io::Result<()>;
     fn recv_request(&self, buf: &mut [u8]) -> io::Result<Option<(Self::ReplyTo, Vec<u8>)>>;
+}
+
+impl<T: CarrierClient + ?Sized> CarrierClient for Arc<T> {
+    fn tag_len(&self) -> usize {
+        (**self).tag_len()
+    }
+    fn capacity(&self) -> usize {
+        (**self).capacity()
+    }
+    fn send_request(&self, wire: &[u8]) -> io::Result<()> {
+        (**self).send_request(wire)
+    }
+    fn recv_response(&self, buf: &mut [u8]) -> io::Result<Option<Vec<u8>>> {
+        (**self).recv_response(buf)
+    }
+}
+
+impl<T: CarrierServer + ?Sized> CarrierServer for Arc<T> {
+    type ReplyTo = T::ReplyTo;
+    fn tag_len(&self) -> usize {
+        (**self).tag_len()
+    }
+    fn capacity_for(&self, reply_to: &Self::ReplyTo) -> usize {
+        (**self).capacity_for(reply_to)
+    }
+    fn send_response(&self, reply_to: &Self::ReplyTo, wire: &[u8]) -> io::Result<()> {
+        (**self).send_response(reply_to, wire)
+    }
+    fn recv_request(&self, buf: &mut [u8]) -> io::Result<Option<(Self::ReplyTo, Vec<u8>)>> {
+        (**self).recv_request(buf)
+    }
 }
