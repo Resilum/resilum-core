@@ -18,7 +18,9 @@ pub mod pump;
 pub mod spec;
 pub mod supervisor;
 
-pub use config::{Config, ConnectConfig, EgressListen, I2pInterface};
+pub use config::{
+    Config, ConnectConfig, DiscoveryService, EgressListen, EndpointFormat, I2pInterface,
+};
 pub use config_file::from_yaml;
 pub use error::{Error, Result};
 pub use event::Event;
