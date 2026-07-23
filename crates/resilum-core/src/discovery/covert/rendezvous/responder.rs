@@ -9,12 +9,11 @@ use leviculum_std::{Destination, DestinationHash, DestinationType, Direction, Id
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
 
-use super::super::APP_NAME;
-use super::endpoint;
+use super::super::super::APP_NAME;
+use super::super::endpoint;
+use super::ENDPOINT_PATH;
 use crate::config::CovertDiscoveryService;
 use crate::error::{Error, Result};
-
-pub(crate) const ENDPOINT_PATH: &str = "endpoint";
 
 pub fn build_destinations(
     engine: &LevNode,

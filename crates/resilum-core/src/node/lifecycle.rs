@@ -51,6 +51,7 @@ impl Node {
                     self.discovery_trigger.clone(),
                     storage_root,
                     cap_controller,
+                    self.events.clone(),
                 ));
                 let bus = self.events.subscribe();
                 self.tasks

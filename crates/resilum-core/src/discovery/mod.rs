@@ -81,6 +81,7 @@ pub fn build_from_services(
     trigger: Arc<Notify>,
     storage_root: Option<&std::path::Path>,
     cap_controller: Arc<CapController>,
+    events: crate::dispatch::Events,
 ) -> Discovery {
     let mut d = Discovery::default();
     for cfg in services {
@@ -97,7 +98,11 @@ pub fn build_from_services(
     }
     for cfg in covert_services {
         let name = cfg.service_name();
-        let plugin = Arc::new(covert::CovertDiscovered::new(cfg.clone(), engine.clone()));
+        let plugin = Arc::new(covert::CovertDiscovered::new(
+            cfg.clone(),
+            engine.clone(),
+            events.clone(),
+        ));
         d.register(&name, plugin);
     }
     d
