@@ -4,6 +4,7 @@
 
 mod cache;
 mod consume;
+pub mod covert;
 mod produce;
 mod tcp;
 pub use cache::run_prune_loop;
@@ -19,7 +20,7 @@ use leviculum_std::api::Node as LevNode;
 use tokio::sync::Notify;
 
 use crate::announce_cap::CapController;
-use crate::config::DiscoveryService;
+use crate::config::{CovertDiscoveryService, DiscoveryService};
 
 pub(super) const APP_NAME: &str = "resilum";
 
@@ -28,8 +29,10 @@ pub trait DiscoveryPlugin: Send + Sync {
     /// Bytes advertising where we accept peers over this transport, or `None`
     /// while the local transport is not ready.
     fn produce_endpoint(&self) -> Option<Vec<u8>>;
-    /// React to a peer advertising the same transport (e.g. add an interface).
-    fn consume_endpoint(&self, payload: &[u8]);
+    /// React to a peer advertising the same transport. `announcer_pubkey` is
+    /// the identity that signed the announce (some transports need it to seal
+    /// a session; TCP-discovery doesn't).
+    fn consume_endpoint(&self, payload: &[u8], announcer_pubkey: &[u8]);
 }
 
 /// Plugins keyed by the name-hash of their discovery aspect.
@@ -47,9 +50,9 @@ impl Discovery {
     }
 
     /// Route an announce to the matching plugin's `consume_endpoint`.
-    pub fn on_announce(&self, name_hash: &[u8], app_data: &[u8]) {
+    pub fn on_announce(&self, name_hash: &[u8], app_data: &[u8], announcer_pubkey: &[u8]) {
         if let Some(plugin) = self.by_name_hash.get(name_hash) {
-            plugin.consume_endpoint(app_data);
+            plugin.consume_endpoint(app_data, announcer_pubkey);
         }
     }
 
@@ -73,6 +76,7 @@ pub fn name_hash(service: &str) -> Vec<u8> {
 
 pub fn build_from_services(
     services: &[DiscoveryService],
+    covert_services: &[CovertDiscoveryService],
     engine: Arc<LevNode>,
     trigger: Arc<Notify>,
     storage_root: Option<&std::path::Path>,
@@ -91,6 +95,11 @@ pub fn build_from_services(
         warm_start(plugin.as_ref(), cache_path.as_deref());
         d.register(&cfg.service.clone(), plugin);
     }
+    for cfg in covert_services {
+        let name = cfg.service_name();
+        let plugin = Arc::new(covert::CovertDiscovered::new(cfg.clone(), engine.clone()));
+        d.register(&name, plugin);
+    }
     d
 }
 
@@ -100,7 +109,7 @@ fn warm_start(plugin: &dyn DiscoveryPlugin, cache_path: Option<&std::path::Path>
     cache::prune(&mut records, cache::TTL_SECONDS, cache::now_ts());
     let _ = cache::save(path, &records);
     for endpoint in cache::top_n(&records, cache::TOP_N_ACTIVE) {
-        plugin.consume_endpoint(&endpoint);
+        plugin.consume_endpoint(&endpoint, &[]);
     }
 }
 
@@ -123,7 +132,7 @@ mod tests {
         fn produce_endpoint(&self) -> Option<Vec<u8>> {
             Some(b"endpoint".to_vec())
         }
-        fn consume_endpoint(&self, payload: &[u8]) {
+        fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {
             self.consumed.lock().unwrap().push(payload.to_vec());
         }
     }
@@ -134,8 +143,8 @@ mod tests {
         let mut d = Discovery::default();
         d.register("tor", plugin.clone());
 
-        d.on_announce(&name_hash("tor"), b"payload");
-        d.on_announce(&name_hash("i2p"), b"other"); // no plugin → ignored
+        d.on_announce(&name_hash("tor"), b"payload", b"pubkey");
+        d.on_announce(&name_hash("i2p"), b"other", b"pubkey"); // no plugin → ignored
 
         assert_eq!(
             plugin.consumed.lock().unwrap().as_slice(),

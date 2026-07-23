@@ -1,6 +1,8 @@
+mod covert_discovery;
 mod discovery;
 mod egress;
 
+pub use covert_discovery::CovertDiscoveryService;
 pub use discovery::{DiscoveryService, EndpointFormat};
 pub use egress::{ConnectConfig, EgressListen};
 
@@ -47,6 +49,8 @@ pub struct Config {
     /// Transport-discovery plugins to run: each attaches discovered peers over
     /// its transport when their announce arrives.
     pub discovery: Vec<DiscoveryService>,
+    /// Covert-carrier discovery plugins (parallel to `discovery`).
+    pub covert_discovery: Vec<CovertDiscoveryService>,
     /// How often the produce loop re-announces each discovery endpoint.
     /// A mobile client should shorten this or use the trigger API on
     /// network-change events.
@@ -70,6 +74,7 @@ impl Config {
             egress: Vec::new(),
             connect: None,
             discovery: Vec::new(),
+            covert_discovery: Vec::new(),
             discovery_announce_interval: default_announce_interval(),
             specs: Specs::default(),
         }

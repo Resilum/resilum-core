@@ -55,7 +55,7 @@ impl DiscoveryPlugin for TcpDiscovered {
         Some(format!("{}:{}", host, self.cfg.rns_port).into_bytes())
     }
 
-    fn consume_endpoint(&self, payload: &[u8]) {
+    fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {
         let Some((host, port)) = parse_endpoint(payload, &self.cfg.endpoint_format) else {
             tracing::debug!(service = %self.cfg.service, "malformed discovery payload");
             return;

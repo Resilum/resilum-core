@@ -46,6 +46,7 @@ impl Node {
                 )));
                 let discovery = Arc::new(discovery::build_from_services(
                     &self.config.discovery,
+                    &self.config.covert_discovery,
                     engine.clone(),
                     self.discovery_trigger.clone(),
                     storage_root,

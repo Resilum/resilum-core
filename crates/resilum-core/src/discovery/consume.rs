@@ -19,10 +19,10 @@ pub async fn run_consume(discovery: Arc<Discovery>, mut rx: Receiver<Arc<NodeEve
                     let Some(parsed) = announce_payload::parse(announce.app_data()) else {
                         continue;
                     };
-                    let Some(endpoint) = parsed.endpoint else {
-                        continue;
-                    };
-                    discovery.on_announce(announce.name_hash(), &endpoint);
+                    // Capability-only announces (no endpoint) still route to
+                    // the plugin — it may fetch the address itself.
+                    let endpoint = parsed.endpoint.unwrap_or_default();
+                    discovery.on_announce(announce.name_hash(), &endpoint, announce.public_key());
                 }
             }
             Err(RecvError::Lagged(_)) => {}
