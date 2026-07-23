@@ -22,7 +22,9 @@ impl CovertDiscovered {
 
 impl DiscoveryPlugin for CovertDiscovered {
     fn produce_endpoint(&self) -> Option<Vec<u8>> {
-        None
+        // Empty payload = capability marker; the real address is fetched over
+        // the encrypted link by the rendezvous client.
+        (!self.cfg.addresses.is_empty()).then(Vec::new)
     }
 
     fn consume_endpoint(&self, _payload: &[u8], announcer_pubkey: &[u8]) {

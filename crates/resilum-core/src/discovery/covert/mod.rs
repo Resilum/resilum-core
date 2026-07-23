@@ -3,5 +3,6 @@
 
 pub mod endpoint;
 mod plugin;
+pub mod rendezvous;
 
 pub use plugin::CovertDiscovered;

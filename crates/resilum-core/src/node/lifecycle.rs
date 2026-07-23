@@ -35,7 +35,7 @@ impl Node {
                 link_bus,
                 inbound_tx,
             )));
-            if !self.config.discovery.is_empty() {
+            if !self.config.discovery.is_empty() || !self.config.covert_discovery.is_empty() {
                 let storage_root = self.config.storage_path.as_deref();
                 let cap_controller = announce_cap::CapController::new(engine.clone());
                 self.tasks
@@ -55,11 +55,24 @@ impl Node {
                 let bus = self.events.subscribe();
                 self.tasks
                     .push(tokio::spawn(discovery::run_consume(discovery.clone(), bus)));
-                let destinations = discovery::build_destinations(
+                let mut destinations = discovery::build_destinations(
                     &engine,
                     identity.clone(),
                     &self.config.discovery,
                 )?;
+                destinations.extend(discovery::covert::rendezvous::build_destinations(
+                    &engine,
+                    identity.clone(),
+                    &self.config.covert_discovery,
+                )?);
+                for cfg in &self.config.covert_discovery {
+                    self.tasks
+                        .push(tokio::spawn(discovery::covert::rendezvous::run_responder(
+                            engine.clone(),
+                            cfg.clone(),
+                            self.events.subscribe(),
+                        )));
+                }
                 self.tasks.push(tokio::spawn(discovery::run_produce(
                     engine.clone(),
                     discovery,
