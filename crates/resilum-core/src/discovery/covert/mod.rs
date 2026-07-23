@@ -2,6 +2,7 @@
 //! attach a per-peer covert PipeInterface at runtime.
 
 mod addresses;
+mod attach;
 pub mod endpoint;
 mod plugin;
 pub mod rendezvous;
