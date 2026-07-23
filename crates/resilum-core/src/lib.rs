@@ -17,6 +17,7 @@ mod error;
 mod event;
 pub mod identity;
 pub mod link;
+pub mod net;
 mod node;
 pub mod pump;
 pub mod spec;

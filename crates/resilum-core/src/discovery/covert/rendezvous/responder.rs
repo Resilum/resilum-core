@@ -10,6 +10,7 @@ use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
 
 use super::super::super::APP_NAME;
+use super::super::AddressSource;
 use super::super::endpoint;
 use super::ENDPOINT_PATH;
 use crate::config::CovertDiscoveryService;
@@ -45,10 +46,10 @@ pub fn build_destinations(
 
 /// One responder task per configured covert carrier. Fires on every
 /// `RequestReceived` event on path `endpoint` and replies with our addresses.
-///
 pub async fn run_responder(
     engine: Arc<LevNode>,
-    cfg: CovertDiscoveryService,
+    carrier: String,
+    addresses: Arc<AddressSource>,
     mut events: Receiver<Arc<NodeEvent>>,
 ) {
     loop {
@@ -63,12 +64,16 @@ pub async fn run_responder(
                 else {
                     continue;
                 };
-                if path != ENDPOINT_PATH || cfg.addresses.is_empty() {
+                if path != ENDPOINT_PATH {
                     continue;
                 }
-                let response = endpoint::pack(&cfg.carrier, &cfg.addresses);
+                let addrs = addresses.effective();
+                if addrs.is_empty() {
+                    continue;
+                }
+                let response = endpoint::pack(&carrier, addrs);
                 if let Err(e) = engine.send_response(link_id, request_id, &response).await {
-                    tracing::warn!(carrier = %cfg.carrier, error = %e, "rendezvous respond failed");
+                    tracing::warn!(carrier = %carrier, error = %e, "rendezvous respond failed");
                 }
             }
             Err(RecvError::Lagged(_)) => continue,

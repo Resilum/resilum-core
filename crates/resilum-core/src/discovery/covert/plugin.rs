@@ -6,6 +6,7 @@ use std::sync::Arc;
 use leviculum_std::api::Node as LevNode;
 
 use super::super::DiscoveryPlugin;
+use super::AddressSource;
 use super::rendezvous;
 use crate::config::CovertDiscoveryService;
 use crate::dispatch::Events;
@@ -16,15 +17,22 @@ pub struct CovertDiscovered {
 
 struct Inner {
     cfg: CovertDiscoveryService,
+    addresses: Arc<AddressSource>,
     engine: Arc<LevNode>,
     events: Events,
 }
 
 impl CovertDiscovered {
-    pub fn new(cfg: CovertDiscoveryService, engine: Arc<LevNode>, events: Events) -> Self {
+    pub fn new(
+        cfg: CovertDiscoveryService,
+        addresses: Arc<AddressSource>,
+        engine: Arc<LevNode>,
+        events: Events,
+    ) -> Self {
         Self {
             inner: Arc::new(Inner {
                 cfg,
+                addresses,
                 engine,
                 events,
             }),
@@ -34,7 +42,7 @@ impl CovertDiscovered {
 
 impl DiscoveryPlugin for CovertDiscovered {
     fn produce_endpoint(&self) -> Option<Vec<u8>> {
-        (!self.inner.cfg.addresses.is_empty()).then(Vec::new)
+        (!self.inner.addresses.effective().is_empty()).then(Vec::new)
     }
 
     fn consume_endpoint(&self, _payload: &[u8], announcer_pubkey: &[u8]) {

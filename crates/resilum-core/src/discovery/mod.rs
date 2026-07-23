@@ -2,11 +2,13 @@
 //! endpoint and reacts to peers advertising the same `resilum.discovery.<svc>`
 //! aspect. Incoming announces route to a plugin by their name-hash.
 
+mod build;
 mod cache;
 mod consume;
 pub mod covert;
 mod produce;
 mod tcp;
+pub use build::{BuildParams, build_covert_addresses, build_from_services};
 pub use cache::run_prune_loop;
 pub use consume::run_consume;
 pub use produce::{build_destinations, run_produce};
@@ -16,11 +18,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use leviculum_std::api::Destination;
-use leviculum_std::api::Node as LevNode;
-use tokio::sync::Notify;
 
-use crate::announce_cap::CapController;
-use crate::config::{CovertDiscoveryService, DiscoveryService};
+use crate::config::DiscoveryService;
 
 pub(super) const APP_NAME: &str = "resilum";
 
@@ -74,41 +73,7 @@ pub fn name_hash(service: &str) -> Vec<u8> {
     Destination::compute_name_hash(APP_NAME, &["discovery", service]).to_vec()
 }
 
-pub fn build_from_services(
-    services: &[DiscoveryService],
-    covert_services: &[CovertDiscoveryService],
-    engine: Arc<LevNode>,
-    trigger: Arc<Notify>,
-    storage_root: Option<&std::path::Path>,
-    cap_controller: Arc<CapController>,
-    events: crate::dispatch::Events,
-) -> Discovery {
-    let mut d = Discovery::default();
-    for cfg in services {
-        let cache_path = storage_root.map(|r| cache::path_for(r, &cfg.service));
-        let plugin = Arc::new(TcpDiscovered::new(
-            cfg.clone(),
-            engine.clone(),
-            trigger.clone(),
-            cache_path.clone(),
-            cap_controller.clone(),
-        ));
-        warm_start(plugin.as_ref(), cache_path.as_deref());
-        d.register(&cfg.service.clone(), plugin);
-    }
-    for cfg in covert_services {
-        let name = cfg.service_name();
-        let plugin = Arc::new(covert::CovertDiscovered::new(
-            cfg.clone(),
-            engine.clone(),
-            events.clone(),
-        ));
-        d.register(&name, plugin);
-    }
-    d
-}
-
-fn warm_start(plugin: &dyn DiscoveryPlugin, cache_path: Option<&std::path::Path>) {
+pub(crate) fn warm_start(plugin: &dyn DiscoveryPlugin, cache_path: Option<&std::path::Path>) {
     let Some(path) = cache_path else { return };
     let mut records = cache::load(path);
     cache::prune(&mut records, cache::TTL_SECONDS, cache::now_ts());

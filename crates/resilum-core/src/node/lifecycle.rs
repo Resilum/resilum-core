@@ -44,15 +44,18 @@ impl Node {
                     engine.clone(),
                     self.discovery_trigger.clone(),
                 )));
-                let discovery = Arc::new(discovery::build_from_services(
-                    &self.config.discovery,
-                    &self.config.covert_discovery,
-                    engine.clone(),
-                    self.discovery_trigger.clone(),
+                let covert_addresses =
+                    discovery::build_covert_addresses(&self.config.covert_discovery);
+                let discovery = Arc::new(discovery::build_from_services(discovery::BuildParams {
+                    tcp: &self.config.discovery,
+                    covert: &self.config.covert_discovery,
+                    covert_addresses: &covert_addresses,
+                    engine: engine.clone(),
+                    trigger: self.discovery_trigger.clone(),
                     storage_root,
                     cap_controller,
-                    self.events.clone(),
-                ));
+                    events: self.events.clone(),
+                }));
                 let bus = self.events.subscribe();
                 self.tasks
                     .push(tokio::spawn(discovery::run_consume(discovery.clone(), bus)));
@@ -66,11 +69,12 @@ impl Node {
                     identity.clone(),
                     &self.config.covert_discovery,
                 )?);
-                for cfg in &self.config.covert_discovery {
+                for (cfg, addresses) in self.config.covert_discovery.iter().zip(&covert_addresses) {
                     self.tasks
                         .push(tokio::spawn(discovery::covert::rendezvous::run_responder(
                             engine.clone(),
-                            cfg.clone(),
+                            cfg.carrier.clone(),
+                            addresses.clone(),
                             self.events.subscribe(),
                         )));
                 }
