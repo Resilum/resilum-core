@@ -3,7 +3,7 @@ mod discovery;
 mod egress;
 
 pub use covert_discovery::CovertDiscoveryService;
-pub use discovery::{DiscoveryService, EndpointFormat};
+pub use discovery::{DiscoveryService, EndpointFormat, SocksProxy};
 pub use egress::{ConnectConfig, EgressListen};
 
 use std::path::PathBuf;

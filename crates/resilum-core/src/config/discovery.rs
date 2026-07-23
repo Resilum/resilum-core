@@ -11,6 +11,15 @@ pub enum EndpointFormat {
     BracketedIpv6,
 }
 
+/// How to reach the transport's egress proxy.
+#[derive(Clone, Debug)]
+pub enum SocksProxy {
+    /// An externally-running SOCKS5 proxy on this host.
+    External(String, u16),
+    /// In-process Tor via Arti — resolved to a local port at node start.
+    EmbeddedArti,
+}
+
 /// One enabled transport-discovery plugin. Peers announce where they accept
 /// connections over this transport (`resilum.discovery.<service>`); consuming an
 /// announce attaches a TCP client to reach them, optionally through a SOCKS5
@@ -24,7 +33,7 @@ pub struct DiscoveryService {
     pub endpoint_format: EndpointFormat,
     /// SOCKS5 proxy every consumed peer is dialed through, or `None` to dial
     /// the announced host directly.
-    pub socks_proxy: Option<(String, u16)>,
+    pub socks_proxy: Option<SocksProxy>,
     /// File holding this node's own reachable address for this transport; read
     /// when producing our announce. `None` (or an unreadable path) means
     /// consume-only — we attach discovered peers but do not advertise ourselves.
@@ -34,14 +43,15 @@ pub struct DiscoveryService {
 }
 
 impl DiscoveryService {
-    /// Tor onion-service discovery: peers announced as `<onion>.onion:<port>`
-    /// are dialed through the local Tor SOCKS5 proxy (127.0.0.1:9050).
+    /// Tor onion-service discovery. Uses in-process Arti by default; override
+    /// `socks_proxy` to `SocksProxy::External(..)` to route through an
+    /// existing Tor daemon.
     pub fn tor() -> Self {
         Self {
             service: "tor".into(),
             name_prefix: "TorDiscovered".into(),
             endpoint_format: EndpointFormat::Suffix(".onion".into()),
-            socks_proxy: Some(("127.0.0.1".into(), 9050)),
+            socks_proxy: Some(SocksProxy::EmbeddedArti),
             hostname_path: None,
             rns_port: 4242,
         }
@@ -55,7 +65,7 @@ impl DiscoveryService {
             service: "i2p".into(),
             name_prefix: "I2PDiscovered".into(),
             endpoint_format: EndpointFormat::Suffix(".b32.i2p".into()),
-            socks_proxy: Some(("127.0.0.1".into(), 4447)),
+            socks_proxy: Some(SocksProxy::External("127.0.0.1".into(), 4447)),
             hostname_path: None,
             rns_port: 4242,
         }

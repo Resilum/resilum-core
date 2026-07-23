@@ -26,6 +26,8 @@ pub struct Node {
     pub(crate) event_queue: event::Queue,
     pub(crate) socks_port: Arc<AtomicU16>,
     pub(crate) discovery_trigger: Arc<Notify>,
+    #[cfg(feature = "arti")]
+    pub(crate) embedded_tor: Option<crate::tor::EmbeddedTor>,
 }
 
 impl Node {
@@ -44,6 +46,8 @@ impl Node {
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             socks_port: Arc::new(AtomicU16::new(0)),
             discovery_trigger: Arc::new(Notify::new()),
+            #[cfg(feature = "arti")]
+            embedded_tor: None,
         })
     }
 

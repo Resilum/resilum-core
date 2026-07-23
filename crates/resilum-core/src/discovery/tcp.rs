@@ -11,7 +11,7 @@ use tokio::sync::Notify;
 use super::DiscoveryPlugin;
 use super::cache;
 use crate::announce_cap::CapController;
-use crate::config::{DiscoveryService, EndpointFormat};
+use crate::config::{DiscoveryService, EndpointFormat, SocksProxy};
 
 pub struct TcpDiscovered {
     cfg: DiscoveryService,
@@ -65,10 +65,15 @@ impl DiscoveryPlugin for TcpDiscovered {
         if guard.contains_key(&name) {
             return;
         }
-        match self
-            .engine
-            .spawn_tcp_client(&name, &host, port, self.cfg.socks_proxy.clone())
-        {
+        let socks = match &self.cfg.socks_proxy {
+            Some(SocksProxy::External(h, p)) => Some((h.clone(), *p)),
+            Some(SocksProxy::EmbeddedArti) => {
+                tracing::error!(service = %self.cfg.service, "EmbeddedArti was not resolved; skipping peer");
+                return;
+            }
+            None => None,
+        };
+        match self.engine.spawn_tcp_client(&name, &host, port, socks) {
             Ok(handle) => {
                 tracing::info!(service = %self.cfg.service, %name, "attached discovered peer");
                 self.cap_controller.attach(handle.id());
