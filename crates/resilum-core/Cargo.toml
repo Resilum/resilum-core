@@ -21,6 +21,14 @@ sha2 = "0.11"
 data-encoding = "2"
 socket2 = "0.6"
 
+arti-client = { version = "0.44", optional = true }
+tokio-util = { version = "0.7", features = ["compat"], optional = true }
+tor-rtcompat = { version = "0.44", optional = true }
+
+[features]
+default = ["arti"]
+arti = ["dep:arti-client", "dep:tokio-util", "dep:tor-rtcompat"]
+
 [dev-dependencies]
 proptest = "1.11"
 

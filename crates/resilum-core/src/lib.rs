@@ -22,6 +22,8 @@ mod node;
 pub mod pump;
 pub mod spec;
 pub mod supervisor;
+#[cfg(feature = "arti")]
+pub mod tor;
 
 pub use config::{
     Config, ConnectConfig, DiscoveryService, EgressListen, EndpointFormat, I2pInterface,
