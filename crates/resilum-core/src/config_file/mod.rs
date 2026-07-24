@@ -40,6 +40,10 @@ struct FileConfig {
     #[serde(default)]
     ingress: Option<IngressFile>,
     #[serde(default)]
+    advertised_mirrors: Vec<String>,
+    #[serde(default)]
+    rngit_destination_file: Option<std::path::PathBuf>,
+    #[serde(default)]
     discovery: Vec<DiscoveryFile>,
 }
 
@@ -69,6 +73,8 @@ impl FileConfig {
         cfg.i2p = self.i2p.map(Into::into);
         cfg.egress = self.egress.into_iter().map(Into::into).collect();
         cfg.ingress = self.ingress.map(Into::into);
+        cfg.advertised_mirrors = self.advertised_mirrors;
+        cfg.rngit_destination_file = self.rngit_destination_file;
         if !self.discovery.is_empty() {
             cfg.discovery = self.discovery.into_iter().map(Into::into).collect();
         }

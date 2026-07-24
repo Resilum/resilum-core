@@ -1,0 +1,21 @@
+//! Mesh-side auto-discovery of rngit mirror nodes: this node announces the
+//! repos it hosts as rngit mirrors together with the rngit Repositories
+//! Destination hash to dial, peers do the same, everyone keeps a local
+//! registry so downloaders can pick a live mirror without out-of-band URL
+//! sharing.
+
+mod consume;
+mod payload;
+mod produce;
+mod registry;
+
+#[cfg(test)]
+mod tests;
+
+pub use consume::run as consume;
+pub use payload::name_hash;
+pub use produce::run as produce;
+pub use registry::{Entry, Registry};
+
+pub(crate) const APP_NAME: &str = "resilum";
+pub(crate) const ASPECT: &[&str] = &["mirrors", "list"];

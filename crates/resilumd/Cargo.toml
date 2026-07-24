@@ -9,8 +9,11 @@ description = "Resilum node daemon (Linux/server; packaged into the container im
 resilum-core = { path = "../resilum-core" }
 ctrlc = { version = "3", features = ["termination"] }
 data-encoding = "2"
+if-addrs = "0.15"
 leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "03121dc109da0d327a74a6a3fb60a15cb7ed2a0e" }
 rand_core = { version = "0.6", features = ["getrandom"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 sha2 = "0.11"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

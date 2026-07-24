@@ -1,10 +1,9 @@
 [repositories]
 
-# Bare repositories under this directory are served over Reticulum.
-# Drop `<name>.git` dirs in, or run `rngit mirror <upstream>
-# rns://<self>/public/<name>` to populate.
-public = /config/rngit/repos/public
+# `rngit mirror <upstream> rns://<self>/mirrors/<name>` creates a bare
+# copy of `<upstream>` here and serves it as `rns://<self>/mirrors/<name>`.
+mirrors = /config/rngit/repos/mirrors
 
 [access]
 
-public = r:all
+mirrors = r:all

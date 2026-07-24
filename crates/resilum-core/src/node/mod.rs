@@ -12,6 +12,7 @@ use crate::config::Config;
 use crate::dispatch;
 use crate::egress::CandidateRegistry;
 use crate::error::{Error, Result};
+use crate::mirrors;
 use crate::event::{self, Event};
 
 /// A Resilum node: owns the leviculum engine (with its tokio runtime) and an
@@ -26,6 +27,7 @@ pub struct Node {
     pub(crate) event_queue: event::Queue,
     pub(crate) socks_port: Arc<AtomicU16>,
     pub(crate) discovery_trigger: Arc<Notify>,
+    pub(crate) mirror_registry: Option<Arc<mirrors::Registry>>,
     #[cfg(feature = "arti")]
     pub(crate) embedded_tor: Option<crate::tor::EmbeddedTor>,
 }
@@ -46,6 +48,7 @@ impl Node {
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             socks_port: Arc::new(AtomicU16::new(0)),
             discovery_trigger: Arc::new(Notify::new()),
+            mirror_registry: None,
             #[cfg(feature = "arti")]
             embedded_tor: None,
         })
@@ -97,5 +100,10 @@ impl Node {
     /// The node-event bus; subsystems subscribe to receive engine events.
     pub fn events(&self) -> &dispatch::Events {
         &self.events
+    }
+
+    /// Mesh-discovered rngit mirror advertisements from peers; `None` before start.
+    pub fn mirror_registry(&self) -> Option<&Arc<mirrors::Registry>> {
+        self.mirror_registry.as_ref()
     }
 }

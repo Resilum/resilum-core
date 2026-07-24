@@ -5,6 +5,7 @@ mod bind_config;
 mod config;
 mod covert;
 mod i2pd_export;
+mod mirrors;
 mod ygg_seed;
 
 use std::path::PathBuf;
@@ -57,6 +58,17 @@ fn main() {
         }
         Some("covert") => {
             std::process::exit(covert::run(&argv[1..]));
+        }
+        Some("mirrors") => {
+            std::process::exit(mirrors::run(&argv[1..]));
+        }
+        Some("probe-net") => {
+            let ygg = resilum_core::net::yggdrasil_local_ipv6();
+            println!("yggdrasil_local_ipv6 = {ygg:?}");
+            for i in if_addrs::get_if_addrs().unwrap_or_default() {
+                println!("  {} → {}", i.name, i.ip());
+            }
+            return;
         }
         _ => {}
     }

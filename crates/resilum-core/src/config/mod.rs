@@ -52,6 +52,12 @@ pub struct Config {
     pub autoconnect_max: usize,
     pub egress: Vec<EgressListen>,
     pub ingress: Option<IngressConfig>,
+    /// Canonical repo names this node hosts as rngit mirrors — advertised in
+    /// the mesh so downloaders can discover them without knowing rns URLs.
+    pub advertised_mirrors: Vec<String>,
+    /// File the rngit sidecar writes its Repositories Destination hash into,
+    /// read at announce time to embed the mirror URL peers should dial.
+    pub rngit_destination_file: Option<PathBuf>,
     /// Transport-discovery plugins to run: each attaches discovered peers over
     /// its transport when their announce arrives.
     pub discovery: Vec<DiscoveryService>,
@@ -80,6 +86,8 @@ impl Config {
             autoconnect_max: 5,
             egress: Vec::new(),
             ingress: None,
+            advertised_mirrors: Vec::new(),
+            rngit_destination_file: None,
             discovery: Vec::new(),
             covert_discovery: Vec::new(),
             discovery_announce_interval: default_announce_interval(),

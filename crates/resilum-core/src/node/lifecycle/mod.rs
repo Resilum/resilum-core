@@ -1,5 +1,6 @@
 mod discovery;
 mod egress;
+mod mirrors;
 
 use std::sync::Arc;
 
@@ -36,6 +37,7 @@ impl Node {
 
             discovery::bring_up(self, &leviculum, &identity)?;
             egress::bring_up(self, &leviculum, &identity, &router, inbound_rx);
+            mirrors::bring_up(self, &leviculum, &identity);
 
             if let Some(rx) = event_rx {
                 self.tasks
