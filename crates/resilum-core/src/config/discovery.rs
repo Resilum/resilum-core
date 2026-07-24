@@ -75,7 +75,7 @@ impl DiscoveryService {
             name_prefix: "I2PDiscovered".into(),
             endpoint_format: EndpointFormat::Suffix(".b32.i2p".into()),
             socks_proxy: Some(SocksProxy::External("127.0.0.1".into(), 4447)),
-            hostname_path: None,
+            hostname_path: Some(PathBuf::from("/config/i2p/hidden_service/hostname")),
             rns_port: 4242,
         }
     }

@@ -1,0 +1,35 @@
+## Resilum exposes its RNS TCP listener (127.0.0.1:4242) into I2P as
+## a server tunnel (see i2pd-tunnels.conf.example), and exposes
+## i2pd's SOCKS5 proxy at 127.0.0.1:4447 so RNS-discovered .b32.i2p
+## peers can be dialed through it.
+
+## datadir is passed as a CLI flag from the entrypoint — i2pd ignores
+## `datadir = ...` in the config file and falls back to ~/.i2pd, which
+## is not bind-mounted and would lose keys on restart.
+
+tunconf = /config/i2pd-tunnels.conf
+loglevel = error
+logfile = stdout
+service = false
+
+[socksproxy]
+enabled = true
+address = 127.0.0.1
+port = 4447
+
+[httpproxy]
+enabled = false
+
+[http]
+enabled = true
+address = 127.0.0.1
+port = 7070
+
+[sam]
+enabled = false
+
+[bob]
+enabled = false
+
+[i2pcontrol]
+enabled = false

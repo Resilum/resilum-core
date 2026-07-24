@@ -1,3 +1,13 @@
-/target
-.git
+target/
+.git/
 *.md
+.codeberg-token
+
+# Runtime state and generated per-node configs.
+deploy/config/state/
+deploy/config/tor/
+deploy/config/i2p/
+deploy/config/yggdrasil.conf
+deploy/config/torrc
+deploy/config/i2pd.conf
+deploy/config/i2pd-tunnels.conf

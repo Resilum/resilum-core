@@ -1,0 +1,17 @@
+## I2P tunnels exposed by this Resilum node.
+##
+## On first start i2pd reads this file, sees `keys = ...rns-server.dat`,
+## generates a fresh destination keypair, writes it to that path, and
+## publishes its LeaseSet. The .b32.i2p hostname is derived from the
+## first 391 bytes of the keys file — see `resilumd i2pd-export-hostname`.
+
+## `keys` is interpreted relative to i2pd's datadir, even with a
+## leading slash. With --datadir=/config/i2p (set by the entrypoint),
+## this resolves to /config/i2p/keys/rns-server.dat — where
+## `resilumd i2pd-export-hostname` looks for it.
+
+[rns-server]
+type = server
+host = 127.0.0.1
+port = 4242
+keys = keys/rns-server.dat

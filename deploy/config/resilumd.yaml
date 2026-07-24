@@ -32,6 +32,7 @@ discover_interfaces: true
 discovery:
   - service: yggdrasil
   - service: tor
+  - service: i2p
 
 # Optional native I2P interface (needs a local i2pd with SAM on 127.0.0.1:7656).
 # i2p:

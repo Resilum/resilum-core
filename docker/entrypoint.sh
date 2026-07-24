@@ -39,4 +39,16 @@ if [ "${ENABLE_TOR:-1}" = "1" ] && command -v tor >/dev/null 2>&1; then
     fi
 fi
 
+if [ "${ENABLE_I2PD:-1}" = "1" ] && command -v i2pd >/dev/null 2>&1; then
+    seed_default i2pd.conf
+    seed_default i2pd-tunnels.conf
+    if [ -f /config/i2pd.conf ]; then
+        mkdir -p /config/i2p/data /config/i2p/keys /config/i2p/hidden_service
+        i2pd --datadir=/config/i2p --conf=/config/i2pd.conf &
+        resilumd i2pd-export-hostname \
+            /config/i2p/keys/rns-server.dat \
+            /config/i2p/hidden_service/hostname &
+    fi
+fi
+
 exec resilumd /config/resilumd.yaml
