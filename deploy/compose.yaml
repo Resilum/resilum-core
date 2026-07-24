@@ -1,0 +1,15 @@
+services:
+  resilum:
+    image: resilum:latest
+    container_name: resilum
+    restart: unless-stopped
+    command: ["/config/resilumd.yaml"]
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./config:/config
+    environment:
+      RUST_LOG: "info,resilum_core=debug,leviculum_std=debug"
