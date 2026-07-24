@@ -43,16 +43,28 @@ impl TcpDiscovered {
             cap_controller,
         }
     }
+
+    fn detect_host(&self) -> Option<String> {
+        if let Some(path) = self.cfg.hostname_path.as_ref() {
+            let raw = std::fs::read_to_string(path).ok()?;
+            let host = raw.trim();
+            return (!host.is_empty()).then(|| host.to_owned());
+        }
+        if matches!(self.cfg.endpoint_format, EndpointFormat::BracketedIpv6) {
+            return crate::net::yggdrasil_local_ipv6().map(|ip| ip.to_string());
+        }
+        None
+    }
 }
 
 impl DiscoveryPlugin for TcpDiscovered {
     fn produce_endpoint(&self) -> Option<Vec<u8>> {
-        let host = std::fs::read_to_string(self.cfg.hostname_path.as_ref()?).ok()?;
-        let host = host.trim();
-        if host.is_empty() {
-            return None;
-        }
-        Some(format!("{}:{}", host, self.cfg.rns_port).into_bytes())
+        let host = self.detect_host()?;
+        let payload = match self.cfg.endpoint_format {
+            EndpointFormat::BracketedIpv6 => format!("[{}]:{}", host, self.cfg.rns_port),
+            EndpointFormat::Suffix(_) => format!("{}:{}", host, self.cfg.rns_port),
+        };
+        Some(payload.into_bytes())
     }
 
     fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {

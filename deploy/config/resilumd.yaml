@@ -5,3 +5,5 @@ default_anchors: true
 discover: true
 # reachable_on: "203.0.113.10"   # address peers should dial back on, when it
                                 # differs from `listen` (NAT, port-forward)
+discovery:
+  - service: yggdrasil

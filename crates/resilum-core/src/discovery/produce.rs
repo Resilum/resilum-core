@@ -67,11 +67,17 @@ async fn announce_all(
     let ready: std::collections::HashMap<_, _> = discovery.endpoints().into_iter().collect();
     for (service, dest_hash) in destinations {
         let Some(endpoint) = ready.get(service) else {
+            tracing::debug!(service = %service, "endpoint not ready, skipping announce");
             continue;
         };
         let packed = announce_payload::pack(Some(endpoint), "*", &[]);
-        if let Err(e) = engine.announce(dest_hash, Some(&packed)).await {
-            tracing::warn!(service = %service, error = %e, "announce failed");
+        match engine.announce(dest_hash, Some(&packed)).await {
+            Ok(()) => tracing::debug!(
+                service = %service,
+                endpoint = %String::from_utf8_lossy(endpoint),
+                "announced",
+            ),
+            Err(e) => tracing::warn!(service = %service, error = %e, "announce failed"),
         }
     }
 }

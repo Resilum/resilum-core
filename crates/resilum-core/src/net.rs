@@ -22,6 +22,26 @@ pub fn local_egress_addresses() -> Vec<IpAddr> {
         .collect()
 }
 
+/// Locally-assigned Yggdrasil IPv6, or `None` if no `ygg0`-style interface is
+/// up. Yggdrasil owns `200::/7` so the interface name is irrelevant — matches
+/// any platform (`ygg0` on Linux, `tun*`/`utun*` on Android/iOS/macOS).
+pub fn yggdrasil_local_ipv6() -> Option<Ipv6Addr> {
+    if_addrs::get_if_addrs().ok()?.into_iter().find_map(|i| {
+        if let IpAddr::V6(v6) = i.ip()
+            && is_yggdrasil_range(&v6)
+        {
+            Some(v6)
+        } else {
+            None
+        }
+    })
+}
+
+fn is_yggdrasil_range(ip: &Ipv6Addr) -> bool {
+    // 200::/7 → first 7 bits are 0000_001, i.e. first octet is 0x02 or 0x03.
+    (ip.octets()[0] & 0xfe) == 0x02
+}
+
 fn probe_egress(probe: SocketAddr) -> Option<IpAddr> {
     let bind: SocketAddr = match probe {
         SocketAddr::V4(_) => "0.0.0.0:0".parse().ok()?,

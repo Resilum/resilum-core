@@ -1,0 +1,44 @@
+{
+  PrivateKey: ""
+
+  Listen: [
+    "tcp://[::]:65533"
+  ]
+
+  # Outbound peers to bootstrap into the Yggdrasil mesh. Replace with
+  # peers geographically close to you for lower RTT; up-to-date list at
+  # https://publicpeers.neilalexander.dev/
+  Peers: [
+    "tls://ca.us.ygg.informatics.coop:443?key=0000000023fc6ffb62afb79448aefb0943df2e4472cf08bd489f5407378300a2"
+    "tls://ins.8px.sk:4321"
+    "tcp://jed-peer.ygg.sy.sa:8441"
+    "tls://london.sabretruth.org:18472"
+    "tls://syd.joel.net.au:8443"
+    "tls://vix.duckdns.org:36014"
+    "tcp://yg-sin.magicum.net:23901"
+    "tcp://yg-tyo.magicum.net:32334"
+    "wss://ygg-evn-1.wgos.org:443"
+    "tls://ygg.mkg20001.io:443"
+    "tls://ygg5.mk16.de:1338?key=0000009611ae5391dc0aceea9f3fa6a0dc1279f4306059339e84bfb8b74d2f9b"
+    "quic://ygg7.mk16.de:1339?key=000000086278b5f3ba1eb63acb5b7f6e406f04ce83990dee9c07f49011e375ae"
+    "tcp://Yggdrasil.UnderEu.Net:37001"
+    "tcp://yggdrasil.su:62486"
+    "tcp://yggdrasil.sunsung.fun:4442"
+    "tcp://yggpeer.tilde.green:53299"
+    "tcp://[2a0d:8480:3:234c::]:65535"
+  ]
+
+  IfName: ygg0
+  IfMTU:  65535
+
+  AllowedPublicKeys: []
+
+  MulticastInterfaces: [
+    {
+      Regex:  ".*"
+      Beacon: true
+      Listen: true
+      Port:   0
+    }
+  ]
+}

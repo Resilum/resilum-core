@@ -14,3 +14,7 @@ keys/
 *.key
 secrets.*
 .codeberg-token
+
+# Node runtime state and yggdrasil private key
+deploy/config/state/
+deploy/config/yggdrasil.conf

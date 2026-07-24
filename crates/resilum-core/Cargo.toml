@@ -19,6 +19,7 @@ rand_core = { version = "0.6", features = ["getrandom"] }
 regex = "1"
 sha2 = "0.11"
 data-encoding = "2"
+if-addrs = "0.15"
 socket2 = "0.6"
 
 arti-client = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls", "static-sqlite"] }
