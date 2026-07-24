@@ -2,6 +2,7 @@
 //! and the FFI so both accept the same format.
 
 mod entries;
+mod env_expand;
 
 use serde::Deserialize;
 
@@ -9,7 +10,8 @@ use crate::Config;
 use entries::{IngressFile, DiscoveryFile, EgressFile, I2pFile};
 
 pub fn from_yaml(yaml: &str) -> Result<Config, String> {
-    serde_yaml_ng::from_str::<FileConfig>(yaml)
+    let expanded = env_expand::expand(yaml);
+    serde_yaml_ng::from_str::<FileConfig>(&expanded)
         .map_err(|e| format!("parse config: {e}"))
         .map(FileConfig::into_core)
 }

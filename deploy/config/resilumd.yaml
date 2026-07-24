@@ -57,7 +57,7 @@ egress:
 # but allows own tor/i2p.
 ingress:
   services: [socks-egress, tor]
-  listen_tcp: 127.0.0.1:10808
+  listen_tcp: 127.0.0.1:${RESILUM_SOCKS_PORT:-10808}
   use_own: smart               # smart | true | false
   allow_countries: []
   deny_countries: []
