@@ -38,21 +38,26 @@ pub async fn run(
             continue;
         }
         let dest_hash = announce.destination_hash().as_bytes();
+        let dest_hex = data_encoding::HEXLOWER.encode(dest_hash.as_slice());
         if skip.contains(dest_hash.as_slice()) {
+            tracing::debug!(service = %service, dest = %dest_hex, "own egress, skipping");
             continue;
         }
         match announce_payload::parse(announce.app_data()) {
             Some(p) => {
-                if registry.upsert(
+                let added = registry.upsert(
                     &service,
                     dest_hash.to_vec(),
                     &p.exit_country,
                     p.capabilities,
-                ) {
+                );
+                tracing::debug!(service = %service, dest = %dest_hex, added, "egress candidate");
+                if added {
                     event::push(&events, Event::PeerDiscovered(dest_hash.to_vec()));
                 }
             }
             None => {
+                tracing::debug!(service = %service, dest = %dest_hex, "unparseable egress announce");
                 registry.remove(&service, dest_hash);
                 active.teardown_for(&engine, dest_hash).await;
             }

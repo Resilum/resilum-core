@@ -1,8 +1,6 @@
 #!/bin/sh
 set -e
 
-mkdir -p /var/run/yggdrasil
-
 seed_default() {
     src="/config/$1.example"
     dst="/config/$1"

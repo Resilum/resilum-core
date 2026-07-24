@@ -99,7 +99,13 @@ fn announce_loop(
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
         loop {
-            let _ = engine.announce(&dest_hash, Some(&payload)).await;
+            match engine.announce(&dest_hash, Some(&payload)).await {
+                Ok(()) => tracing::debug!(
+                    dest = ?data_encoding::HEXLOWER.encode(dest_hash.as_bytes()),
+                    "egress announced",
+                ),
+                Err(e) => tracing::warn!(error = %e, "egress announce failed"),
+            }
             tokio::time::sleep(interval).await;
         }
     })
