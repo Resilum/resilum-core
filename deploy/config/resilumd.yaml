@@ -1,9 +1,57 @@
 ---
+# Reference resilumd config for the Docker deploy. Bind-mounted at /config in
+# the container; the entrypoint reads /config/resilumd.yaml on startup.
+
 instance_name: resilum
+
+# Persist identity and RNS state across restarts (omit for ephemeral node).
 storage_path: /config/state
+
+# Join the global mesh through the built-in public + Yggdrasil anchors and a
+# discoverable public listener on [::]:4242. Set to false for an isolated node
+# configured purely via `listen`/`bootstrap`.
 default_anchors: true
-discover: true
-# reachable_on: "203.0.113.10"   # address peers should dial back on, when it
-                                # differs from `listen` (NAT, port-forward)
+
+# Auto-discover and mesh with peers via the Reticulum interface-discovery layer.
+discover_interfaces: true
+
+# Address peers should dial back on, when it differs from `listen` (NAT,
+# port-forward). Announced verbatim to the mesh.
+# reachable_on: "203.0.113.10"
+
+# Optional public TCP listener, so remote peers can reach this node directly.
+# listen: "[::]:4242"
+
+# Extra always-on anchors on top of `default_anchors`.
+# bootstrap:
+#   - anchor.example:4343
+
+# Transport-discovery plugins: each attaches discovered peers over its
+# transport and (when it can determine our own reachable endpoint) announces
+# ours for others to attach.
 discovery:
   - service: yggdrasil
+  - service: tor
+
+# Optional native I2P interface (needs a local i2pd with SAM on 127.0.0.1:7656).
+# i2p:
+#   connectable: true              # be reachable inbound over I2P
+#   peers:
+#     - somebase32.b32.i2p
+
+# Be an exit: one entry per service, each forwarding inbound links for its
+# destination to a local endpoint.
+# egress:
+#   - service: socks-egress
+#     target: 127.0.0.1:1080
+#     exit_country: DE
+#   - service: tor
+#     target: 127.0.0.1:9050
+
+# Be a consumer: accept local TCP and forward through the fastest egress.
+# connect:
+#   services: [socks-egress, tor]
+#   listen_tcp: 127.0.0.1:10808
+#   use_own: smart            # smart | true | false
+#   allow_countries: []
+#   deny_countries: []

@@ -50,15 +50,18 @@ impl DiscoveryService {
             name_prefix: "TorDiscovered".into(),
             endpoint_format: EndpointFormat::Suffix(".onion".into()),
             socks_proxy: Some(SocksProxy::External("127.0.0.1".into(), 9050)),
-            hostname_path: None,
+            hostname_path: Some(PathBuf::from("/config/tor/hidden_service/hostname")),
             rns_port: 4242,
         }
     }
 
-    /// Tor discovery via in-process Arti (requires `arti` feature).
+    /// Tor discovery via in-process Arti (requires `arti` feature). Arti
+    /// exposes hostnames through its API, not the filesystem, so the file-path
+    /// default from `tor()` is dropped.
     pub fn tor_embedded() -> Self {
         Self {
             socks_proxy: Some(SocksProxy::EmbeddedArti),
+            hostname_path: None,
             ..Self::tor()
         }
     }

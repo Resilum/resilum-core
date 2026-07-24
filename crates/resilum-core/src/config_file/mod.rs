@@ -28,7 +28,7 @@ struct FileConfig {
     #[serde(default)]
     bootstrap: Vec<String>,
     #[serde(default = "yes")]
-    discover: bool,
+    discover_interfaces: bool,
     #[serde(default)]
     network_identity: Option<String>,
     #[serde(default)]
@@ -60,7 +60,7 @@ impl FileConfig {
             cfg.reachable_on = self.reachable_on;
         }
         cfg.bootstrap.extend(self.bootstrap);
-        cfg.discover_interfaces = self.discover;
+        cfg.discover_interfaces = self.discover_interfaces;
         if let Some(path) = self.network_identity {
             cfg.network_identity = Some(path.into());
         }

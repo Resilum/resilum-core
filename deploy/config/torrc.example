@@ -1,0 +1,36 @@
+# Tor here serves two roles at once: SOCKS proxy for outbound
+# connections (so Reticulum can dial peers' .onion addresses through
+# the tor discovery plugin), and a hidden service that publishes our
+# local RNS TCP listener at a globally-reachable .onion name.
+#
+# State and the hidden-service keypair live under /config/tor/ so they
+# survive container rebuilds and stay owned by the operator.
+
+DataDirectory /config/tor/data
+RunAsDaemon 0
+
+# SOCKS5 proxy for outbound traffic dialing other .onion peers.
+SocksPort 127.0.0.1:9050
+
+# Hidden service exposing the local RNS TCP listener (default port
+# 4242) to the Tor network. The hostname file at
+# /config/tor/hidden_service/hostname is read by the discovery plugin
+# and broadcast to peers.
+HiddenServiceDir /config/tor/hidden_service
+HiddenServicePort 4242 127.0.0.1:4242
+
+# ── Pluggable transports / bridges (uncomment in censored regions) ──
+#
+# In countries that block direct Tor relays, Tor needs to connect
+# through obfuscated bridges instead of the public relay pool. Get
+# fresh ones from https://bridges.torproject.org/ (Telegram bot
+# @GetBridgesBot also works), then paste them below and restart the
+# container. Requires obfs4proxy in the image.
+#
+# UseBridges 1
+# ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+#
+# Bridge obfs4 X.X.X.X:443 FINGERPRINT cert=BASE64 iat-mode=0
+# Bridge obfs4 Y.Y.Y.Y:443 FINGERPRINT cert=BASE64 iat-mode=0
+
+Log notice stdout
