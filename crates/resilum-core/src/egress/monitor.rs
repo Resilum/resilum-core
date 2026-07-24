@@ -9,7 +9,7 @@ use std::time::Duration;
 use leviculum_std::api::Node as LevNode;
 use tokio::time::{Instant, sleep};
 
-use crate::config::ConnectConfig;
+use crate::config::IngressConfig;
 use crate::egress::probe::{ProbeStrategy, e2e_probe, resolve_targets};
 use crate::egress::{Candidate, CandidateRegistry, eligible};
 use crate::link::LinkRouter;
@@ -45,7 +45,7 @@ pub async fn run(
     engine: Arc<LevNode>,
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
-    cfg: ConnectConfig,
+    cfg: IngressConfig,
     skip: HashMap<String, HashSet<Vec<u8>>>,
 ) {
     let targets = resolve_targets(&cfg.probe_targets);

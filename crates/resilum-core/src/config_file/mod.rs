@@ -6,7 +6,7 @@ mod entries;
 use serde::Deserialize;
 
 use crate::Config;
-use entries::{ConnectFile, DiscoveryFile, EgressFile, I2pFile};
+use entries::{IngressFile, DiscoveryFile, EgressFile, I2pFile};
 
 pub fn from_yaml(yaml: &str) -> Result<Config, String> {
     serde_yaml_ng::from_str::<FileConfig>(yaml)
@@ -36,7 +36,7 @@ struct FileConfig {
     #[serde(default)]
     egress: Vec<EgressFile>,
     #[serde(default)]
-    connect: Option<ConnectFile>,
+    ingress: Option<IngressFile>,
     #[serde(default)]
     discovery: Vec<DiscoveryFile>,
 }
@@ -66,7 +66,7 @@ impl FileConfig {
         }
         cfg.i2p = self.i2p.map(Into::into);
         cfg.egress = self.egress.into_iter().map(Into::into).collect();
-        cfg.connect = self.connect.map(Into::into);
+        cfg.ingress = self.ingress.map(Into::into);
         if !self.discovery.is_empty() {
             cfg.discovery = self.discovery.into_iter().map(Into::into).collect();
         }

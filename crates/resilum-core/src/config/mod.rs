@@ -1,10 +1,12 @@
 mod covert_discovery;
 mod discovery;
 mod egress;
+mod ingress;
 
 pub use covert_discovery::CovertDiscoveryService;
 pub use discovery::{DiscoveryService, EndpointFormat, SocksProxy};
-pub use egress::{ConnectConfig, EgressListen};
+pub use egress::EgressListen;
+pub use ingress::IngressConfig;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -49,7 +51,7 @@ pub struct Config {
     /// `0` disables auto-connect.
     pub autoconnect_max: usize,
     pub egress: Vec<EgressListen>,
-    pub connect: Option<ConnectConfig>,
+    pub ingress: Option<IngressConfig>,
     /// Transport-discovery plugins to run: each attaches discovered peers over
     /// its transport when their announce arrives.
     pub discovery: Vec<DiscoveryService>,
@@ -77,7 +79,7 @@ impl Config {
             i2p: None,
             autoconnect_max: 5,
             egress: Vec::new(),
-            connect: None,
+            ingress: None,
             discovery: Vec::new(),
             covert_discovery: Vec::new(),
             discovery_announce_interval: default_announce_interval(),

@@ -12,7 +12,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::time::{Instant, timeout};
 
 use crate::egress::Candidate;
-use crate::egress::connect::dial;
+use crate::egress::ingress::dial;
 use crate::link::{LinkMsg, LinkRouter};
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(20);
@@ -58,7 +58,7 @@ impl ProbeStrategy {
     }
 }
 
-/// Probe targets by precedence: explicit `cli` (from ConnectConfig) over the
+/// Probe targets by precedence: explicit `cli` (from IngressConfig) over the
 /// `RESILUM_EGRESS_PROBE_TARGETS` env var over built-in anycast defaults.
 pub fn resolve_targets(cli: &[(String, u16)]) -> Vec<(Ipv4Addr, u16)> {
     if !cli.is_empty() {

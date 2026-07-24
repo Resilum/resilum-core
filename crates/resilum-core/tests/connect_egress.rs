@@ -4,7 +4,7 @@
 use std::io::{Read, Write};
 use std::time::Duration;
 
-use resilum_core::{Config, ConnectConfig, EgressListen, Node};
+use resilum_core::{Config, IngressConfig, EgressListen, Node};
 
 fn temp_dir(tag: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("resilum-ce-{tag}-{}", std::process::id()))
@@ -43,7 +43,7 @@ fn start_egress(echo: u16) -> (Node, u16) {
     (0..10)
         .find_map(|_| {
             let port = free_port();
-            let mut egress = EgressListen::new("e2e", format!("127.0.0.1:{echo}"));
+            let mut egress = EgressListen::new("e2e", Some(format!("127.0.0.1:{echo}")));
             egress.announce_interval = Duration::from_secs(1);
             let cfg = Config {
                 storage_path: Some(dir.clone()),
@@ -69,7 +69,7 @@ fn connect_forwards_a_local_connection_through_egress() {
         storage_path: Some(dir_c.clone()),
         discover_interfaces: false,
         bootstrap: vec![format!("127.0.0.1:{egress_port}")],
-        connect: Some(ConnectConfig::new("e2e", format!("127.0.0.1:{listen_tcp}"))),
+        ingress: Some(IngressConfig::new("e2e", format!("127.0.0.1:{listen_tcp}"))),
         ..Config::minimal(format!("ce-connect-{}", std::process::id()))
     })
     .expect("new");

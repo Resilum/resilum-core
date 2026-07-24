@@ -14,7 +14,7 @@ egress:
     exit_country: DE
   - service: tor
     target: 127.0.0.1:9050
-connect:
+ingress:
   services: [socks-egress, tor]
   listen_tcp: 127.0.0.1:10808
 ",
@@ -25,7 +25,7 @@ connect:
     assert_eq!(cfg.egress.len(), 2);
     assert_eq!(cfg.egress[0].exit_country, "DE");
     assert_eq!(cfg.egress[1].service, "tor");
-    assert_eq!(cfg.connect.unwrap().use_own, "smart");
+    assert_eq!(cfg.ingress.unwrap().use_own, "smart");
 }
 
 #[test]

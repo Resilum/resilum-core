@@ -6,7 +6,7 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use crate::config::SocksProxy;
-use crate::{ConnectConfig, DiscoveryService, EgressListen, I2pInterface};
+use crate::{IngressConfig, DiscoveryService, EgressListen, I2pInterface};
 
 #[derive(Deserialize)]
 pub(super) struct I2pFile {
@@ -28,7 +28,8 @@ impl From<I2pFile> for I2pInterface {
 #[derive(Deserialize)]
 pub(super) struct EgressFile {
     service: String,
-    target: String,
+    #[serde(default)]
+    target: Option<String>,
     #[serde(default = "wildcard")]
     exit_country: String,
     #[serde(default)]
@@ -47,7 +48,7 @@ impl From<EgressFile> for EgressListen {
 }
 
 #[derive(Deserialize)]
-pub(super) struct ConnectFile {
+pub(super) struct IngressFile {
     services: Vec<String>,
     listen_tcp: String,
     #[serde(default = "smart")]
@@ -58,8 +59,8 @@ pub(super) struct ConnectFile {
     deny_countries: Vec<String>,
 }
 
-impl From<ConnectFile> for ConnectConfig {
-    fn from(f: ConnectFile) -> Self {
+impl From<IngressFile> for IngressConfig {
+    fn from(f: IngressFile) -> Self {
         Self {
             services: f.services,
             listen_tcp: f.listen_tcp,

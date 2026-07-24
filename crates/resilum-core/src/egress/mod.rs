@@ -2,13 +2,14 @@
 
 pub mod active;
 mod candidate;
-pub mod connect;
+pub mod ingress;
 pub mod discover;
 mod eligibility;
 pub mod listen;
 pub mod monitor;
 pub mod probe;
 mod selector;
+mod socks5;
 
 pub use active::ActiveLinks;
 pub use candidate::{Candidate, CandidateRegistry};

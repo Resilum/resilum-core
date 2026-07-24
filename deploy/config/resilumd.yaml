@@ -36,23 +36,28 @@ discovery:
 
 # Optional native I2P interface (needs a local i2pd with SAM on 127.0.0.1:7656).
 # i2p:
-#   connectable: true              # be reachable inbound over I2P
+#   connectable: true          # be reachable inbound over I2P
 #   peers:
 #     - somebase32.b32.i2p
 
-# Be an exit: one entry per service, each forwarding inbound links for its
-# destination to a local endpoint.
-# egress:
-#   - service: socks-egress
-#     target: 127.0.0.1:1080
-#     exit_country: DE
-#   - service: tor
-#     target: 127.0.0.1:9050
+# Be an exit for mesh peers. Chaining through local tor/i2p (defaults below)
+# is anonymity-neutral: the exit hop is inside Tor/I2P, not your public IP.
+# Uncommenting `- service: socks-egress` opts into a raw public-IP exit —
+# same legal/abuse exposure as running a Tor exit, avoid on identifiable hosts.
+egress:
+  - service: tor
+    target: 127.0.0.1:9050
+  # - service: i2p             # only lets peers reach .i2p sites, not clearnet
+  #   target: 127.0.0.1:4447
+  # - service: socks-egress    # embedded SOCKS5, direct clearnet exit
+  #   exit_country: DE
 
-# Be a consumer: accept local TCP and forward through the fastest egress.
-# connect:
-#   services: [socks-egress, tor]
-#   listen_tcp: 127.0.0.1:10808
-#   use_own: smart            # smart | true | false
-#   allow_countries: []
-#   deny_countries: []
+# Accept local TCP and forward through the fastest mesh egress provider.
+# `use_own: smart` never picks your own socks-egress (would defeat anonymity)
+# but allows own tor/i2p.
+ingress:
+  services: [socks-egress, tor]
+  listen_tcp: 127.0.0.1:10808
+  use_own: smart               # smart | true | false
+  allow_countries: []
+  deny_countries: []

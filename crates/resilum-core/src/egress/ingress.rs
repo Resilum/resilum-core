@@ -11,7 +11,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{self, UnboundedReceiver};
 use tokio::time::{Instant, timeout_at};
 
-use crate::config::ConnectConfig;
+use crate::config::IngressConfig;
 use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, choose_best, eligible};
 use crate::link::{LinkMsg, LinkRouter};
 use crate::pump::pump;
@@ -26,7 +26,7 @@ pub async fn run(
     registry: Arc<CandidateRegistry>,
     active: Arc<ActiveLinks>,
     socks_port: Arc<AtomicU16>,
-    cfg: ConnectConfig,
+    cfg: IngressConfig,
     skip: HashMap<String, HashSet<Vec<u8>>>,
 ) {
     let Ok(listener) = TcpListener::bind(&cfg.listen_tcp).await else {

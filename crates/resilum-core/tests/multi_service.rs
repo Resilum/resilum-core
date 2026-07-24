@@ -129,9 +129,9 @@ fn each_service_is_routed_to_its_own_target() {
     let echo_b = spawn_tagged_echo(b'B');
 
     let dir = temp_dir("egress");
-    let mut svc_a = EgressListen::new("svc-a", format!("127.0.0.1:{echo_a}"));
+    let mut svc_a = EgressListen::new("svc-a", Some(format!("127.0.0.1:{echo_a}")));
     svc_a.announce_interval = Duration::from_secs(1);
-    let mut svc_b = EgressListen::new("svc-b", format!("127.0.0.1:{echo_b}"));
+    let mut svc_b = EgressListen::new("svc-b", Some(format!("127.0.0.1:{echo_b}")));
     svc_b.announce_interval = Duration::from_secs(1);
     let (mut egress, egress_port) = start_egress(vec![svc_a, svc_b], &dir);
 

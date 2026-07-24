@@ -46,7 +46,7 @@ fn start_egress(echo: u16) -> (Node, u16) {
     (0..10)
         .find_map(|_| {
             let port = free_port();
-            let mut egress = EgressListen::new("e2e", format!("127.0.0.1:{echo}"));
+            let mut egress = EgressListen::new("e2e", Some(format!("127.0.0.1:{echo}")));
             egress.announce_interval = Duration::from_secs(1);
             let cfg = Config {
                 storage_path: Some(dir.clone()),

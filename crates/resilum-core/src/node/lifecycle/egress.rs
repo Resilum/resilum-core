@@ -15,20 +15,20 @@ pub(super) fn bring_up(
     router: &Arc<link::LinkRouter>,
     inbound_rx: mpsc::UnboundedReceiver<link::Inbound>,
 ) {
-    if let Some(connect) = node.config.connect.clone() {
+    if let Some(ingress) = node.config.ingress.clone() {
         let mut skip: HashMap<String, HashSet<Vec<u8>>> = HashMap::new();
         for own in &node.config.egress {
             let hash = egress::listen::dest_hash(identity.clone(), &own.service);
             skip.entry(own.service.clone()).or_default().insert(hash);
         }
         let active = Arc::new(egress::ActiveLinks::default());
-        if let Some(target) = connect.target {
-            if let Some(first) = connect.services.first() {
+        if let Some(target) = ingress.target {
+            if let Some(first) = ingress.services.first() {
                 node.registry
                     .upsert(first, target.to_vec(), "*", Vec::new());
             }
         } else {
-            for service in &connect.services {
+            for service in &ingress.services {
                 let bus = node.events.subscribe();
                 node.tasks.push(tokio::spawn(egress::discover::run(
                     engine.clone(),
@@ -41,20 +41,20 @@ pub(super) fn bring_up(
                 )));
             }
         }
-        node.tasks.push(tokio::spawn(egress::connect::run(
+        node.tasks.push(tokio::spawn(egress::ingress::run(
             engine.clone(),
             router.clone(),
             node.registry.clone(),
             active,
             node.socks_port.clone(),
-            connect.clone(),
+            ingress.clone(),
             skip.clone(),
         )));
         node.tasks.push(tokio::spawn(egress::monitor::run(
             engine.clone(),
             router.clone(),
             node.registry.clone(),
-            connect,
+            ingress,
             skip,
         )));
     }
