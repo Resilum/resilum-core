@@ -21,9 +21,9 @@ sha2 = "0.11"
 data-encoding = "2"
 socket2 = "0.6"
 
-arti-client = { version = "0.44", optional = true }
+arti-client = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls", "static-sqlite"] }
 tokio-util = { version = "0.7", features = ["compat"], optional = true }
-tor-rtcompat = { version = "0.44", optional = true }
+tor-rtcompat = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls"] }
 
 [features]
 default = ["arti"]
