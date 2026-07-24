@@ -43,8 +43,34 @@ pub type Events = Fanout<NodeEvent>;
 /// Forward the node's event stream into `events` until the stream closes.
 pub async fn forward(events: Events, mut rx: EventReceiver) {
     while let Some(event) = rx.recv().await {
+        match &event {
+            NodeEvent::AnnounceReceived { announce, .. } => {
+                tracing::debug!(
+                    id = %hex_head(&announce.computed_identity_hash()),
+                    dest = %hex_head(announce.destination_hash().as_ref()),
+                    name = %hex_head(announce.name_hash()),
+                    "announce"
+                );
+            }
+            NodeEvent::LinkEstablished {
+                link_id,
+                destination_hash,
+                is_initiator,
+            } => {
+                tracing::info!(?link_id, dest = %hex_head(destination_hash.as_ref()), initiator = is_initiator, "link established");
+            }
+            _ => {}
+        }
         events.publish(event);
     }
+}
+
+fn hex_head(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    bytes.iter().take(8).fold(String::new(), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
 }
 
 #[cfg(test)]

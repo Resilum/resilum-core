@@ -90,7 +90,39 @@ fn main() {
         tracing::error!(error = %e, "start failed");
         std::process::exit(1);
     }
-    tracing::info!(instance = node.config().instance_name.as_str(), "started");
+    let id_hash = node
+        .engine()
+        .as_ref()
+        .map(|e| e.identity_hash())
+        .map(|h| {
+            h.iter()
+                .take(8)
+                .map(|b| format!("{b:02x}"))
+                .collect::<String>()
+        })
+        .unwrap_or_default();
+    tracing::info!(
+        instance = node.config().instance_name.as_str(),
+        identity = %id_hash,
+        "started"
+    );
+
+    if let Some(engine) = node.engine() {
+        std::thread::spawn(move || {
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(30));
+                let s = engine.transport_stats();
+                tracing::info!(
+                    sent = s.packets_sent(),
+                    recv = s.packets_received(),
+                    forwarded = s.packets_forwarded(),
+                    announces = s.announces_processed(),
+                    paths = engine.path_count(),
+                    "transport stats"
+                );
+            }
+        });
+    }
 
     let (tx, rx) = mpsc::channel();
     if let Err(e) = ctrlc::set_handler(move || {
