@@ -34,6 +34,10 @@ pub struct Config {
     pub instance_name: String,
     pub storage_path: Option<PathBuf>,
     pub listen: Option<String>,
+    /// Address peers should dial back on. Set when the address peers reach us
+    /// on differs from what `listen` binds locally — 1:1 NAT, port forwarding,
+    /// dual-stack hosts, VPN overlays. `None` → advertise the `listen` address.
+    pub reachable_on: Option<String>,
     /// Needs `network_identity` to take effect.
     pub discovery_name: Option<String>,
     pub network_identity: Option<PathBuf>,
@@ -64,6 +68,7 @@ impl Config {
             instance_name: instance_name.into(),
             storage_path: None,
             listen: None,
+            reachable_on: None,
             discovery_name: None,
             network_identity: None,
             bootstrap: Vec::new(),

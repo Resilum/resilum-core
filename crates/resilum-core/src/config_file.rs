@@ -21,6 +21,8 @@ struct FileConfig {
     storage_path: Option<std::path::PathBuf>,
     #[serde(default)]
     listen: Option<String>,
+    #[serde(default)]
+    reachable_on: Option<String>,
     #[serde(default = "yes")]
     default_anchors: bool,
     #[serde(default)]
@@ -87,6 +89,9 @@ impl FileConfig {
         cfg.storage_path = self.storage_path;
         if self.listen.is_some() {
             cfg.listen = self.listen;
+        }
+        if self.reachable_on.is_some() {
+            cfg.reachable_on = self.reachable_on;
         }
         cfg.bootstrap.extend(self.bootstrap);
         cfg.discover_interfaces = self.discover;

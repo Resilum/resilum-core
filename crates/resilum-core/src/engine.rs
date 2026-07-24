@@ -37,6 +37,9 @@ pub(crate) fn render_config(config: &Config) -> String {
              listen_ip = {host}\n    listen_port = {port}\n    discoverable = yes\n    \
              mode = gateway\n"
         );
+        if let Some(addr) = &config.reachable_on {
+            let _ = writeln!(out, "    reachable_on = {addr}");
+        }
         if let Some(name) = &config.discovery_name {
             let _ = writeln!(out, "    discovery_name = {name}");
         }
