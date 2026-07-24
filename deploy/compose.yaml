@@ -13,3 +13,14 @@ services:
       - ./config:/config
     environment:
       RUST_LOG: "info,resilum_core=debug,leviculum_std=debug"
+
+  rngit:
+    build: ../docker/rngit
+    image: resilum-rngit:latest
+    container_name: resilum-rngit
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config/rngit:/config/rngit
+    depends_on:
+      - resilum

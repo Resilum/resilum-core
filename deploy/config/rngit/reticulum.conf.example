@@ -1,0 +1,9 @@
+# Joins the resilum daemon as a shared-instance client via the abstract
+# socket. `instance_name` must match the resilum-daemon's config.
+
+[reticulum]
+  enable_transport = no
+  share_instance = yes
+  instance_name = resilum
+
+[interfaces]

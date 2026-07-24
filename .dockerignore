@@ -3,11 +3,9 @@ target/
 *.md
 .codeberg-token
 
-# Runtime state and generated per-node configs.
-deploy/config/state/
-deploy/config/tor/
-deploy/config/i2p/
-deploy/config/yggdrasil.conf
-deploy/config/torrc
-deploy/config/i2pd.conf
-deploy/config/i2pd-tunnels.conf
+# Everything under deploy/config is per-node runtime, keep only templates.
+deploy/config/**
+!deploy/config/**/
+!deploy/config/*.example
+!deploy/config/**/*.example
+!deploy/config/resilumd.yaml

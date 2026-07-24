@@ -15,11 +15,10 @@ keys/
 secrets.*
 .codeberg-token
 
-# Node runtime state and generated per-node configs
-deploy/config/state/
-deploy/config/yggdrasil.conf
-deploy/config/torrc
-deploy/config/tor/
-deploy/config/i2pd.conf
-deploy/config/i2pd-tunnels.conf
-deploy/config/i2p/
+# Everything under the deploy/config bind mount is per-node runtime,
+# except .example templates and the reference resilumd.yaml.
+deploy/config/**
+!deploy/config/**/
+!deploy/config/*.example
+!deploy/config/**/*.example
+!deploy/config/resilumd.yaml
