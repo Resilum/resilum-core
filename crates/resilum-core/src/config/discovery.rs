@@ -43,17 +43,23 @@ pub struct DiscoveryService {
 }
 
 impl DiscoveryService {
-    /// Tor onion-service discovery. Uses in-process Arti by default; override
-    /// `socks_proxy` to `SocksProxy::External(..)` to route through an
-    /// existing Tor daemon.
+    /// Tor discovery via external `tor` daemon on `127.0.0.1:9050`.
     pub fn tor() -> Self {
         Self {
             service: "tor".into(),
             name_prefix: "TorDiscovered".into(),
             endpoint_format: EndpointFormat::Suffix(".onion".into()),
-            socks_proxy: Some(SocksProxy::EmbeddedArti),
+            socks_proxy: Some(SocksProxy::External("127.0.0.1".into(), 9050)),
             hostname_path: None,
             rns_port: 4242,
+        }
+    }
+
+    /// Tor discovery via in-process Arti (requires `arti` feature).
+    pub fn tor_embedded() -> Self {
+        Self {
+            socks_proxy: Some(SocksProxy::EmbeddedArti),
+            ..Self::tor()
         }
     }
 

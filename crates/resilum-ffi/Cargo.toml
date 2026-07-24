@@ -9,7 +9,7 @@ description = "C-ABI wrapper over resilum-core for Dart FFI (mobile)."
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-resilum-core = { path = "../resilum-core" }
+resilum-core = { path = "../resilum-core", features = ["arti"] }
 
 [build-dependencies]
 cbindgen = "0.29"

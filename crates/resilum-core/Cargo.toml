@@ -26,7 +26,7 @@ tokio-util = { version = "0.7", features = ["compat"], optional = true }
 tor-rtcompat = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls"] }
 
 [features]
-default = ["arti"]
+default = []
 arti = ["dep:arti-client", "dep:tokio-util", "dep:tor-rtcompat"]
 
 [dev-dependencies]
