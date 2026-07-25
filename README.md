@@ -49,6 +49,38 @@ target (`cargo-ndk` for Android, `cargo-lipo`/XCFramework for iOS) and loaded vi
 Use **rustup** (not a distro package) — the mobile cross-compile targets are
 added with `rustup target add <triple>`. Edition 2024.
 
+## Verifying authenticity
+
+Every commit is signed with a Reticulum identity, and the signature travels
+inside the commit object — it verifies the same way regardless of which mirror
+served the code. The canonical signing fingerprint is:
+
+```text
+bfc40491ae7214f8b773281f6c630eaf
+```
+
+To check signatures, point git at the rngit signing helper (`rngcs`, shipped
+with RNS ≥ 1.4), then inspect the log:
+
+```sh
+git config gpg.format ssh
+git config gpg.ssh.program rngcs
+git config gpg.ssh.allowedsignersfile none
+git log --show-signature
+```
+
+A commit is authentic when the output reads
+`Good "git" signature for commit, signed with Reticulum Identity key
+<bfc40491ae7214f8b773281f6c630eaf>`. When fetching a release, pin the same
+fingerprint so a mirror cannot substitute artifacts:
+
+```sh
+rngit release rns://<mirror>/resilum/resilum-core.git fetch latest:all \
+  --signer bfc40491ae7214f8b773281f6c630eaf
+```
+
+Mirror `rns://` URLs are listed once the distribution nodes are deployed.
+
 ## License
 
 **AGPL-3.0-only.** The core builds on the leviculum Rust Reticulum stack
