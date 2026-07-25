@@ -4,9 +4,11 @@
 
 mod event;
 mod node;
+mod status;
 
 pub use event::*;
 pub use node::*;
+pub use status::*;
 
 use std::cell::RefCell;
 use std::ffi::CString;

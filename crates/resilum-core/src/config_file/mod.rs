@@ -9,6 +9,12 @@ use serde::Deserialize;
 use crate::Config;
 use entries::{IngressFile, DiscoveryFile, EgressFile, I2pFile};
 
+pub fn from_json(json: &str) -> Result<Config, String> {
+    serde_json::from_str::<FileConfig>(json)
+        .map_err(|e| format!("parse config: {e}"))
+        .map(FileConfig::into_core)
+}
+
 pub fn from_yaml(yaml: &str) -> Result<Config, String> {
     let expanded = env_expand::expand(yaml);
     serde_yaml_ng::from_str::<FileConfig>(&expanded)
