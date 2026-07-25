@@ -1,9 +1,16 @@
-# Joins the resilum daemon as a shared-instance client via the abstract
-# socket. `instance_name` must match the resilum-daemon's config.
+# Own RNS instance peering with the resilum daemon over TCP. Not a shared client:
+# a shared client's RPC authkey (from its own transport_identity) mismatches the
+# master's, breaking link identification.
 
 [reticulum]
   enable_transport = no
-  share_instance = yes
-  instance_name = resilum
+  share_instance = no
+  instance_name = rngit
 
 [interfaces]
+
+  [[resilum backhaul]]
+    type = TCPClientInterface
+    enabled = yes
+    target_host = 127.0.0.1
+    target_port = 4242
