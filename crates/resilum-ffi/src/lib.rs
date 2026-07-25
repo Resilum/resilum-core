@@ -3,10 +3,12 @@
 //! (unwinding into C is undefined behaviour).
 
 mod event;
+mod lxmf;
 mod node;
 mod status;
 
 pub use event::*;
+pub use lxmf::*;
 pub use node::*;
 pub use status::*;
 
