@@ -1,4 +1,8 @@
+---
 extends: default
+
+ignore: |
+  target/
 
 rules:
   # Commented-out config examples must sit at the indentation of the code they

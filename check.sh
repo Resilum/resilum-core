@@ -46,9 +46,9 @@ else
     skip "hadolint (cargo/pacman install, or docker)"
 fi
 
-step "yamllint"
+step "yamllint (strict: warnings fail)"
 if have yamllint; then
-    yamllint crates/resilumd/resilumd.example.yaml
+    yamllint --strict .
 else
     skip "yamllint (pip install yamllint)"
 fi

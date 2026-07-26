@@ -35,9 +35,10 @@ discovery:
   - service: i2p
 
 # Canonical rngit-mirror repo names this node hosts, announced in the mesh so
-# `resilumd mirrors find <repo>` on any peer prints live rns://<hash>/mirrors/<repo>
-# URLs without out-of-band coordination. Publisher fills these via
-# `rngit mirror <upstream> rns://self/mirrors/<name>` in the sidecar container.
+# `resilumd mirrors find <repo>` on any peer prints live
+# rns://<hash>/mirrors/<repo> URLs without out-of-band coordination. Publisher
+# fills these via `rngit mirror <upstream> rns://self/mirrors/<name>` in the
+# sidecar container.
 advertised_mirrors:
   - resilum-core
   - resilum-mobile
