@@ -43,10 +43,18 @@ pub unsafe extern "C" fn resilum_lxmf_address(node: *const ResilumNode) -> *mut 
 ///   "dest": "<32-hex LXMF destination>",
 ///   "method": "direct" | "opportunistic" | "propagated",
 ///   "title_b64": "<base64, optional>",
-///   "content_b64": "<base64 payload>",
-///   "fields": {}
+///   "content_b64": "<base64 human-readable body, optional>",
+///   "fields": {
+///     "custom_type": "<app schema id, e.g. rcb/1>",
+///     "custom_data": <any structured value>
+///   }
 /// }
 /// ```
+/// `content_b64` is the human-readable body (chat text). Machine payloads (RPC
+/// requests, app events) go in `fields`: `custom_type` maps to LXMF
+/// FIELD_CUSTOM_TYPE (0xFB) and `custom_data` to FIELD_CUSTOM_DATA (0xFC),
+/// msgpack-encoded on the wire so structured and byte values stay compact.
+/// Everything except `dest` and `method` is optional.
 /// Returns the message id (hex) for correlating delivery, or null on error.
 /// Free the returned string with `resilum_string_free`.
 ///
@@ -69,7 +77,8 @@ pub unsafe extern "C" fn resilum_lxmf_send(
 /// message or a delivery-state update for a message we sent:
 /// ```json
 /// { "type":"message", "source":"<hex>", "message_id":"<hex>",
-///   "timestamp": 0.0, "title_b64":"...", "content_b64":"...", "fields":{} }
+///   "timestamp": 0.0, "title_b64":"...", "content_b64":"...",
+///   "fields": { "custom_type":"...", "custom_data": <value> } }
 /// { "type":"delivery", "message_id":"<hex>",
 ///   "state":"sent" | "delivered" | "failed" | "propagated" }
 /// ```
