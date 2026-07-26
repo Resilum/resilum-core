@@ -3,8 +3,8 @@ use std::sync::Arc;
 use leviculum_std::NodeEvent;
 use tokio::sync::broadcast;
 
-use super::payload::{name_hash, parse};
 use super::Registry;
+use super::payload::{name_hash, parse};
 
 pub async fn run(registry: Arc<Registry>, mut bus: broadcast::Receiver<Arc<NodeEvent>>) {
     let want = name_hash();

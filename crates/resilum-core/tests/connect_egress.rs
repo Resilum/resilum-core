@@ -4,7 +4,7 @@
 use std::io::{Read, Write};
 use std::time::Duration;
 
-use resilum_core::{Config, IngressConfig, EgressListen, Node};
+use resilum_core::{Config, EgressListen, IngressConfig, Node};
 
 fn temp_dir(tag: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!("resilum-ce-{tag}-{}", std::process::id()))

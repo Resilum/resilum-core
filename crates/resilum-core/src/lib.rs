@@ -27,7 +27,7 @@ pub mod supervisor;
 pub mod tor;
 
 pub use config::{
-    Config, IngressConfig, DiscoveryService, EgressListen, EndpointFormat, I2pInterface,
+    Config, DiscoveryService, EgressListen, EndpointFormat, I2pInterface, IngressConfig,
 };
 pub use config_file::{from_json, from_yaml};
 pub use error::{Error, Result};

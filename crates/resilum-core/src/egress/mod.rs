@@ -2,9 +2,9 @@
 
 pub mod active;
 mod candidate;
-pub mod ingress;
 pub mod discover;
 mod eligibility;
+pub mod ingress;
 pub mod listen;
 pub mod monitor;
 pub mod probe;

@@ -1,5 +1,5 @@
-use super::payload::{Advert, pack, parse};
 use super::Registry;
+use super::payload::{Advert, pack, parse};
 
 #[test]
 fn roundtrip_advert() {
@@ -16,12 +16,17 @@ fn roundtrip_advert() {
 fn rejects_short_or_non_hex_rngit_dest() {
     assert!(parse(br#"{"v":"0.0.0","rngit":"","repos":["x"]}"#).is_none());
     assert!(parse(br#"{"v":"0.0.0","rngit":"nothex","repos":["x"]}"#).is_none());
-    assert!(parse(br#"{"v":"0.0.0","rngit":"gg7ba443760f13d35a7681a9ca1ef1b0","repos":["x"]}"#).is_none());
+    assert!(
+        parse(br#"{"v":"0.0.0","rngit":"gg7ba443760f13d35a7681a9ca1ef1b0","repos":["x"]}"#)
+            .is_none()
+    );
 }
 
 #[test]
 fn rejects_empty_repos() {
-    assert!(parse(br#"{"v":"0.0.0","rngit":"1ed7ba443760f13d35a7681a9ca1ef1b","repos":[]}"#).is_none());
+    assert!(
+        parse(br#"{"v":"0.0.0","rngit":"1ed7ba443760f13d35a7681a9ca1ef1b","repos":[]}"#).is_none()
+    );
 }
 
 #[test]

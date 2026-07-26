@@ -32,10 +32,7 @@ mod tests {
         unsafe {
             std::env::remove_var("RESILUM_TEST_UNSET");
         }
-        assert_eq!(
-            expand("port=${RESILUM_TEST_UNSET:-10808}"),
-            "port=10808"
-        );
+        assert_eq!(expand("port=${RESILUM_TEST_UNSET:-10808}"), "port=10808");
     }
 
     #[test]
@@ -56,9 +53,6 @@ mod tests {
         unsafe {
             std::env::set_var("RESILUM_TEST_OVERRIDE", "from-env");
         }
-        assert_eq!(
-            expand("v=${RESILUM_TEST_OVERRIDE:-fallback}"),
-            "v=from-env"
-        );
+        assert_eq!(expand("v=${RESILUM_TEST_OVERRIDE:-fallback}"), "v=from-env");
     }
 }

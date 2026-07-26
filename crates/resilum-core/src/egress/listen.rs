@@ -158,11 +158,7 @@ async fn session_embedded(handle: LinkHandle, mut from_link: UnboundedReceiver<L
     pump_link(handle, from_link, tcp).await;
 }
 
-async fn pump_link(
-    handle: LinkHandle,
-    from_link: UnboundedReceiver<LinkMsg>,
-    tcp: TcpStream,
-) {
+async fn pump_link(handle: LinkHandle, from_link: UnboundedReceiver<LinkMsg>, tcp: TcpStream) {
     let (to_link, mut to_link_rx) = mpsc::unbounded_channel();
     let pumping = tokio::spawn(pump(tcp, from_link, to_link));
     while let Some(bytes) = to_link_rx.recv().await {

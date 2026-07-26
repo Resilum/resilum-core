@@ -6,7 +6,7 @@ use std::time::Duration;
 use serde::Deserialize;
 
 use crate::config::SocksProxy;
-use crate::{IngressConfig, DiscoveryService, EgressListen, I2pInterface};
+use crate::{DiscoveryService, EgressListen, I2pInterface, IngressConfig};
 
 #[derive(Deserialize)]
 pub(super) struct I2pFile {
