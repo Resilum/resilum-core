@@ -12,8 +12,8 @@ use crate::config::Config;
 use crate::dispatch;
 use crate::egress::CandidateRegistry;
 use crate::error::{Error, Result};
-use crate::mirrors;
 use crate::event::{self, Event};
+use crate::mirrors;
 
 /// A Resilum node: owns the leviculum engine (with its tokio runtime) and an
 /// outbound event queue.
@@ -28,6 +28,7 @@ pub struct Node {
     pub(crate) socks_port: Arc<AtomicU16>,
     pub(crate) discovery_trigger: Arc<Notify>,
     pub(crate) mirror_registry: Option<Arc<mirrors::Registry>>,
+    pub(crate) origin_registry: Arc<crate::discovery::OriginRegistry>,
     #[cfg(feature = "arti")]
     pub(crate) embedded_tor: Option<crate::tor::EmbeddedTor>,
 }
@@ -49,6 +50,7 @@ impl Node {
             socks_port: Arc::new(AtomicU16::new(0)),
             discovery_trigger: Arc::new(Notify::new()),
             mirror_registry: None,
+            origin_registry: Arc::new(crate::discovery::OriginRegistry::default()),
             #[cfg(feature = "arti")]
             embedded_tor: None,
         })
@@ -67,6 +69,14 @@ impl Node {
     /// Shared engine handle for runtime tasks; `None` before start / after stop.
     pub fn engine(&self) -> Option<Arc<LevNode>> {
         self.engine.clone()
+    }
+
+    /// The discovery overlay an interface was attached over (`tor` / `i2p` /
+    /// `yggdrasil` / `covert`), or `None` when resilum-core did not attach it
+    /// (bootstrap, LAN, or a leviculum-managed peer). Keyed by the interface id
+    /// from an interface-status snapshot.
+    pub fn discovered_via(&self, id: leviculum_std::InterfaceId) -> Option<String> {
+        self.origin_registry.get(id)
     }
 
     /// Wake the discovery produce loop to re-announce endpoints now, without

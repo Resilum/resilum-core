@@ -27,11 +27,29 @@ struct NodeStatus {
 #[derive(Serialize)]
 struct Interface {
     name: String,
+    source: &'static str,
+    /// Transport medium (tcp/udp/i2p/serial/rnode/…), from the interface the
+    /// engine built — not inferred from the name. Group the UI by this.
+    kind: &'static str,
+    /// Overlay the peer was discovered through (tor/i2p/yggdrasil/covert), or
+    /// `direct` when resilum-core did not attach it. Orthogonal to `kind`: a
+    /// peer found over I2P is still dialed as `tcp`.
+    discovered_via: String,
     online: bool,
     local_client: bool,
     rx_bytes: u64,
     tx_bytes: u64,
     bitrate: Option<u32>,
+}
+
+fn interface_source(name: &str) -> &'static str {
+    if name.starts_with("autoconnect") {
+        "autoconnect"
+    } else if name.starts_with("tcp_client") {
+        "bootstrap"
+    } else {
+        "other"
+    }
 }
 
 #[derive(Serialize)]
@@ -79,6 +97,12 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
                 .interface_stats()
                 .into_iter()
                 .map(|i| Interface {
+                    source: interface_source(&i.name),
+                    kind: i.kind.as_str(),
+                    discovered_via: node
+                        .0
+                        .discovered_via(i.interface_id)
+                        .unwrap_or_else(|| "direct".into()),
                     name: i.name,
                     online: i.online,
                     local_client: i.is_local_client,

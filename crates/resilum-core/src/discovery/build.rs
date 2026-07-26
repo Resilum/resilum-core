@@ -6,7 +6,7 @@ use std::sync::Arc;
 use leviculum_std::api::Node as LevNode;
 use tokio::sync::Notify;
 
-use super::{Discovery, TcpDiscovered, cache, covert};
+use super::{Discovery, OriginRegistry, TcpDiscovered, cache, covert};
 use crate::announce_cap::CapController;
 use crate::config::{CovertDiscoveryService, DiscoveryService};
 
@@ -19,6 +19,7 @@ pub struct BuildParams<'a> {
     pub storage_root: Option<&'a std::path::Path>,
     pub cap_controller: Arc<CapController>,
     pub events: crate::dispatch::Events,
+    pub origin_registry: Arc<OriginRegistry>,
 }
 
 pub fn build_from_services(p: BuildParams<'_>) -> Discovery {
@@ -31,6 +32,7 @@ pub fn build_from_services(p: BuildParams<'_>) -> Discovery {
             p.trigger.clone(),
             cache_path.clone(),
             p.cap_controller.clone(),
+            p.origin_registry.clone(),
         ));
         super::warm_start(plugin.as_ref(), cache_path.as_deref());
         d.register(&cfg.service.clone(), plugin);
@@ -42,6 +44,7 @@ pub fn build_from_services(p: BuildParams<'_>) -> Discovery {
             addresses.clone(),
             p.engine.clone(),
             p.events.clone(),
+            p.origin_registry.clone(),
         ));
         d.register(&name, plugin);
     }

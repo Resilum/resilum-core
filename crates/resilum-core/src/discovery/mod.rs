@@ -6,11 +6,13 @@ mod build;
 mod cache;
 mod consume;
 pub mod covert;
+mod origin;
 mod produce;
 mod tcp;
 pub use build::{BuildParams, build_covert_addresses, build_from_services};
 pub use cache::run_prune_loop;
 pub use consume::run_consume;
+pub use origin::OriginRegistry;
 pub use produce::{build_destinations, run_produce};
 pub use tcp::TcpDiscovered;
 

@@ -24,6 +24,8 @@ pub struct TcpDiscovered {
     cache_path: Option<PathBuf>,
     // Registers each attached interface for adaptive announce-cap control.
     cap_controller: Arc<CapController>,
+    // Records the discovery origin (this service) of each attached interface.
+    origin_registry: Arc<super::OriginRegistry>,
 }
 
 impl TcpDiscovered {
@@ -33,6 +35,7 @@ impl TcpDiscovered {
         trigger: Arc<Notify>,
         cache_path: Option<PathBuf>,
         cap_controller: Arc<CapController>,
+        origin_registry: Arc<super::OriginRegistry>,
     ) -> Self {
         Self {
             cfg,
@@ -41,6 +44,7 @@ impl TcpDiscovered {
             trigger,
             cache_path,
             cap_controller,
+            origin_registry,
         }
     }
 
@@ -89,6 +93,8 @@ impl DiscoveryPlugin for TcpDiscovered {
             Ok(handle) => {
                 tracing::info!(service = %self.cfg.service, %name, "attached discovered peer");
                 self.cap_controller.attach(handle.id());
+                self.origin_registry
+                    .record(handle.id(), self.cfg.service.clone());
                 guard.insert(name, handle);
                 self.trigger.notify_waiters();
                 if let Some(path) = &self.cache_path {

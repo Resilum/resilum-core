@@ -26,6 +26,7 @@ struct Inner {
     engine: Arc<LevNode>,
     events: Events,
     attached: Mutex<HashMap<Vec<u8>, PipeClientHandle>>,
+    origin_registry: Arc<crate::discovery::OriginRegistry>,
 }
 
 impl CovertDiscovered {
@@ -34,6 +35,7 @@ impl CovertDiscovered {
         addresses: Arc<AddressSource>,
         engine: Arc<LevNode>,
         events: Events,
+        origin_registry: Arc<crate::discovery::OriginRegistry>,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -42,6 +44,7 @@ impl CovertDiscovered {
                 engine,
                 events,
                 attached: Mutex::new(HashMap::new()),
+                origin_registry,
             }),
         }
     }
@@ -95,6 +98,7 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
     match inner.engine.spawn_pipe_client(&name, &command, respawn) {
         Ok(handle) => {
             tracing::info!(%name, carrier = %carrier, addr = %addr, "covert peer attached");
+            inner.origin_registry.record(handle.id(), "covert");
             inner
                 .attached
                 .lock()

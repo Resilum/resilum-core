@@ -46,6 +46,7 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identi
         storage_root,
         cap_controller,
         events: node.events.clone(),
+        origin_registry: node.origin_registry.clone(),
     }));
     let bus = node.events.subscribe();
     node.tasks
