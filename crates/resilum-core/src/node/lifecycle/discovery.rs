@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use leviculum_std::api::{Identity, Node as LevNode};
 
-use crate::error::{Error, Result};
+#[cfg(feature = "arti")]
+use crate::error::Error;
+use crate::error::Result;
 use crate::node::Node;
 use crate::{announce_cap, announce_trigger, discovery};
 
@@ -99,17 +101,21 @@ fn resolve_discovery(
     services: &[crate::config::DiscoveryService],
     #[cfg(feature = "arti")] arti_port: Option<u16>,
 ) -> Vec<crate::config::DiscoveryService> {
-    use crate::config::SocksProxy;
     services
         .iter()
         .map(|s| {
-            let mut out = s.clone();
-            if let Some(SocksProxy::EmbeddedArti) = out.socks_proxy {
-                #[cfg(feature = "arti")]
-                if let Some(port) = arti_port {
+            let out = s.clone();
+            #[cfg(feature = "arti")]
+            let out = {
+                use crate::config::SocksProxy;
+                let mut out = out;
+                if let Some(SocksProxy::EmbeddedArti) = out.socks_proxy
+                    && let Some(port) = arti_port
+                {
                     out.socks_proxy = Some(SocksProxy::External("127.0.0.1".into(), port));
                 }
-            }
+                out
+            };
             out
         })
         .collect()
