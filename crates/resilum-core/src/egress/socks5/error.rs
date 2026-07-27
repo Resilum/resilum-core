@@ -8,6 +8,7 @@ pub enum SocksError {
     UnsupportedCommand(u8),
     UnsupportedAtyp(u8),
     BadDomain,
+    Refused(u8),
 }
 
 impl fmt::Display for SocksError {
@@ -19,6 +20,7 @@ impl fmt::Display for SocksError {
             SocksError::UnsupportedCommand(c) => write!(f, "unsupported SOCKS command {c:#x}"),
             SocksError::UnsupportedAtyp(a) => write!(f, "unsupported address type {a:#x}"),
             SocksError::BadDomain => write!(f, "invalid domain name in CONNECT request"),
+            SocksError::Refused(r) => write!(f, "egress refused CONNECT, reply code {r:#x}"),
         }
     }
 }

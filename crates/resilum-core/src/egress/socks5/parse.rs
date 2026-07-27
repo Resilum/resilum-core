@@ -74,7 +74,7 @@ fn decode_host(atyp: u8, addr: &[u8]) -> Result<String, SocksError> {
     }
 }
 
-async fn read_at_least(
+pub(super) async fn read_at_least(
     from_link: &mut UnboundedReceiver<LinkMsg>,
     buf: &mut Vec<u8>,
     need: usize,

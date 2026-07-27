@@ -44,7 +44,9 @@ impl Node {
                     .push(tokio::spawn(dispatch::forward(self.events.clone(), rx)));
             }
             self.tasks.extend(supervisor::spawn_all(bridge_tasks));
+            self.router = Some(router.clone());
         }
+        self.identity = Some(identity);
         self.engine = Some(leviculum);
         event::push(&self.event_queue, Event::Started);
         Ok(())
@@ -64,6 +66,8 @@ impl Node {
             }
             event::push(&self.event_queue, Event::Stopped);
         }
+        self.router = None;
+        self.identity = None;
         #[cfg(feature = "arti")]
         {
             self.embedded_tor = None;

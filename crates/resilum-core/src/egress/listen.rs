@@ -10,13 +10,12 @@ use leviculum_std::api::{
 };
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
-use tokio::sync::mpsc::{self, UnboundedReceiver};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::JoinHandle;
 
 use super::socks5;
 use crate::config::EgressListen;
 use crate::link::{Inbound, LinkMsg};
-use crate::pump::pump;
 
 #[derive(Clone)]
 enum Backend {
@@ -159,14 +158,7 @@ async fn session_embedded(handle: LinkHandle, mut from_link: UnboundedReceiver<L
 }
 
 async fn pump_link(handle: LinkHandle, from_link: UnboundedReceiver<LinkMsg>, tcp: TcpStream) {
-    let (to_link, mut to_link_rx) = mpsc::unbounded_channel();
-    let pumping = tokio::spawn(pump(tcp, from_link, to_link));
-    while let Some(bytes) = to_link_rx.recv().await {
-        if handle.send(&bytes).await.is_err() {
-            break;
-        }
-    }
-    let _ = pumping.await;
+    super::relay::relay(&handle, from_link, tcp).await;
     let _ = close(handle).await;
 }
 

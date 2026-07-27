@@ -1,0 +1,99 @@
+//! L3 routing hub: terminate the tun's TCP flows in a userspace netstack and
+//! forward each to its real destination through the egress mesh.
+
+mod flow;
+mod tun;
+
+use std::collections::{HashMap, HashSet};
+use std::os::fd::RawFd;
+use std::sync::Arc;
+
+use futures::StreamExt;
+use netstack_smoltcp::{StackBuilder, TcpListener};
+use tokio::task::JoinHandle;
+
+use self::flow::FlowCtx;
+use crate::config::IngressConfig;
+use crate::egress::{ActiveLinks, CandidateRegistry};
+use crate::link::LinkRouter;
+
+/// Inputs for a routing hub, assembled by the node from its running state.
+#[non_exhaustive]
+pub struct VpnParams {
+    pub engine: Arc<leviculum_std::api::Node>,
+    pub router: Arc<LinkRouter>,
+    pub registry: Arc<CandidateRegistry>,
+    pub policy: IngressConfig,
+    pub skip: HashMap<String, HashSet<Vec<u8>>>,
+    pub mtu: usize,
+}
+
+/// A live attachment; drop or [`VpnHandle::detach`] to tear it down and close
+/// the tun fd.
+#[must_use]
+pub struct VpnHandle {
+    tasks: Vec<JoinHandle<()>>,
+}
+
+impl VpnHandle {
+    pub fn detach(mut self) {
+        for task in std::mem::take(&mut self.tasks) {
+            task.abort();
+        }
+    }
+}
+
+impl Drop for VpnHandle {
+    fn drop(&mut self) {
+        for task in &self.tasks {
+            task.abort();
+        }
+    }
+}
+
+/// Attach a routing hub to `tun_fd`. Must run inside the node's tokio runtime.
+pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
+    let VpnParams {
+        engine,
+        router,
+        registry,
+        policy,
+        skip,
+        mtu,
+    } = params;
+    let tun = Arc::new(tun::TunFd::new(tun_fd)?);
+    let (stack, runner, _udp, tcp_listener) = StackBuilder::default()
+        .enable_tcp(true)
+        .enable_udp(false)
+        .enable_icmp(false)
+        .mtu(mtu)
+        .build()?;
+    let tcp_listener = tcp_listener.expect("tcp is enabled");
+    let (sink, stream) = stack.split();
+
+    let ctx = Arc::new(FlowCtx {
+        engine,
+        router,
+        registry,
+        active: Arc::new(ActiveLinks::default()),
+        policy,
+        skip,
+    });
+
+    let mut tasks = Vec::new();
+    if let Some(runner) = runner {
+        tasks.push(tokio::spawn(async move {
+            let _ = runner.await;
+        }));
+    }
+    tasks.push(tokio::spawn(tun::tun_to_stack(tun.clone(), sink, mtu)));
+    tasks.push(tokio::spawn(tun::stack_to_tun(tun, stream)));
+    tasks.push(tokio::spawn(accept(ctx, tcp_listener)));
+    Ok(VpnHandle { tasks })
+}
+
+async fn accept(ctx: Arc<FlowCtx>, mut listener: TcpListener) {
+    while let Some((stream, _local, remote)) = listener.next().await {
+        tokio::spawn(flow::serve(ctx.clone(), stream, remote));
+    }
+}

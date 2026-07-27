@@ -8,8 +8,10 @@ pub mod ingress;
 pub mod listen;
 pub mod monitor;
 pub mod probe;
+mod relay;
 mod selector;
 mod socks5;
+pub mod vpn;
 
 pub use active::ActiveLinks;
 pub use candidate::{Candidate, CandidateRegistry};

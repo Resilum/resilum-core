@@ -7,12 +7,16 @@ mod interface;
 mod lxmf;
 mod node;
 mod status;
+#[cfg(unix)]
+mod vpn;
 
 pub use event::*;
 pub use interface::*;
 pub use lxmf::*;
 pub use node::*;
 pub use status::*;
+#[cfg(unix)]
+pub use vpn::*;
 
 use std::cell::RefCell;
 use std::ffi::CString;

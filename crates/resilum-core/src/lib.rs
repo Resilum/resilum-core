@@ -33,3 +33,6 @@ pub use config_file::{from_json, from_yaml};
 pub use error::{Error, Result};
 pub use event::Event;
 pub use node::Node;
+
+#[cfg(unix)]
+pub use egress::vpn::VpnHandle;

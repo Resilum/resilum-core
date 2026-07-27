@@ -21,6 +21,8 @@ sha2 = "0.11"
 data-encoding = "2"
 if-addrs = "0.15"
 socket2 = "0.6"
+futures = "0.3"
+netstack-smoltcp = "0.2.4"
 
 arti-client = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls", "static-sqlite"] }
 tokio-util = { version = "0.7", features = ["compat"], optional = true }

@@ -8,13 +8,12 @@ use std::time::Duration;
 
 use leviculum_std::api::{DestinationHash, LinkHandle, LinkId, Node as LevNode};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc::{self, UnboundedReceiver};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::time::{Instant, timeout_at};
 
 use crate::config::IngressConfig;
 use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, choose_best, eligible};
 use crate::link::{LinkMsg, LinkRouter};
-use crate::pump::pump;
 
 const ESTABLISH_TIMEOUT: Duration = Duration::from_secs(30);
 const PATH_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -81,14 +80,7 @@ async fn session(
         .expect("dial validated the hash length");
     active.register(dest_bytes, link_id);
 
-    let (to_link, mut to_link_rx) = mpsc::unbounded_channel();
-    let pumping = tokio::spawn(pump(tcp, from_link, to_link));
-    while let Some(bytes) = to_link_rx.recv().await {
-        if handle.send(&bytes).await.is_err() {
-            break;
-        }
-    }
-    let _ = pumping.await;
+    super::relay::relay(&handle, from_link, tcp).await;
     active.deregister(&dest_bytes, &link_id);
     router.detach(&link_id);
     let _ = handle.close().await;
@@ -128,7 +120,7 @@ pub(super) async fn dial(
     Some((handle, link_id, from_link))
 }
 
-pub(super) async fn wait_established(from_link: &mut mpsc::UnboundedReceiver<LinkMsg>) -> bool {
+pub(super) async fn wait_established(from_link: &mut UnboundedReceiver<LinkMsg>) -> bool {
     let deadline = Instant::now() + ESTABLISH_TIMEOUT;
     loop {
         match timeout_at(deadline, from_link.recv()).await {

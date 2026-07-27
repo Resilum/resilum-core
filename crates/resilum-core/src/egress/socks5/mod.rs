@@ -1,12 +1,14 @@
 //! Server-side SOCKS5 CONNECT for the embedded egress backend (RFC 1928,
 //! no-auth). UDP ASSOCIATE and BIND are not implemented.
 
+mod client;
 mod error;
 mod parse;
 
 #[cfg(test)]
 mod tests;
 
+pub use client::connect;
 pub use error::SocksError;
 pub use parse::handshake;
 

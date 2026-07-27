@@ -24,6 +24,7 @@ allow = [
     "GPL-3.0-only",
     "Apache-2.0",
     "MIT",
+    "0BSD",
     "BSD-1-Clause",
     "BSD-2-Clause",
     "BSD-3-Clause",
