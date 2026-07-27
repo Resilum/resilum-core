@@ -1,9 +1,9 @@
 //! Covert-carrier discovery: announce presence, rendezvous for the endpoint,
-//! attach a per-peer covert PipeInterface at runtime.
+//! attach a per-peer covert interface in-process at runtime.
 
 mod addresses;
-mod attach;
 pub mod endpoint;
+mod inproc;
 mod plugin;
 pub mod rendezvous;
 

@@ -1,17 +1,14 @@
 //! Covert-carrier discovery plugin. On peer announce → fetch endpoint over an
-//! encrypted rendezvous link → attach a per-peer PipeInterface.
+//! encrypted rendezvous link → attach a per-peer covert interface in-process.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
-use data_encoding::HEXLOWER;
 use leviculum_std::api::Node as LevNode;
-use leviculum_std::interfaces::PipeClientHandle;
+use leviculum_std::interfaces::ByteChannelHandle;
 
 use super::super::DiscoveryPlugin;
 use super::AddressSource;
-use super::attach::render_client_command;
 use super::rendezvous;
 use crate::config::CovertDiscoveryService;
 use crate::dispatch::Events;
@@ -25,7 +22,7 @@ struct Inner {
     addresses: Arc<AddressSource>,
     engine: Arc<LevNode>,
     events: Events,
-    attached: Mutex<HashMap<Vec<u8>, PipeClientHandle>>,
+    attached: Mutex<HashMap<Vec<u8>, ByteChannelHandle>>,
     origin_registry: Arc<crate::discovery::OriginRegistry>,
 }
 
@@ -86,16 +83,15 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
     let Some(addr) = addrs.into_iter().next() else {
         return;
     };
-    let server_identity_hex = HEXLOWER.encode(&pubkey);
-    let command = render_client_command(
-        &inner.cfg.client_command,
-        &addr,
-        &server_identity_hex,
-        inner.cfg.mtu,
-    );
     let name = format!("CovertDiscovered[{carrier}:{addr}]");
-    let respawn = Some(Duration::from_secs(inner.cfg.respawn_delay_secs));
-    match inner.engine.spawn_pipe_client(&name, &command, respawn) {
+    match super::inproc::attach(
+        &inner.engine,
+        &name,
+        &carrier,
+        &addr,
+        &pubkey,
+        inner.cfg.mtu,
+    ) {
         Ok(handle) => {
             tracing::info!(%name, carrier = %carrier, addr = %addr, "covert peer attached");
             inner.origin_registry.record(handle.id(), "covert");
