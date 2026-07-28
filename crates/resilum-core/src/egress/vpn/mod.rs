@@ -3,8 +3,13 @@
 
 mod fakedns;
 mod flow;
+#[cfg(feature = "i2p")]
+mod i2p;
 mod tun;
 mod udp;
+
+#[cfg(feature = "i2p")]
+pub use i2p::I2pConduit;
 
 use std::collections::{HashMap, HashSet};
 use std::os::fd::RawFd;
@@ -29,8 +34,12 @@ pub struct VpnParams {
     pub policy: IngressConfig,
     pub skip: HashMap<String, HashSet<Vec<u8>>>,
     pub mtu: usize,
+    /// Packet fd of a host-managed Yggdrasil conduit; `200::/7` is routed to it.
+    pub ygg_fd: Option<RawFd>,
     #[cfg(feature = "arti")]
     pub tor: Option<crate::tor::ArtiClient>,
+    #[cfg(feature = "i2p")]
+    pub i2p: Option<Arc<I2pConduit>>,
 }
 
 /// A live attachment; drop or [`VpnHandle::detach`] to tear it down and close
@@ -65,10 +74,14 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
         policy,
         skip,
         mtu,
+        ygg_fd,
         #[cfg(feature = "arti")]
         tor,
+        #[cfg(feature = "i2p")]
+        i2p,
     } = params;
     let tun = Arc::new(tun::TunFd::new(tun_fd)?);
+    let ygg = ygg_fd.map(tun::TunFd::new).transpose()?.map(Arc::new);
     let (stack, runner, udp_socket, tcp_listener) = StackBuilder::default()
         .enable_tcp(true)
         .enable_udp(true)
@@ -90,6 +103,8 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
         fakedns: fakedns.clone(),
         #[cfg(feature = "arti")]
         tor,
+        #[cfg(feature = "i2p")]
+        i2p,
     });
 
     let mut tasks = Vec::new();
@@ -98,8 +113,16 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
             let _ = runner.await;
         }));
     }
-    tasks.push(tokio::spawn(tun::tun_to_stack(tun.clone(), sink, mtu)));
-    tasks.push(tokio::spawn(tun::stack_to_tun(tun, stream)));
+    tasks.push(tokio::spawn(tun::tun_to_stack(
+        tun.clone(),
+        sink,
+        ygg.clone(),
+        mtu,
+    )));
+    tasks.push(tokio::spawn(tun::stack_to_tun(tun.clone(), stream)));
+    if let Some(ygg) = ygg {
+        tasks.push(tokio::spawn(tun::conduit_to_tun(ygg, tun, mtu)));
+    }
     tasks.push(tokio::spawn(udp::serve(udp_socket, fakedns)));
     tasks.push(tokio::spawn(accept(ctx, tcp_listener)));
     Ok(VpnHandle { tasks })

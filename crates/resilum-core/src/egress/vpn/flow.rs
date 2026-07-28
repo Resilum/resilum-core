@@ -27,6 +27,8 @@ pub(super) struct FlowCtx {
     pub fakedns: Arc<FakeDns>,
     #[cfg(feature = "arti")]
     pub tor: Option<crate::tor::ArtiClient>,
+    #[cfg(feature = "i2p")]
+    pub i2p: Option<Arc<super::i2p::I2pConduit>>,
 }
 
 /// A synthetic FakeDNS address carries the hostname the app actually meant; hand
@@ -51,7 +53,26 @@ pub(super) async fn serve(ctx: Arc<FlowCtx>, stream: TcpStream, dest: SocketAddr
         serve_onion(tor, host, *port, stream).await;
         return;
     }
+    #[cfg(feature = "i2p")]
+    if let Target::Domain(host, _) = &target
+        && host.ends_with(".i2p")
+        && let Some(i2p) = &ctx.i2p
+    {
+        serve_i2p(i2p, host, stream).await;
+        return;
+    }
     serve_mesh(ctx, stream, target, dest).await;
+}
+
+/// The TCP port is implicit for I2P eepsites, so it is not forwarded.
+#[cfg(feature = "i2p")]
+async fn serve_i2p(i2p: &super::i2p::I2pConduit, host: &str, mut stream: TcpStream) {
+    match i2p.connect(host).await {
+        Ok(mut upstream) => {
+            let _ = tokio::io::copy_bidirectional(&mut stream, &mut upstream).await;
+        }
+        Err(e) => tracing::debug!(error = %e, host, "i2p dial failed"),
+    }
 }
 
 #[cfg(feature = "arti")]

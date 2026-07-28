@@ -11,25 +11,31 @@ use crate::{guard, set_error};
 pub struct ResilumVpn(VpnHandle);
 
 /// Attach an L3 routing hub to `tun_fd`, forwarding its TCP flows through the
-/// egress mesh; `mtu` is the tun's L3 MTU. Returns an opaque handle, or null on
-/// error (see `resilum_last_error`). The node must be running with an ingress
-/// policy. The hub takes ownership of `tun_fd` and closes it on detach.
+/// egress mesh; `mtu` is the tun's L3 MTU. `ygg_fd` is the packet fd of a
+/// host-managed Yggdrasil conduit (`200::/7` is routed to it); pass a negative
+/// value for none. Returns an opaque handle, or null on error (see
+/// `resilum_last_error`). The node must be running with an ingress policy. The
+/// hub takes ownership of `tun_fd` (and `ygg_fd`) and closes them on detach.
 ///
 /// # Safety
-/// `node` must be a live handle from `resilum_node_new_*` or null; `tun_fd` a
-/// valid file descriptor the caller then leaves to the hub.
+/// `node` must be a live handle from `resilum_node_new_*` or null; `tun_fd` (and
+/// `ygg_fd`, if non-negative) valid file descriptors the caller leaves to the hub.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn resilum_vpn_attach(
     node: *const ResilumNode,
     tun_fd: c_int,
     mtu: usize,
+    ygg_fd: c_int,
 ) -> *mut ResilumVpn {
     guard(std::ptr::null_mut(), || {
         let Some(node) = (unsafe { node.as_ref() }) else {
             set_error("null node");
             return std::ptr::null_mut();
         };
-        match node.0.vpn_attach(tun_fd, mtu) {
+        match node
+            .0
+            .vpn_attach(tun_fd, mtu, (ygg_fd >= 0).then_some(ygg_fd))
+        {
             Ok(handle) => Box::into_raw(Box::new(ResilumVpn(handle))),
             Err(e) => {
                 set_error(e.to_string());

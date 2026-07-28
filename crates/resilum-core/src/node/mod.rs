@@ -122,6 +122,7 @@ impl Node {
         &self,
         tun_fd: std::os::fd::RawFd,
         mtu: usize,
+        ygg_fd: Option<std::os::fd::RawFd>,
     ) -> Result<crate::egress::vpn::VpnHandle> {
         let engine = self.engine.clone().ok_or(Error::NotRunning)?;
         let router = self.router.clone().ok_or(Error::NotRunning)?;
@@ -140,11 +141,14 @@ impl Node {
             policy,
             skip,
             mtu,
+            ygg_fd,
             #[cfg(feature = "arti")]
             tor: self
                 .embedded_tor
                 .as_ref()
                 .map(crate::tor::EmbeddedTor::client),
+            #[cfg(feature = "i2p")]
+            i2p: Some(Arc::new(crate::egress::vpn::I2pConduit::default())),
         };
         let _guard = self.runtime.enter();
         crate::egress::vpn::attach(params, tun_fd).map_err(|e| Error::Vpn(e.to_string()))
