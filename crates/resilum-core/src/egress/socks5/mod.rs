@@ -8,7 +8,7 @@ mod parse;
 #[cfg(test)]
 mod tests;
 
-pub use client::connect;
+pub use client::{Target, connect};
 pub use error::SocksError;
 pub use parse::handshake;
 

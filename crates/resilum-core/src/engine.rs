@@ -99,7 +99,10 @@ fn split_host_port(value: &str) -> (&str, &str) {
 }
 
 /// Returns the identity too, so egress destinations bind to the same one.
-pub(crate) fn build_node(config: &Config) -> Result<(NodeBuilder, Identity)> {
+pub(crate) fn build_node(
+    config: &Config,
+    protect: Option<leviculum_std::socket_hook::OutboundSocketHook>,
+) -> Result<(NodeBuilder, Identity)> {
     let dir = config
         .storage_path
         .clone()
@@ -113,10 +116,13 @@ pub(crate) fn build_node(config: &Config) -> Result<(NodeBuilder, Identity)> {
     if let Some(network_identity) = &config.network_identity {
         identity::load_or_create_at(&resolve_under(network_identity, &dir));
     }
-    let builder = NodeBuilder::new()
+    let mut builder = NodeBuilder::new()
         .identity(identity.clone())
         .storage_path(dir)
         .config_file(config_path);
+    if let Some(hook) = protect {
+        builder = builder.outbound_socket_hook(hook);
+    }
     Ok((builder, identity))
 }
 

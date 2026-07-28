@@ -16,7 +16,7 @@ impl Node {
         if self.engine.is_some() {
             return Err(Error::AlreadyRunning);
         }
-        let (builder, identity) = engine::build_node(&self.config)?;
+        let (builder, identity) = engine::build_node(&self.config, self.protect.clone())?;
         let mut leviculum = builder.build().map_err(|e| Error::Engine(e.to_string()))?;
         self.runtime
             .block_on(leviculum.start())

@@ -122,6 +122,33 @@ pub unsafe extern "C" fn resilum_node_socks_port(node: *const ResilumNode) -> u1
     })
 }
 
+/// Register a socket-protection callback, invoked with each outbound socket fd
+/// before it connects (e.g. to bind it out of a captured tun). Pass null to
+/// clear. Call before `resilum_node_start`. Returns `RESILUM_OK` or a negative
+/// code.
+///
+/// # Safety
+/// `node` must be a live handle from `resilum_node_new_*` or null; `protect`, if
+/// non-null, must stay valid for the node's lifetime.
+#[cfg(unix)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn resilum_node_set_protect(
+    node: *mut ResilumNode,
+    protect: Option<extern "C" fn(std::os::raw::c_int)>,
+) -> c_int {
+    guard(RESILUM_ERR_FAILED, || {
+        let Some(node) = (unsafe { node.as_mut() }) else {
+            return RESILUM_ERR_NULL;
+        };
+        let hook = protect.map(|cb| {
+            std::sync::Arc::new(move |fd: std::os::fd::RawFd| cb(fd))
+                as resilum_core::OutboundSocketHook
+        });
+        node.0.set_protect(hook);
+        RESILUM_OK
+    })
+}
+
 /// # Safety
 /// `node` must come from `resilum_node_new_from_yaml` and be freed at most once.
 #[unsafe(no_mangle)]

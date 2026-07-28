@@ -1,15 +1,17 @@
-//! One intercepted TCP flow: pick an eligible egress, open a link, ask its
-//! embedded backend to CONNECT to the flow's real destination, then relay.
+//! One intercepted TCP flow: route a `.onion` straight through Tor, everything
+//! else through an eligible mesh egress via a SOCKS5 CONNECT.
 
 use std::collections::{HashMap, HashSet};
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
 use leviculum_std::api::Node as LevNode;
 use netstack_smoltcp::TcpStream;
 use tokio::io::AsyncWriteExt;
 
+use super::fakedns::FakeDns;
 use crate::config::IngressConfig;
+use crate::egress::socks5::Target;
 use crate::egress::{
     ActiveLinks, CandidateRegistry, choose_best, eligible, ingress, relay, socks5,
 };
@@ -22,9 +24,47 @@ pub(super) struct FlowCtx {
     pub active: Arc<ActiveLinks>,
     pub policy: IngressConfig,
     pub skip: HashMap<String, HashSet<Vec<u8>>>,
+    pub fakedns: Arc<FakeDns>,
+    #[cfg(feature = "arti")]
+    pub tor: Option<crate::tor::ArtiClient>,
 }
 
-pub(super) async fn serve(ctx: Arc<FlowCtx>, mut stream: TcpStream, dest: SocketAddr) {
+/// A synthetic FakeDNS address carries the hostname the app actually meant; hand
+/// the egress the name so it resolves close to the exit. Real addresses pass
+/// through literally.
+fn target_for(fakedns: &FakeDns, dest: SocketAddr) -> Target {
+    match dest.ip() {
+        IpAddr::V4(v4) if FakeDns::is_fake(dest.ip()) => fakedns
+            .resolve(v4)
+            .map_or(Target::Addr(dest), |host| Target::Domain(host, dest.port())),
+        _ => Target::Addr(dest),
+    }
+}
+
+pub(super) async fn serve(ctx: Arc<FlowCtx>, stream: TcpStream, dest: SocketAddr) {
+    let target = target_for(&ctx.fakedns, dest);
+    #[cfg(feature = "arti")]
+    if let Target::Domain(host, port) = &target
+        && host.ends_with(".onion")
+        && let Some(tor) = &ctx.tor
+    {
+        serve_onion(tor, host, *port, stream).await;
+        return;
+    }
+    serve_mesh(ctx, stream, target, dest).await;
+}
+
+#[cfg(feature = "arti")]
+async fn serve_onion(tor: &crate::tor::ArtiClient, host: &str, port: u16, mut stream: TcpStream) {
+    match tor.connect((host, port)).await {
+        Ok(mut upstream) => {
+            let _ = tokio::io::copy_bidirectional(&mut stream, &mut upstream).await;
+        }
+        Err(e) => tracing::debug!(error = %e, host, "onion dial failed"),
+    }
+}
+
+async fn serve_mesh(ctx: Arc<FlowCtx>, mut stream: TcpStream, target: Target, dest: SocketAddr) {
     let candidates = ctx.registry.all();
     let elig = eligible(
         &candidates,
@@ -48,7 +88,7 @@ pub(super) async fn serve(ctx: Arc<FlowCtx>, mut stream: TcpStream, dest: Socket
         .expect("dial validated the hash length");
     ctx.active.register(dest_bytes, link_id);
 
-    match socks5::connect(&handle, &mut from_link, dest).await {
+    match socks5::connect(&handle, &mut from_link, &target).await {
         Ok(leftover) => {
             let flushed = leftover.is_empty() || stream.write_all(&leftover).await.is_ok();
             if flushed {

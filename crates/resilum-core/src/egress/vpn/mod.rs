@@ -1,8 +1,10 @@
 //! L3 routing hub: terminate the tun's TCP flows in a userspace netstack and
 //! forward each to its real destination through the egress mesh.
 
+mod fakedns;
 mod flow;
 mod tun;
+mod udp;
 
 use std::collections::{HashMap, HashSet};
 use std::os::fd::RawFd;
@@ -12,6 +14,7 @@ use futures::StreamExt;
 use netstack_smoltcp::{StackBuilder, TcpListener};
 use tokio::task::JoinHandle;
 
+use self::fakedns::FakeDns;
 use self::flow::FlowCtx;
 use crate::config::IngressConfig;
 use crate::egress::{ActiveLinks, CandidateRegistry};
@@ -26,6 +29,8 @@ pub struct VpnParams {
     pub policy: IngressConfig,
     pub skip: HashMap<String, HashSet<Vec<u8>>>,
     pub mtu: usize,
+    #[cfg(feature = "arti")]
+    pub tor: Option<crate::tor::ArtiClient>,
 }
 
 /// A live attachment; drop or [`VpnHandle::detach`] to tear it down and close
@@ -60,17 +65,21 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
         policy,
         skip,
         mtu,
+        #[cfg(feature = "arti")]
+        tor,
     } = params;
     let tun = Arc::new(tun::TunFd::new(tun_fd)?);
-    let (stack, runner, _udp, tcp_listener) = StackBuilder::default()
+    let (stack, runner, udp_socket, tcp_listener) = StackBuilder::default()
         .enable_tcp(true)
-        .enable_udp(false)
+        .enable_udp(true)
         .enable_icmp(false)
         .mtu(mtu)
         .build()?;
     let tcp_listener = tcp_listener.expect("tcp is enabled");
+    let udp_socket = udp_socket.expect("udp is enabled");
     let (sink, stream) = stack.split();
 
+    let fakedns = Arc::new(FakeDns::default());
     let ctx = Arc::new(FlowCtx {
         engine,
         router,
@@ -78,6 +87,9 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
         active: Arc::new(ActiveLinks::default()),
         policy,
         skip,
+        fakedns: fakedns.clone(),
+        #[cfg(feature = "arti")]
+        tor,
     });
 
     let mut tasks = Vec::new();
@@ -88,6 +100,7 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
     }
     tasks.push(tokio::spawn(tun::tun_to_stack(tun.clone(), sink, mtu)));
     tasks.push(tokio::spawn(tun::stack_to_tun(tun, stream)));
+    tasks.push(tokio::spawn(udp::serve(udp_socket, fakedns)));
     tasks.push(tokio::spawn(accept(ctx, tcp_listener)));
     Ok(VpnHandle { tasks })
 }

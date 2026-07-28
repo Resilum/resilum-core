@@ -34,5 +34,7 @@ pub use error::{Error, Result};
 pub use event::Event;
 pub use node::Node;
 
+pub use leviculum_std::socket_hook::OutboundSocketHook;
+
 #[cfg(unix)]
 pub use egress::vpn::VpnHandle;

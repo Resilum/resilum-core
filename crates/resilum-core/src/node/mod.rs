@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::api::{Identity, Node as LevNode};
+use leviculum_std::socket_hook::OutboundSocketHook;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 
@@ -25,6 +26,7 @@ pub struct Node {
     pub(crate) registry: Arc<CandidateRegistry>,
     pub(crate) router: Option<Arc<LinkRouter>>,
     pub(crate) identity: Option<Identity>,
+    pub(crate) protect: Option<OutboundSocketHook>,
     pub(crate) events: dispatch::Events,
     pub(crate) tasks: Vec<JoinHandle<()>>,
     pub(crate) event_queue: event::Queue,
@@ -49,6 +51,7 @@ impl Node {
             registry: Arc::new(CandidateRegistry::default()),
             router: None,
             identity: None,
+            protect: None,
             events: dispatch::Events::new(1024),
             tasks: Vec::new(),
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
@@ -105,6 +108,13 @@ impl Node {
         Ok(ids.into_iter().map(|id| id.0 as u64).collect())
     }
 
+    /// Register a hook run on every outbound socket before it connects, so an
+    /// embedder can keep upstream sockets off a captured tun (via the host's
+    /// socket-protection API). Takes effect on the next `start`.
+    pub fn set_protect(&mut self, protect: Option<OutboundSocketHook>) {
+        self.protect = protect;
+    }
+
     /// Attach an L3 routing hub to `tun_fd`, forwarding its TCP flows through
     /// the egress mesh. Requires a running node with an ingress policy.
     #[cfg(unix)]
@@ -130,6 +140,11 @@ impl Node {
             policy,
             skip,
             mtu,
+            #[cfg(feature = "arti")]
+            tor: self
+                .embedded_tor
+                .as_ref()
+                .map(crate::tor::EmbeddedTor::client),
         };
         let _guard = self.runtime.enter();
         crate::egress::vpn::attach(params, tun_fd).map_err(|e| Error::Vpn(e.to_string()))

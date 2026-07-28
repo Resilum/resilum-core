@@ -17,7 +17,7 @@ pub type ArtiClient = Arc<TorClient<tor_rtcompat::PreferredRuntime>>;
 pub struct EmbeddedTor {
     port: u16,
     accept: JoinHandle<()>,
-    _client: ArtiClient,
+    client: ArtiClient,
 }
 
 impl EmbeddedTor {
@@ -36,12 +36,16 @@ impl EmbeddedTor {
         Ok(Self {
             port,
             accept,
-            _client: client,
+            client,
         })
     }
 
     pub fn port(&self) -> u16 {
         self.port
+    }
+
+    pub fn client(&self) -> ArtiClient {
+        Arc::clone(&self.client)
     }
 }
 
