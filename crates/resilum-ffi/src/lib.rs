@@ -9,6 +9,8 @@ mod node;
 mod status;
 #[cfg(unix)]
 mod vpn;
+#[cfg(unix)]
+mod ygg;
 
 pub use event::*;
 pub use interface::*;
@@ -17,6 +19,8 @@ pub use node::*;
 pub use status::*;
 #[cfg(unix)]
 pub use vpn::*;
+#[cfg(unix)]
+pub use ygg::*;
 
 use std::cell::RefCell;
 use std::ffi::CString;

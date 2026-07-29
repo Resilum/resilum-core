@@ -21,10 +21,14 @@ pub mod mirrors;
 pub mod net;
 mod node;
 pub mod pump;
+#[cfg(any(feature = "arti", feature = "ygg"))]
+mod socks5_tcp;
 pub mod spec;
 pub mod supervisor;
 #[cfg(feature = "arti")]
 pub mod tor;
+#[cfg(feature = "ygg")]
+pub mod ygg;
 
 pub use config::{
     Config, DiscoveryService, EgressListen, EndpointFormat, I2pInterface, IngressConfig,
@@ -33,6 +37,8 @@ pub use config_file::{from_json, from_yaml};
 pub use error::{Error, Result};
 pub use event::Event;
 pub use node::Node;
+#[cfg(feature = "ygg")]
+pub use ygg::YggHandle;
 
 pub use leviculum_std::socket_hook::OutboundSocketHook;
 

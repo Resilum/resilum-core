@@ -154,6 +154,56 @@ impl Node {
         crate::egress::vpn::attach(params, tun_fd).map_err(|e| Error::Vpn(e.to_string()))
     }
 
+    /// Attach the Yggdrasil packet conduit `ygg_fd`, accepting RNS links over
+    /// ygg. `ygg_address` is the engine's own `200::/7` address (the app reads
+    /// it from `GetAddressString`); it is written to the yggdrasil discovery
+    /// service's `hostname_path` so the node announces where peers should dial —
+    /// the engine runs `IfName=none`, so there is no OS ygg interface to
+    /// auto-detect it from. The RNS port comes from that service. Requires a
+    /// running node with yggdrasil discovery configured.
+    #[cfg(all(unix, feature = "ygg"))]
+    pub fn ygg_attach(
+        &self,
+        ygg_fd: std::os::fd::RawFd,
+        ygg_address: &str,
+    ) -> Result<crate::ygg::YggHandle> {
+        let service = self
+            .config
+            .discovery
+            .iter()
+            .find(|s| {
+                matches!(
+                    s.endpoint_format,
+                    crate::config::EndpointFormat::BracketedIpv6
+                )
+            })
+            .ok_or_else(|| Error::Ygg("no yggdrasil discovery service configured".into()))?;
+        if let Some(path) = &service.hostname_path {
+            std::fs::write(path, ygg_address)
+                .map_err(|e| Error::Ygg(format!("write ygg address to {}: {e}", path.display())))?;
+        }
+        let rns_port = service.rns_port;
+        // A loopback SOCKS proxy the discovery service dials ygg peers through
+        // (initiate side); absent when the service dials `200::/7` directly
+        // (an ygg tun is present).
+        let socks_port = match &service.socks_proxy {
+            Some(crate::config::SocksProxy::External(_, port)) => Some(*port),
+            _ => None,
+        };
+        let engine = self.engine.clone().ok_or(Error::NotRunning)?;
+        self.discovery_trigger.notify_waiters();
+        let _guard = self.runtime.enter();
+        crate::ygg::attach(
+            engine,
+            self.origin_registry.clone(),
+            ygg_fd,
+            ygg_address,
+            rns_port,
+            socks_port,
+        )
+        .map_err(|e| Error::Ygg(e.to_string()))
+    }
+
     /// Detach an interface by id. Idempotent: an unknown id is a no-op.
     pub fn remove_interface(&self, id: u64) -> Result<()> {
         let engine = self.engine.as_ref().ok_or(Error::NotRunning)?;

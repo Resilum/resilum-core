@@ -14,6 +14,8 @@ pub enum Error {
     VpnNoIngress,
     /// Failure bringing up or running a routing hub.
     Vpn(String),
+    /// Failure attaching the Yggdrasil transport.
+    Ygg(String),
 }
 
 impl fmt::Display for Error {
@@ -25,6 +27,7 @@ impl fmt::Display for Error {
             Error::Engine(m) => write!(f, "engine error: {m}"),
             Error::VpnNoIngress => write!(f, "routing hub requires an ingress policy"),
             Error::Vpn(m) => write!(f, "routing hub error: {m}"),
+            Error::Ygg(m) => write!(f, "yggdrasil error: {m}"),
         }
     }
 }
