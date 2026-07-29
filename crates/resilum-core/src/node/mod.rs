@@ -1,6 +1,8 @@
+mod attach;
+mod interface;
 mod lifecycle;
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -93,123 +95,6 @@ impl Node {
     /// event through FFI, a hidden-service hostname just becoming ready, etc).
     pub fn trigger_discovery_announce(&self) {
         self.discovery_trigger.notify_waiters();
-    }
-
-    /// Attach an interface at runtime from a leviculum interface-config JSON,
-    /// returning the assigned interface ids (several for a fan-out type such as
-    /// RNodeMulti or an I2P interface with peers).
-    pub fn add_interface(&self, config_json: &str) -> Result<Vec<u64>> {
-        let engine = self.engine.as_ref().ok_or(Error::NotRunning)?;
-        let config: leviculum_std::api::InterfaceConfig = serde_json::from_str(config_json)
-            .map_err(|e| Error::Config(format!("interface config: {e}")))?;
-        let ids = engine
-            .spawn_interface(config)
-            .map_err(|e| Error::Engine(e.to_string()))?;
-        Ok(ids.into_iter().map(|id| id.0 as u64).collect())
-    }
-
-    /// Register a hook run on every outbound socket before it connects, so an
-    /// embedder can keep upstream sockets off a captured tun (via the host's
-    /// socket-protection API). Takes effect on the next `start`.
-    pub fn set_protect(&mut self, protect: Option<OutboundSocketHook>) {
-        self.protect = protect;
-    }
-
-    /// Attach an L3 routing hub to `tun_fd`, forwarding its TCP flows through
-    /// the egress mesh. Requires a running node with an ingress policy.
-    #[cfg(unix)]
-    pub fn vpn_attach(
-        &self,
-        tun_fd: std::os::fd::RawFd,
-        mtu: usize,
-        ygg_fd: Option<std::os::fd::RawFd>,
-    ) -> Result<crate::egress::vpn::VpnHandle> {
-        let engine = self.engine.clone().ok_or(Error::NotRunning)?;
-        let router = self.router.clone().ok_or(Error::NotRunning)?;
-        let policy = self.config.ingress.clone().ok_or(Error::VpnNoIngress)?;
-        let mut skip: HashMap<String, HashSet<Vec<u8>>> = HashMap::new();
-        if let Some(identity) = &self.identity {
-            for own in &self.config.egress {
-                let hash = crate::egress::listen::dest_hash(identity.clone(), &own.service);
-                skip.entry(own.service.clone()).or_default().insert(hash);
-            }
-        }
-        let params = crate::egress::vpn::VpnParams {
-            engine,
-            router,
-            registry: self.registry.clone(),
-            policy,
-            skip,
-            mtu,
-            ygg_fd,
-            #[cfg(feature = "arti")]
-            tor: self
-                .embedded_tor
-                .as_ref()
-                .map(crate::tor::EmbeddedTor::client),
-            #[cfg(feature = "i2p")]
-            i2p: Some(Arc::new(crate::egress::vpn::I2pConduit::default())),
-        };
-        let _guard = self.runtime.enter();
-        crate::egress::vpn::attach(params, tun_fd).map_err(|e| Error::Vpn(e.to_string()))
-    }
-
-    /// Attach the Yggdrasil packet conduit `ygg_fd`, accepting RNS links over
-    /// ygg. `ygg_address` is the engine's own `200::/7` address (the app reads
-    /// it from `GetAddressString`); it is written to the yggdrasil discovery
-    /// service's `hostname_path` so the node announces where peers should dial —
-    /// the engine runs `IfName=none`, so there is no OS ygg interface to
-    /// auto-detect it from. The RNS port comes from that service. Requires a
-    /// running node with yggdrasil discovery configured.
-    #[cfg(all(unix, feature = "ygg"))]
-    pub fn ygg_attach(
-        &self,
-        ygg_fd: std::os::fd::RawFd,
-        ygg_address: &str,
-    ) -> Result<crate::ygg::YggHandle> {
-        let service = self
-            .config
-            .discovery
-            .iter()
-            .find(|s| {
-                matches!(
-                    s.endpoint_format,
-                    crate::config::EndpointFormat::BracketedIpv6
-                )
-            })
-            .ok_or_else(|| Error::Ygg("no yggdrasil discovery service configured".into()))?;
-        if let Some(path) = &service.hostname_path {
-            std::fs::write(path, ygg_address)
-                .map_err(|e| Error::Ygg(format!("write ygg address to {}: {e}", path.display())))?;
-        }
-        let rns_port = service.rns_port;
-        // A loopback SOCKS proxy the discovery service dials ygg peers through
-        // (initiate side); absent when the service dials `200::/7` directly
-        // (an ygg tun is present).
-        let socks_port = match &service.socks_proxy {
-            Some(crate::config::SocksProxy::External(_, port)) => Some(*port),
-            _ => None,
-        };
-        let engine = self.engine.clone().ok_or(Error::NotRunning)?;
-        self.discovery_trigger.notify_waiters();
-        let _guard = self.runtime.enter();
-        crate::ygg::attach(
-            engine,
-            self.origin_registry.clone(),
-            ygg_fd,
-            ygg_address,
-            rns_port,
-            socks_port,
-        )
-        .map_err(|e| Error::Ygg(e.to_string()))
-    }
-
-    /// Detach an interface by id. Idempotent: an unknown id is a no-op.
-    pub fn remove_interface(&self, id: u64) -> Result<()> {
-        let engine = self.engine.as_ref().ok_or(Error::NotRunning)?;
-        engine
-            .remove_interface(leviculum_std::InterfaceId(id as usize))
-            .map_err(|e| Error::Engine(e.to_string()))
     }
 
     pub fn send(&mut self, _dest: &[u8], _data: &[u8]) -> Result<()> {
