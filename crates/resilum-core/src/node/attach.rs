@@ -94,16 +94,28 @@ impl Node {
             _ => None,
         };
         let engine = self.engine.clone().ok_or(Error::NotRunning)?;
-        self.discovery_trigger.notify_waiters();
+        let discovery = self
+            .ygg_discovery
+            .clone()
+            .ok_or_else(|| Error::Ygg("no yggdrasil discovery service configured".into()))?;
+        let on_detach = {
+            let discovery = discovery.clone();
+            Box::new(move || discovery.deactivate())
+        };
         let _guard = self.runtime.enter();
-        crate::ygg::attach(
+        let handle = crate::ygg::attach(
             engine,
             self.origin_registry.clone(),
             ygg_fd,
             ygg_address,
             rns_port,
             socks_port,
+            on_detach,
         )
-        .map_err(|e| Error::Ygg(e.to_string()))
+        .map_err(|e| Error::Ygg(e.to_string()))?;
+        // After attach, so warm_start's dials reach the SOCKS proxy it just spawned.
+        discovery.activate();
+        self.discovery_trigger.notify_waiters();
+        Ok(handle)
     }
 }

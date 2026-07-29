@@ -39,7 +39,7 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identi
     );
 
     let covert_addresses = discovery::build_covert_addresses(&node.config.covert_discovery);
-    let plugins = Arc::new(discovery::build_from_services(discovery::BuildParams {
+    let (discovery, ygg_discovery) = discovery::build_from_services(discovery::BuildParams {
         tcp: &discovery_cfg,
         covert: &node.config.covert_discovery,
         covert_addresses: &covert_addresses,
@@ -49,7 +49,14 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identi
         cap_controller,
         events: node.events.clone(),
         origin_registry: node.origin_registry.clone(),
-    }));
+    });
+    #[cfg(all(unix, feature = "ygg"))]
+    {
+        node.ygg_discovery = ygg_discovery;
+    }
+    #[cfg(not(all(unix, feature = "ygg")))]
+    let _ = ygg_discovery;
+    let plugins = Arc::new(discovery);
     let bus = node.events.subscribe();
     node.tasks
         .push(tokio::spawn(discovery::run_consume(plugins.clone(), bus)));

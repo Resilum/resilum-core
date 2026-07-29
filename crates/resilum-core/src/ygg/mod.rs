@@ -6,7 +6,8 @@
 
 mod socks;
 
-use std::net::{Ipv6Addr, SocketAddr};
+use std::collections::HashMap;
+use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 use std::sync::{Arc, Mutex};
 
@@ -24,28 +25,41 @@ use crate::discovery::OriginRegistry;
 /// Yggdrasil routes jumbo frames; size the stack and read buffer for the max.
 const MTU: usize = 65535;
 
+type Links = Arc<Mutex<HashMap<IpAddr, ByteChannelHandle>>>;
+
 /// A live Yggdrasil attachment; drop or [`YggHandle::detach`] to tear it down
 /// and close the conduit fd.
 #[must_use]
 pub struct YggHandle {
     tasks: Vec<JoinHandle<()>>,
     _net: Arc<Net>,
-    _links: Arc<Mutex<Vec<ByteChannelHandle>>>,
+    links: Links,
+    // Runs on teardown; deactivates the ygg discovery service (see `node::ygg_attach`).
+    on_detach: Option<Box<dyn FnOnce() + Send>>,
 }
 
 impl YggHandle {
+    /// Tear the transport down now instead of on drop.
     pub fn detach(mut self) {
+        self.teardown();
+    }
+
+    fn teardown(&mut self) {
         for task in std::mem::take(&mut self.tasks) {
             task.abort();
+        }
+        // Dropping each handle detaches its interface, so the accepted links
+        // leave the node the moment the transport is off.
+        self.links.lock().expect("ygg links").clear();
+        if let Some(deactivate) = self.on_detach.take() {
+            deactivate();
         }
     }
 }
 
 impl Drop for YggHandle {
     fn drop(&mut self) {
-        for task in &self.tasks {
-            task.abort();
-        }
+        self.teardown();
     }
 }
 
@@ -59,13 +73,14 @@ pub fn attach(
     ygg_address: &str,
     rns_port: u16,
     socks_port: Option<u16>,
+    on_detach: Box<dyn FnOnce() + Send>,
 ) -> std::io::Result<YggHandle> {
     let address: Ipv6Addr = ygg_address
         .parse()
         .map_err(|_| std::io::Error::other(format!("invalid ygg address: {ygg_address}")))?;
     let net = Arc::new(build_net(ygg_fd, address)?);
 
-    let links = Arc::new(Mutex::new(Vec::new()));
+    let links: Links = Arc::new(Mutex::new(HashMap::new()));
     let mut tasks = vec![tokio::spawn(accept(
         engine,
         origin,
@@ -80,7 +95,8 @@ pub fn attach(
     Ok(YggHandle {
         tasks,
         _net: net,
-        _links: links,
+        links,
+        on_detach: Some(on_detach),
     })
 }
 
@@ -125,7 +141,7 @@ async fn accept(
     net: Arc<Net>,
     address: Ipv6Addr,
     rns_port: u16,
-    links: Arc<Mutex<Vec<ByteChannelHandle>>>,
+    links: Links,
 ) {
     let mut listener = match net
         .tcp_bind(SocketAddr::new(address.into(), rns_port))
@@ -138,12 +154,15 @@ async fn accept(
         }
     };
     while let Ok((stream, remote)) = listener.accept().await {
-        let name = format!("ygg[{}]", remote.ip());
+        let ip = remote.ip();
+        let name = format!("ygg[{ip}]");
         match engine.spawn_byte_channel(&name, stream) {
             Ok(handle) => {
                 origin.record(handle.id(), "yggdrasil");
                 tracing::info!(%name, "attached RNS peer over yggdrasil");
-                links.lock().expect("ygg links").push(handle);
+                // One link per peer: inserting drops any prior handle for this
+                // address, detaching a stale link the peer is re-dialing over.
+                links.lock().expect("ygg links").insert(ip, handle);
             }
             Err(e) => tracing::warn!(%name, error = %e, "ygg byte-channel attach failed"),
         }

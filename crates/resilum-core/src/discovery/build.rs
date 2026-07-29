@@ -8,7 +8,7 @@ use tokio::sync::Notify;
 
 use super::{Discovery, OriginRegistry, TcpDiscovered, cache, covert};
 use crate::announce_cap::CapController;
-use crate::config::{CovertDiscoveryService, DiscoveryService};
+use crate::config::{CovertDiscoveryService, DiscoveryService, EndpointFormat};
 
 pub struct BuildParams<'a> {
     pub tcp: &'a [DiscoveryService],
@@ -22,8 +22,11 @@ pub struct BuildParams<'a> {
     pub origin_registry: Arc<OriginRegistry>,
 }
 
-pub fn build_from_services(p: BuildParams<'_>) -> Discovery {
+/// Builds the discovery plugin set, plus the yggdrasil plugin (if configured),
+/// which the node activates/deactivates as its conduit attaches.
+pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDiscovered>>) {
     let mut d = Discovery::default();
+    let mut ygg = None;
     for cfg in p.tcp {
         let cache_path = p.storage_root.map(|r| cache::path_for(r, &cfg.service));
         let plugin = Arc::new(TcpDiscovered::new(
@@ -35,6 +38,9 @@ pub fn build_from_services(p: BuildParams<'_>) -> Discovery {
             p.origin_registry.clone(),
         ));
         super::warm_start(plugin.as_ref(), cache_path.as_deref());
+        if matches!(cfg.endpoint_format, EndpointFormat::BracketedIpv6) {
+            ygg = Some(plugin.clone());
+        }
         d.register(&cfg.service.clone(), plugin);
     }
     for (cfg, addresses) in p.covert.iter().zip(p.covert_addresses) {
@@ -48,7 +54,7 @@ pub fn build_from_services(p: BuildParams<'_>) -> Discovery {
         ));
         d.register(&name, plugin);
     }
-    d
+    (d, ygg)
 }
 
 /// One [`covert::AddressSource`] per configured covert carrier. Shared between

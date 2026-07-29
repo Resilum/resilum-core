@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::api::Node as LevNode;
@@ -26,6 +27,8 @@ pub struct TcpDiscovered {
     cap_controller: Arc<CapController>,
     // Records the discovery origin (this service) of each attached interface.
     origin_registry: Arc<super::OriginRegistry>,
+    // While false the service neither announces nor dials (its transport is down).
+    active: AtomicBool,
 }
 
 impl TcpDiscovered {
@@ -37,6 +40,14 @@ impl TcpDiscovered {
         cap_controller: Arc<CapController>,
         origin_registry: Arc<super::OriginRegistry>,
     ) -> Self {
+        // A bracketed-IPv6 (ygg) service starts dormant only in a build with a
+        // runtime conduit to un-gate it (`ygg_attach`); without that — e.g. a
+        // node with a real ygg tun that never attaches one — it must stay active.
+        let active = if cfg!(all(unix, feature = "ygg")) {
+            !matches!(cfg.endpoint_format, EndpointFormat::BracketedIpv6)
+        } else {
+            true
+        };
         Self {
             cfg,
             engine,
@@ -45,6 +56,24 @@ impl TcpDiscovered {
             cache_path,
             cap_controller,
             origin_registry,
+            active: AtomicBool::new(active),
+        }
+    }
+
+    /// Bring the service up when its transport attaches: announce, and dial any
+    /// cached peers now (`warm_start`).
+    pub fn activate(&self) {
+        self.active.store(true, Ordering::Relaxed);
+        super::warm_start(self, self.cache_path.as_deref());
+    }
+
+    /// Take the service down: drop its dialed interfaces (each detaches on drop),
+    /// stop announcing, and clear the advertised endpoint so none lingers.
+    pub fn deactivate(&self) {
+        self.active.store(false, Ordering::Relaxed);
+        self.handles.lock().expect("handles").clear();
+        if let Some(path) = &self.cfg.hostname_path {
+            let _ = std::fs::remove_file(path);
         }
     }
 
@@ -63,6 +92,9 @@ impl TcpDiscovered {
 
 impl DiscoveryPlugin for TcpDiscovered {
     fn produce_endpoint(&self) -> Option<Vec<u8>> {
+        if !self.active.load(Ordering::Relaxed) {
+            return None;
+        }
         let host = self.detect_host()?;
         let payload = match self.cfg.endpoint_format {
             EndpointFormat::BracketedIpv6 => format!("[{}]:{}", host, self.cfg.rns_port),
@@ -72,6 +104,9 @@ impl DiscoveryPlugin for TcpDiscovered {
     }
 
     fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {
+        if !self.active.load(Ordering::Relaxed) {
+            return;
+        }
         let Some((host, port)) = parse_endpoint(payload, &self.cfg.endpoint_format) else {
             tracing::debug!(service = %self.cfg.service, "malformed discovery payload");
             return;
