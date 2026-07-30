@@ -4,8 +4,10 @@ mod socks;
 
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::path::Path;
 use std::sync::Arc;
 
+use arti_client::config::CfgPath;
 use arti_client::{TorClient, TorClientConfig};
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
@@ -21,8 +23,12 @@ pub struct EmbeddedTor {
 }
 
 impl EmbeddedTor {
-    pub async fn spawn() -> io::Result<Self> {
-        let client: ArtiClient = TorClient::create_bootstrapped(TorClientConfig::default())
+    /// Bootstrap Arti. `state_root`, when set, roots its cache/state there — a
+    /// sandboxed host lacks a writable OS-default dir for them.
+    pub async fn spawn(state_root: Option<&Path>) -> io::Result<Self> {
+        let config =
+            build_config(state_root).map_err(|e| io::Error::other(format!("arti config: {e}")))?;
+        let client: ArtiClient = TorClient::create_bootstrapped(config)
             .await
             .map_err(|e| io::Error::other(format!("arti bootstrap: {e}")))?;
 
@@ -53,6 +59,26 @@ impl Drop for EmbeddedTor {
     fn drop(&mut self) {
         self.accept.abort();
     }
+}
+
+fn build_config(
+    state_root: Option<&Path>,
+) -> Result<TorClientConfig, arti_client::config::ConfigBuildError> {
+    let Some(root) = state_root else {
+        return Ok(TorClientConfig::default());
+    };
+    let mut builder = TorClientConfig::builder();
+    builder
+        .storage()
+        .cache_dir(CfgPath::new(
+            root.join("tor/cache").to_string_lossy().into_owned(),
+        ))
+        .state_dir(CfgPath::new(
+            root.join("tor/state").to_string_lossy().into_owned(),
+        ));
+    // Arti's default fs-permission checks reject a sandboxed app dir; trust ours.
+    builder.storage().permissions().dangerously_trust_everyone();
+    builder.build()
 }
 
 async fn accept_loop(listener: TcpListener, client: ArtiClient) {

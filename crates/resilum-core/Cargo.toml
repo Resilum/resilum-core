@@ -25,7 +25,7 @@ futures = "0.3"
 netstack-smoltcp = "0.2.4"
 simple-dns = "0.12"
 
-arti-client = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls", "static-sqlite"] }
+arti-client = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls", "static-sqlite", "onion-service-client"] }
 tokio-util = { version = "0.7", features = ["compat"], optional = true }
 tor-rtcompat = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls"] }
 yosemite = { version = "0.7", optional = true }

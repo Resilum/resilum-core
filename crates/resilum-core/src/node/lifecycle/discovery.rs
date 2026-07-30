@@ -26,7 +26,7 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identi
     let embedded_tor = if wants_embedded_arti(&node.config.discovery) {
         Some(
             node.runtime
-                .block_on(crate::tor::EmbeddedTor::spawn())
+                .block_on(crate::tor::EmbeddedTor::spawn(storage_root))
                 .map_err(|e| Error::Engine(format!("arti bootstrap: {e}")))?,
         )
     } else {
