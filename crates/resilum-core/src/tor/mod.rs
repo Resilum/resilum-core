@@ -26,6 +26,9 @@ impl EmbeddedTor {
     /// Bootstrap Arti. `state_root`, when set, roots its cache/state there — a
     /// sandboxed host lacks a writable OS-default dir for them.
     pub async fn spawn(state_root: Option<&Path>) -> io::Result<Self> {
+        // Arti needs rustls' process-default CryptoProvider installed, else TLS
+        // panics mid-bootstrap.
+        let _ = rustls::crypto::ring::default_provider().install_default();
         let config =
             build_config(state_root).map_err(|e| io::Error::other(format!("arti config: {e}")))?;
         let client: ArtiClient = TorClient::create_bootstrapped(config)

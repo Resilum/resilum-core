@@ -28,12 +28,13 @@ simple-dns = "0.12"
 arti-client = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls", "static-sqlite", "onion-service-client"] }
 tokio-util = { version = "0.7", features = ["compat"], optional = true }
 tor-rtcompat = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls"] }
+rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std"] }
 yosemite = { version = "0.7", optional = true }
 tokio-smoltcp = { version = "0.6", optional = true }
 
 [features]
 default = []
-arti = ["dep:arti-client", "dep:tokio-util", "dep:tor-rtcompat"]
+arti = ["dep:arti-client", "dep:tokio-util", "dep:tor-rtcompat", "dep:rustls"]
 i2p = ["dep:yosemite"]
 ygg = ["dep:tokio-smoltcp"]
 
