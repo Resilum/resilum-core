@@ -34,6 +34,7 @@ pub struct YggHandle {
     tasks: Vec<JoinHandle<()>>,
     _net: Arc<Net>,
     links: Links,
+    engine: Arc<LevNode>,
     // Runs on teardown; deactivates the ygg discovery service (see `node::ygg_attach`).
     on_detach: Option<Box<dyn FnOnce() + Send>>,
 }
@@ -48,9 +49,16 @@ impl YggHandle {
         for task in std::mem::take(&mut self.tasks) {
             task.abort();
         }
-        // Dropping each handle detaches its interface, so the accepted links
-        // leave the node the moment the transport is off.
-        self.links.lock().expect("ygg links").clear();
+        // The smoltcp stream over the now-closed conduit fd doesn't surface an
+        // error, so the byte-channel task won't end on its own and dropping the
+        // handle wouldn't detach it. Remove each interface explicitly so the
+        // accepted links leave the node's status the moment the transport is off.
+        let mut links = self.links.lock().expect("ygg links");
+        for handle in links.values() {
+            let _ = self.engine.remove_interface(handle.id());
+        }
+        links.clear();
+        drop(links);
         if let Some(deactivate) = self.on_detach.take() {
             deactivate();
         }
@@ -82,7 +90,7 @@ pub fn attach(
 
     let links: Links = Arc::new(Mutex::new(HashMap::new()));
     let mut tasks = vec![tokio::spawn(accept(
-        engine,
+        engine.clone(),
         origin,
         net.clone(),
         address,
@@ -96,6 +104,7 @@ pub fn attach(
         tasks,
         _net: net,
         links,
+        engine,
         on_detach: Some(on_detach),
     })
 }
