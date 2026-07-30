@@ -4,6 +4,7 @@
 
 mod event;
 mod interface;
+mod logging;
 mod lxmf;
 mod node;
 mod status;
@@ -14,6 +15,7 @@ mod ygg;
 
 pub use event::*;
 pub use interface::*;
+pub use logging::*;
 pub use lxmf::*;
 pub use node::*;
 pub use status::*;
@@ -45,9 +47,25 @@ pub(crate) fn set_error(msg: impl Into<Vec<u8>>) {
     LAST_ERROR.with(|slot| *slot.borrow_mut() = CString::new(msg).ok());
 }
 
-/// Run `body`, returning `default` if it panics (unwinding into C is UB).
+/// Run `body`; on panic, record its message for `resilum_last_error` and return
+/// `default` (unwinding into C is UB).
 pub(crate) fn guard<T>(default: T, body: impl FnOnce() -> T) -> T {
-    catch_unwind(AssertUnwindSafe(body)).unwrap_or(default)
+    match catch_unwind(AssertUnwindSafe(body)) {
+        Ok(value) => value,
+        Err(payload) => {
+            set_error(panic_message(payload.as_ref()));
+            default
+        }
+    }
+}
+
+fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+    let text = payload
+        .downcast_ref::<&str>()
+        .copied()
+        .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+        .unwrap_or("panic");
+    format!("panic: {text}")
 }
 
 /// The last error on this thread as a NUL-terminated string, or null if none.
