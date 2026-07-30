@@ -4,6 +4,7 @@
 //! appear in the object, the two entry points below stay fixed. It never leaves
 //! the device — the app decodes it locally.
 
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::os::raw::c_char;
 
@@ -40,6 +41,10 @@ struct Interface {
     rx_bytes: u64,
     tx_bytes: u64,
     bitrate: Option<u32>,
+    /// RNS destination hashes (hex) one hop away over this interface — the peer(s)
+    /// at the far end, learned from announces (empty until they announce). Group
+    /// interfaces by a shared hash to show one node's several paths as one peer.
+    peer_hashes: Vec<String>,
 }
 
 fn interface_source(name: &str) -> &'static str {
@@ -93,6 +98,16 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
         if let Some(engine) = node.0.engine() {
             status.identity = Some(hex16(&engine.identity_hash()));
             status.path_count = engine.path_count();
+            // One-hop (directly reachable, `hops == 1`) destinations per interface.
+            let mut peers: HashMap<usize, Vec<String>> = HashMap::new();
+            for p in engine.path_table() {
+                if p.hops == 1 {
+                    peers
+                        .entry(p.interface_index)
+                        .or_default()
+                        .push(hex16(&p.hash));
+                }
+            }
             status.interfaces = engine
                 .interface_stats()
                 .into_iter()
@@ -103,6 +118,7 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
                         .0
                         .discovered_via(i.interface_id)
                         .unwrap_or_else(|| "direct".into()),
+                    peer_hashes: peers.get(&i.interface_id.0).cloned().unwrap_or_default(),
                     name: i.name,
                     online: i.online,
                     local_client: i.is_local_client,
