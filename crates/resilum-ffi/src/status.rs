@@ -41,9 +41,12 @@ struct Interface {
     rx_bytes: u64,
     tx_bytes: u64,
     bitrate: Option<u32>,
-    /// RNS destination hashes (hex) one hop away over this interface — the peer(s)
-    /// at the far end, learned from announces (empty until they announce). Group
-    /// interfaces by a shared hash to show one node's several paths as one peer.
+    /// Identity hashes (hex) of the node(s) reached one hop over this interface.
+    /// The grouping key for "same node across overlays": a node's destinations
+    /// spread across its interfaces but all resolve to its one identity.
+    peer_nodes: Vec<String>,
+    /// The one-hop destination hashes (hex) `peer_nodes` resolved from. Detail
+    /// only — they distribute across a node's interfaces, so they don't group.
     peer_hashes: Vec<String>,
 }
 
@@ -98,14 +101,21 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
         if let Some(engine) = node.0.engine() {
             status.identity = Some(hex16(&engine.identity_hash()));
             status.path_count = engine.path_count();
-            // One-hop (directly reachable, `hops == 1`) destinations per interface.
             let mut peers: HashMap<usize, Vec<String>> = HashMap::new();
+            let mut peer_nodes: HashMap<usize, Vec<String>> = HashMap::new();
             for p in engine.path_table() {
                 if p.hops == 1 {
                     peers
                         .entry(p.interface_index)
                         .or_default()
                         .push(hex16(&p.hash));
+                    if let Some(id) = engine.get_identity(&p.hash.into()) {
+                        let node = hex16(id.hash());
+                        let nodes = peer_nodes.entry(p.interface_index).or_default();
+                        if !nodes.contains(&node) {
+                            nodes.push(node);
+                        }
+                    }
                 }
             }
             status.interfaces = engine
@@ -118,6 +128,7 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
                         .0
                         .discovered_via(i.interface_id)
                         .unwrap_or_else(|| "direct".into()),
+                    peer_nodes: peer_nodes.get(&i.interface_id.0).cloned().unwrap_or_default(),
                     peer_hashes: peers.get(&i.interface_id.0).cloned().unwrap_or_default(),
                     name: i.name,
                     online: i.online,
