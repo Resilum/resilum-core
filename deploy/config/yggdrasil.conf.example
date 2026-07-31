@@ -5,6 +5,10 @@
     "tcp://[::]:65533"
   ]
 
+  # resilumd doesn't use the admin API; disabling it lets yggdrasil run as the
+  # non-root uid — its default socket under root-owned /run is unbindable, fatally.
+  AdminListen: none
+
   # Outbound peers to bootstrap into the Yggdrasil mesh. Replace with
   # peers geographically close to you for lower RTT; up-to-date list at
   # https://publicpeers.neilalexander.dev/
