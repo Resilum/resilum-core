@@ -4,7 +4,7 @@ use super::payload::{Advert, pack, parse};
 #[test]
 fn roundtrip_advert() {
     let a = Advert::new(
-        "1ed7ba443760f13d35a7681a9ca1ef1b".into(),
+        "0123456789abcdef0123456789abcdef".into(),
         vec!["resilum-core".into(), "resilum-mobile".into()],
     );
     let raw = pack(&a);
@@ -17,7 +17,7 @@ fn rejects_short_or_non_hex_rngit_dest() {
     assert!(parse(br#"{"v":"0.0.0","rngit":"","repos":["x"]}"#).is_none());
     assert!(parse(br#"{"v":"0.0.0","rngit":"nothex","repos":["x"]}"#).is_none());
     assert!(
-        parse(br#"{"v":"0.0.0","rngit":"gg7ba443760f13d35a7681a9ca1ef1b0","repos":["x"]}"#)
+        parse(br#"{"v":"0.0.0","rngit":"gg23456789abcdef0123456789abcdef","repos":["x"]}"#)
             .is_none()
     );
 }
@@ -25,7 +25,7 @@ fn rejects_short_or_non_hex_rngit_dest() {
 #[test]
 fn rejects_empty_repos() {
     assert!(
-        parse(br#"{"v":"0.0.0","rngit":"1ed7ba443760f13d35a7681a9ca1ef1b","repos":[]}"#).is_none()
+        parse(br#"{"v":"0.0.0","rngit":"0123456789abcdef0123456789abcdef","repos":[]}"#).is_none()
     );
 }
 
@@ -38,7 +38,7 @@ fn registry_persists_and_reloads() {
         let r = Registry::new(Some(path.clone()));
         r.upsert(
             "aaaa".into(),
-            "1ed7ba443760f13d35a7681a9ca1ef1b".into(),
+            "0123456789abcdef0123456789abcdef".into(),
             vec!["resilum-core".into()],
         );
     }
