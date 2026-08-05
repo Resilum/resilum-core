@@ -128,7 +128,10 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
                         .0
                         .discovered_via(i.interface_id)
                         .unwrap_or_else(|| "direct".into()),
-                    peer_nodes: peer_nodes.get(&i.interface_id.0).cloned().unwrap_or_default(),
+                    peer_nodes: peer_nodes
+                        .get(&i.interface_id.0)
+                        .cloned()
+                        .unwrap_or_default(),
                     peer_hashes: peers.get(&i.interface_id.0).cloned().unwrap_or_default(),
                     name: i.name,
                     online: i.online,
