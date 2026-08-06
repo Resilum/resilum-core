@@ -1,10 +1,12 @@
 //! LXMF messaging surface — the contract the app builds against.
 //!
-//! These entry points are stable; their bodies are stubbed until the messaging
-//! backend is wired in. Until then `resilum_lxmf_available` returns 0 and the
-//! calls report "not ready" via `resilum_last_error`, so the app can build the
-//! full flow now and it lights up when the backend lands — no signature change.
+//! These entry points are stable. `resilum_lxmf_address` is live (it derives
+//! from the identity); send/poll are stubbed until the messaging backend is
+//! wired in, reporting "not ready" via `resilum_last_error` and leaving
+//! `resilum_lxmf_available` at 0. The app can build the full flow now and it
+//! lights up when the backend lands — no signature change.
 
+use std::ffi::CString;
 use std::os::raw::{c_char, c_int};
 
 use crate::guard;
@@ -24,16 +26,25 @@ pub unsafe extern "C" fn resilum_lxmf_available(node: *const ResilumNode) -> c_i
 }
 
 /// This node's LXMF destination hash (hex) for others to message, or null.
-/// Free with `resilum_string_free`.
+/// Derived from the identity, so it is available whether or not the messaging
+/// backend is active. Free with `resilum_string_free`.
 ///
 /// # Safety
 /// `node` must be a live handle or null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn resilum_lxmf_address(node: *const ResilumNode) -> *mut c_char {
     guard(std::ptr::null_mut(), || {
-        let _ = node;
-        set_error("lxmf backend not yet integrated");
-        std::ptr::null_mut()
+        let Some(node) = (unsafe { node.as_ref() }) else {
+            return std::ptr::null_mut();
+        };
+        let Some(addr) = node.0.lxmf_address() else {
+            set_error("node is not running or has no identity");
+            return std::ptr::null_mut();
+        };
+        match CString::new(addr) {
+            Ok(c) => c.into_raw(),
+            Err(_) => std::ptr::null_mut(),
+        }
     })
 }
 

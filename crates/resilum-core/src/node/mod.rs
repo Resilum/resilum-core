@@ -90,6 +90,14 @@ impl Node {
         self.identity.as_ref().and_then(crate::identity::to_base64)
     }
 
+    /// This node's LXMF delivery address (hex), or `None` before start. Derived
+    /// purely from the identity, so it is known without the messaging backend.
+    pub fn lxmf_address(&self) -> Option<String> {
+        self.identity
+            .as_ref()
+            .map(crate::identity::lxmf_address_hex)
+    }
+
     /// The discovery overlay an interface was attached over (`tor` / `i2p` /
     /// `yggdrasil` / `covert`), or `None` when resilum-core did not attach it
     /// (bootstrap, LAN, or a leviculum-managed peer). Keyed by the interface id
