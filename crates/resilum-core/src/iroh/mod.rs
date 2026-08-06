@@ -37,6 +37,7 @@ pub struct IrohHandle {
     links: Links,
     engine: Arc<LevNode>,
     discovery: Option<Arc<IrohDiscovery>>,
+    runtime: tokio::runtime::Handle,
 }
 
 impl IrohHandle {
@@ -62,6 +63,13 @@ impl IrohHandle {
             let _ = self.engine.remove_interface(handle.id());
         }
         links.clear();
+        drop(links);
+        // Close gracefully so iroh sends CONNECTION_CLOSE rather than logging an
+        // ungraceful abort on drop. Best-effort: skip when already on a runtime
+        // thread, where `block_on` would panic.
+        if tokio::runtime::Handle::try_current().is_err() {
+            self.runtime.block_on(self.endpoint.close());
+        }
     }
 }
 
@@ -106,5 +114,6 @@ pub async fn attach(
         links,
         engine,
         discovery,
+        runtime: tokio::runtime::Handle::current(),
     })
 }
