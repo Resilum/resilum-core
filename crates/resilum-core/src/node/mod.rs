@@ -85,6 +85,11 @@ impl Node {
         self.engine.clone()
     }
 
+    /// The running identity's private blob (base64), or `None` before start.
+    pub fn identity_base64(&self) -> Option<String> {
+        self.identity.as_ref().and_then(crate::identity::to_base64)
+    }
+
     /// The discovery overlay an interface was attached over (`tor` / `i2p` /
     /// `yggdrasil` / `covert`), or `None` when resilum-core did not attach it
     /// (bootstrap, LAN, or a leviculum-managed peer). Keyed by the interface id

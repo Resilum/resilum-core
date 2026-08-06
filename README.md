@@ -85,5 +85,5 @@ Mirror `rns://` URLs are listed once the distribution nodes are deployed.
 
 **AGPL-3.0-only.** The core builds on the leviculum Rust Reticulum stack
 (AGPL-3.0), whose copyleft propagates to the whole project — core, daemon and
-the mobile app. See `docs/adr-003-rns-stack.md`. Add the full license text:
+the mobile app. Add the full license text:
 `curl -o LICENSE https://www.gnu.org/licenses/agpl-3.0.txt`.

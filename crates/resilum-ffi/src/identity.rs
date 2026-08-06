@@ -1,4 +1,4 @@
-//! Identity helpers over the C ABI. Each returns a JSON `*mut c_char` freed with
+//! Identity helpers over the C ABI. Each returns a `*mut c_char` freed with
 //! `resilum_string_free`; errors surface via `resilum_last_error`.
 
 use std::ffi::{CStr, CString};
@@ -6,6 +6,7 @@ use std::os::raw::c_char;
 
 use serde::Serialize;
 
+use crate::node::ResilumNode;
 use crate::{guard, set_error};
 
 #[derive(Serialize)]
@@ -63,6 +64,28 @@ pub unsafe extern "C" fn resilum_identity_hash(private_base64: *const c_char) ->
             identity_hash: resilum_core::identity::identity_hash_hex(&id),
             lxmf_address: resilum_core::identity::lxmf_address_hex(&id),
         })
+    })
+}
+
+/// The running node's private identity blob (base64), or null before start /
+/// on error. Not JSON — the raw blob. Free with `resilum_string_free`.
+///
+/// # Safety
+/// `node` must be a live handle or null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn resilum_identity_export(node: *const ResilumNode) -> *mut c_char {
+    guard(std::ptr::null_mut(), || {
+        let Some(node) = (unsafe { node.as_ref() }) else {
+            return std::ptr::null_mut();
+        };
+        let Some(blob) = node.0.identity_base64() else {
+            set_error("node is not running or has no exportable identity");
+            return std::ptr::null_mut();
+        };
+        match CString::new(blob) {
+            Ok(c) => c.into_raw(),
+            Err(_) => std::ptr::null_mut(),
+        }
     })
 }
 
