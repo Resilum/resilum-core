@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use crate::config::SocksProxy;
+use crate::config::{IrohConfig, SocksProxy};
 use crate::{DiscoveryService, EgressListen, I2pInterface, IngressConfig};
 
 #[derive(Deserialize)]
@@ -21,6 +21,26 @@ impl From<I2pFile> for I2pInterface {
         Self {
             connectable: f.connectable,
             peers: f.peers,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub(super) struct IrohFile {
+    #[serde(default)]
+    pub relay: Option<String>,
+    #[serde(default)]
+    pub publish: bool,
+    #[serde(default)]
+    pub bootstrap: Vec<String>,
+}
+
+impl From<IrohFile> for IrohConfig {
+    fn from(f: IrohFile) -> Self {
+        Self {
+            relay: f.relay,
+            publish: f.publish,
+            bootstrap: f.bootstrap,
         }
     }
 }

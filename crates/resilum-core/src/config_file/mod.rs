@@ -7,7 +7,7 @@ mod env_expand;
 use serde::Deserialize;
 
 use crate::Config;
-use entries::{DiscoveryFile, EgressFile, I2pFile, IngressFile};
+use entries::{DiscoveryFile, EgressFile, I2pFile, IngressFile, IrohFile};
 
 pub fn from_json(json: &str) -> Result<Config, String> {
     serde_json::from_str::<FileConfig>(json)
@@ -43,6 +43,8 @@ struct FileConfig {
     identity_private_base64: Option<String>,
     #[serde(default)]
     i2p: Option<I2pFile>,
+    #[serde(default)]
+    iroh: Option<IrohFile>,
     #[serde(default)]
     egress: Vec<EgressFile>,
     #[serde(default)]
@@ -80,6 +82,7 @@ impl FileConfig {
         }
         cfg.identity_private_base64 = self.identity_private_base64;
         cfg.i2p = self.i2p.map(Into::into);
+        cfg.iroh = self.iroh.map(Into::into);
         cfg.egress = self.egress.into_iter().map(Into::into).collect();
         cfg.ingress = self.ingress.map(Into::into);
         cfg.advertised_mirrors = self.advertised_mirrors;

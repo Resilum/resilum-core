@@ -21,19 +21,29 @@ pub fn build_destinations(
 ) -> Result<Vec<(String, DestinationHash)>> {
     let mut out = Vec::with_capacity(services.len());
     for cfg in services {
-        let dest = Destination::new(
-            Some(identity.clone()),
-            Direction::In,
-            DestinationType::Single,
-            APP_NAME,
-            &["discovery", &cfg.service],
-        )
-        .map_err(|e| Error::Engine(format!("discovery destination for {}: {e}", cfg.service)))?;
-        let hash = *dest.hash();
-        engine.register_destination(dest);
-        out.push((cfg.service.clone(), hash));
+        out.push(build_destination(engine, identity.clone(), &cfg.service)?);
     }
     Ok(out)
+}
+
+/// Register one `resilum.discovery.<service>` destination and return its
+/// `(service, hash)` — used for services outside the `discovery` list (iroh).
+pub fn build_destination(
+    engine: &LevNode,
+    identity: Identity,
+    service: &str,
+) -> Result<(String, DestinationHash)> {
+    let dest = Destination::new(
+        Some(identity),
+        Direction::In,
+        DestinationType::Single,
+        APP_NAME,
+        &["discovery", service],
+    )
+    .map_err(|e| Error::Engine(format!("discovery destination for {service}: {e}")))?;
+    let hash = *dest.hash();
+    engine.register_destination(dest);
+    Ok((service.to_owned(), hash))
 }
 
 /// Periodic produce: announce each ready plugin's endpoint. Runs once at

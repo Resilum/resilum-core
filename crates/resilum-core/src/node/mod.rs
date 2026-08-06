@@ -38,6 +38,8 @@ pub struct Node {
     pub(crate) origin_registry: Arc<crate::discovery::OriginRegistry>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
+    #[cfg(feature = "iroh")]
+    pub(crate) iroh_discovery: Option<Arc<crate::iroh::IrohDiscovery>>,
     #[cfg(feature = "arti")]
     pub(crate) embedded_tor: Option<crate::tor::EmbeddedTor>,
 }
@@ -65,6 +67,8 @@ impl Node {
             origin_registry: Arc::new(crate::discovery::OriginRegistry::default()),
             #[cfg(all(unix, feature = "ygg"))]
             ygg_discovery: None,
+            #[cfg(feature = "iroh")]
+            iroh_discovery: None,
             #[cfg(feature = "arti")]
             embedded_tor: None,
         })

@@ -31,6 +31,20 @@ pub struct I2pInterface {
     pub peers: Vec<String>,
 }
 
+/// In-process iroh QUIC transport (NAT hole-punching, relay fallback). Presence
+/// enables it. `bootstrap` is `NodeId(+relay)` strings dialled at startup to
+/// form an RNS interface when other transports can't reach an anchor.
+#[derive(Clone, Debug, Default)]
+pub struct IrohConfig {
+    /// Relay for hole-punch coordination. `None` uses the built-in public
+    /// relays; `Some` is a custom relay URL.
+    pub relay: Option<String>,
+    /// Publish our `NodeId → address` to a public directory. Off by default so
+    /// a leaf never beacons its address; an anchor may turn it on.
+    pub publish: bool,
+    pub bootstrap: Vec<String>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Config {
     pub instance_name: String,
@@ -51,6 +65,7 @@ pub struct Config {
     pub bootstrap_only: Vec<String>,
     pub discover_interfaces: bool,
     pub i2p: Option<I2pInterface>,
+    pub iroh: Option<IrohConfig>,
     /// `0` disables auto-connect.
     pub autoconnect_max: usize,
     pub egress: Vec<EgressListen>,
@@ -87,6 +102,7 @@ impl Config {
             bootstrap_only: Vec::new(),
             discover_interfaces: true,
             i2p: None,
+            iroh: None,
             autoconnect_max: 5,
             egress: Vec::new(),
             ingress: None,

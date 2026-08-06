@@ -16,6 +16,8 @@ pub enum Error {
     Vpn(String),
     /// Failure attaching the Yggdrasil transport.
     Ygg(String),
+    /// Failure attaching the iroh transport.
+    Iroh(String),
 }
 
 impl fmt::Display for Error {
@@ -28,6 +30,7 @@ impl fmt::Display for Error {
             Error::VpnNoIngress => write!(f, "routing hub requires an ingress policy"),
             Error::Vpn(m) => write!(f, "routing hub error: {m}"),
             Error::Ygg(m) => write!(f, "yggdrasil error: {m}"),
+            Error::Iroh(m) => write!(f, "iroh error: {m}"),
         }
     }
 }

@@ -16,6 +16,8 @@ mod engine;
 mod error;
 mod event;
 pub mod identity;
+#[cfg(feature = "iroh")]
+pub mod iroh;
 pub mod link;
 pub mod lxmf;
 pub mod mirrors;
@@ -37,6 +39,8 @@ pub use config::{
 pub use config_file::{from_json, from_yaml};
 pub use error::{Error, Result};
 pub use event::Event;
+#[cfg(feature = "iroh")]
+pub use iroh::IrohHandle;
 pub use node::Node;
 #[cfg(feature = "ygg")]
 pub use ygg::YggHandle;

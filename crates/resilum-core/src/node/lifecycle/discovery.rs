@@ -9,7 +9,8 @@ use crate::node::Node;
 use crate::{announce_cap, announce_trigger, discovery};
 
 pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identity) -> Result<()> {
-    if node.config.discovery.is_empty() && node.config.covert_discovery.is_empty() {
+    let wants_iroh = cfg!(feature = "iroh") && node.config.iroh.is_some();
+    if node.config.discovery.is_empty() && node.config.covert_discovery.is_empty() && !wants_iroh {
         return Ok(());
     }
 
@@ -56,12 +57,30 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identi
     }
     #[cfg(not(all(unix, feature = "ygg")))]
     let _ = ygg_discovery;
+    #[cfg(feature = "iroh")]
+    let discovery = {
+        let mut discovery = discovery;
+        if node.config.iroh.is_some() {
+            let plugin = Arc::new(crate::iroh::IrohDiscovery::default());
+            discovery.register("iroh", plugin.clone());
+            node.iroh_discovery = Some(plugin);
+        }
+        discovery
+    };
     let plugins = Arc::new(discovery);
     let bus = node.events.subscribe();
     node.tasks
         .push(tokio::spawn(discovery::run_consume(plugins.clone(), bus)));
 
     let mut destinations = discovery::build_destinations(engine, identity.clone(), &discovery_cfg)?;
+    #[cfg(feature = "iroh")]
+    if node.config.iroh.is_some() {
+        destinations.push(discovery::build_destination(
+            engine,
+            identity.clone(),
+            "iroh",
+        )?);
+    }
     destinations.extend(discovery::covert::rendezvous::build_destinations(
         engine,
         identity.clone(),

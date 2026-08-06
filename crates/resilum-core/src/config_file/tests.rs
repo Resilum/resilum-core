@@ -41,6 +41,30 @@ ingress:
 }
 
 #[test]
+fn parses_iroh_block() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+iroh:
+  relay: 'https://relay.example./'
+  publish: true
+  bootstrap: [aaaa, bbbb]
+",
+    )
+    .unwrap();
+    let iroh = cfg.iroh.expect("iroh config");
+    assert_eq!(iroh.relay.as_deref(), Some("https://relay.example./"));
+    assert!(iroh.publish);
+    assert_eq!(iroh.bootstrap, vec!["aaaa", "bbbb"]);
+}
+
+#[test]
+fn iroh_absent_by_default() {
+    let cfg = from_yaml("instance_name: n").unwrap();
+    assert!(cfg.iroh.is_none());
+}
+
+#[test]
 fn parses_discovery_with_socks_override() {
     use crate::config::{EndpointFormat, SocksProxy};
     let cfg = from_yaml(
