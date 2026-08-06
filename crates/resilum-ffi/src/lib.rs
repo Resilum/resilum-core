@@ -5,6 +5,7 @@
 mod event;
 mod identity;
 mod interface;
+mod iroh;
 mod logging;
 mod lxmf;
 mod node;
@@ -16,6 +17,7 @@ mod ygg;
 
 pub use event::*;
 pub use interface::*;
+pub use iroh::*;
 pub use logging::*;
 pub use lxmf::*;
 pub use node::*;
