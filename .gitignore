@@ -22,3 +22,6 @@ deploy/config/**
 !deploy/config/*.example
 !deploy/config/**/*.example
 !deploy/config/resilumd.yaml
+
+# Local dev compose override
+deploy/compose.override.yaml

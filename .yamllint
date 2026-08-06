@@ -3,6 +3,7 @@ extends: default
 
 ignore: |
   target/
+  deploy/compose.override.yaml
 
 rules:
   # Commented-out config examples must sit at the indentation of the code they
