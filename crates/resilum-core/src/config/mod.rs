@@ -43,6 +43,9 @@ pub struct Config {
     /// Needs `network_identity` to take effect.
     pub discovery_name: Option<String>,
     pub network_identity: Option<PathBuf>,
+    /// Base64 raw-64-byte RNS private identity to run as, never persisted (the
+    /// caller owns it). `None` loads or generates one under `storage_path`.
+    pub identity_private_base64: Option<String>,
     pub bootstrap: Vec<String>,
     /// Rendered with `bootstrap_only = yes`.
     pub bootstrap_only: Vec<String>,
@@ -79,6 +82,7 @@ impl Config {
             reachable_on: None,
             discovery_name: None,
             network_identity: None,
+            identity_private_base64: None,
             bootstrap: Vec::new(),
             bootstrap_only: Vec::new(),
             discover_interfaces: true,

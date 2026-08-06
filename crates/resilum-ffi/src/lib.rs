@@ -3,6 +3,7 @@
 //! (unwinding into C is undefined behaviour).
 
 mod event;
+mod identity;
 mod interface;
 mod logging;
 mod lxmf;

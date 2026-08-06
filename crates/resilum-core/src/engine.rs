@@ -23,7 +23,11 @@ pub(crate) fn build_node(
     let config_path: PathBuf = dir.join("config");
     fs::write(&config_path, render_config(config))
         .map_err(|e| Error::Config(format!("write config: {e}")))?;
-    let identity = identity::load_or_create(&dir);
+    let identity = match &config.identity_private_base64 {
+        Some(b64) => identity::from_base64(b64)
+            .ok_or_else(|| Error::Config("invalid identity_private_base64".into()))?,
+        None => identity::load_or_create(&dir),
+    };
     // Pre-create at 0600; leviculum would otherwise write it world-readable.
     if let Some(network_identity) = &config.network_identity {
         identity::load_or_create_at(&resolve_under(network_identity, &dir));

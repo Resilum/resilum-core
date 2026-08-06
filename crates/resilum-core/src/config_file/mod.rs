@@ -40,6 +40,8 @@ struct FileConfig {
     #[serde(default)]
     network_identity: Option<String>,
     #[serde(default)]
+    identity_private_base64: Option<String>,
+    #[serde(default)]
     i2p: Option<I2pFile>,
     #[serde(default)]
     egress: Vec<EgressFile>,
@@ -76,6 +78,7 @@ impl FileConfig {
         if let Some(path) = self.network_identity {
             cfg.network_identity = Some(path.into());
         }
+        cfg.identity_private_base64 = self.identity_private_base64;
         cfg.i2p = self.i2p.map(Into::into);
         cfg.egress = self.egress.into_iter().map(Into::into).collect();
         cfg.ingress = self.ingress.map(Into::into);
