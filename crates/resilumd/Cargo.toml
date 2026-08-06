@@ -6,7 +6,7 @@ license.workspace = true
 description = "Resilum node daemon (Linux/server; packaged into the container image)."
 
 [dependencies]
-resilum-core = { path = "../resilum-core" }
+resilum-core = { path = "../resilum-core", features = ["iroh"] }
 ctrlc = { version = "3", features = ["termination"] }
 data-encoding = "2"
 if-addrs = "0.15"

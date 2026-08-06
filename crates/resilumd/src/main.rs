@@ -102,6 +102,23 @@ fn main() {
         tracing::error!(error = %e, "start failed");
         std::process::exit(1);
     }
+    // Server binds its own iroh socket, so it attaches itself (no app to drive
+    // the FFI). Held until stop; dropping detaches. No socket-protect here — the
+    // server isn't under a captured tun, so it uses iroh's stock transports.
+    let _iroh = if node.config().iroh.is_some() {
+        match node.iroh_attach() {
+            Ok(handle) => {
+                tracing::info!(endpoint_id = %handle.endpoint_id(), "iroh attached");
+                Some(handle)
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "iroh attach failed");
+                None
+            }
+        }
+    } else {
+        None
+    };
     let id_hash = node
         .engine()
         .as_ref()
