@@ -41,14 +41,16 @@ ingress:
 }
 
 #[test]
-fn parses_iroh_block() {
+fn routes_iroh_discovery_entry_to_iroh_config() {
     let cfg = from_yaml(
         "
 instance_name: n
-iroh:
-  relay: 'https://relay.example./'
-  publish: true
-  bootstrap: [aaaa, bbbb]
+discovery:
+  - service: tor
+  - service: iroh
+    relay: 'https://relay.example./'
+    publish: true
+    bootstrap: [aaaa, bbbb]
 ",
     )
     .unwrap();
@@ -56,6 +58,8 @@ iroh:
     assert_eq!(iroh.relay.as_deref(), Some("https://relay.example./"));
     assert!(iroh.publish);
     assert_eq!(iroh.bootstrap, vec!["aaaa", "bbbb"]);
+    assert!(cfg.discovery.iter().all(|s| s.service != "iroh"));
+    assert_eq!(cfg.discovery.len(), 1);
 }
 
 #[test]

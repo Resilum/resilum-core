@@ -26,26 +26,6 @@ impl From<I2pFile> for I2pInterface {
 }
 
 #[derive(Deserialize)]
-pub(super) struct IrohFile {
-    #[serde(default)]
-    pub relay: Option<String>,
-    #[serde(default)]
-    pub publish: bool,
-    #[serde(default)]
-    pub bootstrap: Vec<String>,
-}
-
-impl From<IrohFile> for IrohConfig {
-    fn from(f: IrohFile) -> Self {
-        Self {
-            relay: f.relay,
-            publish: f.publish,
-            bootstrap: f.bootstrap,
-        }
-    }
-}
-
-#[derive(Deserialize)]
 pub(super) struct EgressFile {
     service: String,
     #[serde(default)]
@@ -102,6 +82,28 @@ pub(super) struct DiscoveryFile {
     hostname_path: Option<PathBuf>,
     #[serde(default)]
     rns_port: Option<u16>,
+    // iroh is in-process, so — unlike the tor/i2p/ygg daemons with their own
+    // config files — its optional knobs ride the discovery entry.
+    #[serde(default)]
+    relay: Option<String>,
+    #[serde(default)]
+    publish: bool,
+    #[serde(default)]
+    bootstrap: Vec<String>,
+}
+
+impl DiscoveryFile {
+    pub(super) fn is_iroh(&self) -> bool {
+        self.service == "iroh"
+    }
+
+    pub(super) fn into_iroh(self) -> IrohConfig {
+        IrohConfig {
+            relay: self.relay,
+            publish: self.publish,
+            bootstrap: self.bootstrap,
+        }
+    }
 }
 
 impl From<DiscoveryFile> for DiscoveryService {

@@ -33,6 +33,7 @@ discovery:
   - service: yggdrasil
   - service: tor
   - service: i2p
+  - service: iroh
 
 # Canonical rngit-mirror repo names this node hosts, announced in the mesh so
 # `resilumd mirrors find <repo>` on any peer prints live
