@@ -10,7 +10,7 @@ resilum-core = { path = "../resilum-core", features = ["iroh"] }
 ctrlc = { version = "3", features = ["termination"] }
 data-encoding = "2"
 if-addrs = "0.15"
-leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "e62d085905a0866151e64f617789d585f2c69661" }
+leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "f43184bc0780c2cac9c0e7e8456ef3a7a971e01d" }
 rand_core = { version = "0.6", features = ["getrandom"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

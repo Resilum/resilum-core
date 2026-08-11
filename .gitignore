@@ -25,3 +25,5 @@ deploy/config/**
 
 # Local dev compose override
 deploy/compose.override.yaml
+
+docs/__check/

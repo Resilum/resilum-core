@@ -6,8 +6,9 @@ license.workspace = true
 description = "Shared core for a Resilum node: transports, discovery, egress policy."
 
 [dependencies]
-leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "e62d085905a0866151e64f617789d585f2c69661" }
-leviculum-lxmf = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "e62d085905a0866151e64f617789d585f2c69661", default-features = false }
+leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "f43184bc0780c2cac9c0e7e8456ef3a7a971e01d" }
+leviculum-core = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "f43184bc0780c2cac9c0e7e8456ef3a7a971e01d" }
+leviculum-lxmf = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "f43184bc0780c2cac9c0e7e8456ef3a7a971e01d" }
 tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros", "io-util", "net"] }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
