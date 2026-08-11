@@ -1,0 +1,4 @@
+---
+# ast-grep: structural lint rules, run by check.sh.
+ruleDirs:
+  - lints

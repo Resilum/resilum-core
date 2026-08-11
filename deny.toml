@@ -40,7 +40,7 @@ allow = [
 ]
 
 [bans]
-multiple-versions = "warn"
+multiple-versions = "allow"
 
 [sources]
 unknown-registry = "deny"

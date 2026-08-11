@@ -27,3 +27,6 @@ deploy/config/**
 deploy/compose.override.yaml
 
 docs/__check/
+
+# Leak patterns are project-private by definition
+lints/private-patterns.txt

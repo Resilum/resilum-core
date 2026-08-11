@@ -1,0 +1,25 @@
+---
+# A renamed import hides which crate a name came from: the reader sees
+# `LevNode` and has to go find the `use` to learn it is leviculum's
+# `ReticulumNode`. Every case has a plainer spelling — import the real name, or
+# qualify with the module (`std::net::UdpSocket` beside tokio's).
+#
+# `as _` is exempt: importing a trait for its methods without binding a name is
+# what that form is for, and there is no other way to write it.
+#
+# Neither rustc nor clippy has a lint for this, hence a rule here. It matches
+# the `use_as_clause` AST node, so it sees every spelling — one-line, inside a
+# braced list, nested — and never a cast expression.
+id: no-import-alias
+language: Rust
+severity: error
+message: Renamed import; import the real name or qualify with the module.
+note: |
+  `use a::b::C as D` hides where `D` came from. Import `C` directly, or drop the
+  `use` and write `b::C` at the call site. Only `as _` is allowed.
+rule:
+  kind: use_as_clause
+  not:
+    has:
+      field: alias
+      regex: ^_$

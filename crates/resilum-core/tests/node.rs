@@ -7,8 +7,6 @@ fn a_fresh_node_is_idle() {
     let mut node = Node::new(Config::minimal("test")).expect("build node");
     assert!(!node.is_running());
     assert!(node.poll_event().is_none());
-    // send is rejected until the node is started
     assert!(node.send(b"dest", b"data").is_err());
-    // the egress registry is exposed and starts empty
     assert!(node.registry().all().is_empty());
 }
