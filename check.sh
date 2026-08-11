@@ -9,6 +9,7 @@ cd "$(dirname "$0")"
 RUN_DOCKER=false
 [ "${1:-}" = "--docker" ] && RUN_DOCKER=true
 
+MAX_LINES=150
 MAX_COMMENT_PCT=15
 
 step() { printf '\n▶ %s\n' "$1"; }
@@ -22,6 +23,15 @@ require() {
 
 step "rustfmt"
 cargo fmt --all
+
+step "file length (<= $MAX_LINES lines)"
+too_long=$(find crates -name '*.rs' -exec awk -v max="$MAX_LINES" \
+    'END { if (NR > max) printf "  %d\t%s\n", NR, FILENAME }' {} \; | sort -rn)
+if [ -n "$too_long" ]; then
+    printf '%s\n' "$too_long"
+    printf '  ✗ file(s) over %s lines; split into a directory module\n' "$MAX_LINES"
+    exit 1
+fi
 
 step "comment density (<= $MAX_COMMENT_PCT% of non-blank lines)"
 # tokei rather than counting `//` lines: it parses the language, so a `//`

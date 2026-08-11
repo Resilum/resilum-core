@@ -1,76 +1,11 @@
-//! Announce-driven warm discovery: advertise our `EndpointId`(+relay) and dial
-//! peers that advertise theirs on the `resilum.discovery.iroh` aspect. Dormant
-//! until the transport attaches — the endpoint exists only then.
+//! How an endpoint travels in an announce.
 
-use std::sync::{Arc, Mutex};
-
-use iroh::{Endpoint, EndpointAddr, EndpointId, TransportAddr};
-use leviculum_std::driver::ReticulumNode;
-
-use super::{Links, dial};
-use crate::discovery::DiscoveryPlugin;
-
-struct Active {
-    endpoint: Endpoint,
-    engine: Arc<ReticulumNode>,
-    links: Links,
-}
-
-#[derive(Default)]
-pub struct IrohDiscovery {
-    active: Mutex<Option<Active>>,
-}
-
-impl IrohDiscovery {
-    /// Wire the live transport in, so announces start producing and consuming.
-    pub fn activate(&self, endpoint: Endpoint, engine: Arc<ReticulumNode>, links: Links) {
-        *self.active.lock().expect("iroh discovery") = Some(Active {
-            endpoint,
-            engine,
-            links,
-        });
-    }
-
-    pub fn deactivate(&self) {
-        *self.active.lock().expect("iroh discovery") = None;
-    }
-}
-
-impl DiscoveryPlugin for IrohDiscovery {
-    fn produce_endpoint(&self) -> Option<Vec<u8>> {
-        let guard = self.active.lock().expect("iroh discovery");
-        Some(encode_addr(&guard.as_ref()?.endpoint.addr()))
-    }
-
-    fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {
-        let guard = self.active.lock().expect("iroh discovery");
-        let Some(active) = guard.as_ref() else {
-            return;
-        };
-        let Some(addr) = parse_addr(payload) else {
-            return;
-        };
-        if active
-            .links
-            .lock()
-            .expect("iroh links")
-            .contains_key(&addr.id)
-        {
-            return;
-        }
-        tokio::spawn(dial::dial(
-            active.endpoint.clone(),
-            active.engine.clone(),
-            active.links.clone(),
-            addr,
-        ));
-    }
-}
+use iroh::{EndpointAddr, EndpointId, TransportAddr};
 
 /// `<hex endpoint id>[@<relay url>]` — all a peer needs to route to us without a
 /// lookup. Text, because the announce envelope carries endpoints as UTF-8 (raw
 /// key bytes would not survive it).
-fn encode_addr(addr: &EndpointAddr) -> Vec<u8> {
+pub(super) fn encode_addr(addr: &EndpointAddr) -> Vec<u8> {
     let mut out = data_encoding::HEXLOWER.encode(addr.id.as_bytes());
     if let Some(relay) = addr.addrs.iter().find_map(|a| match a {
         TransportAddr::Relay(url) => Some(url.to_string()),
@@ -82,7 +17,7 @@ fn encode_addr(addr: &EndpointAddr) -> Vec<u8> {
     out.into_bytes()
 }
 
-fn parse_addr(payload: &[u8]) -> Option<EndpointAddr> {
+pub(super) fn parse_addr(payload: &[u8]) -> Option<EndpointAddr> {
     let text = std::str::from_utf8(payload).ok()?;
     let (id_hex, relay) = match text.split_once('@') {
         Some((id, relay)) => (id, Some(relay)),

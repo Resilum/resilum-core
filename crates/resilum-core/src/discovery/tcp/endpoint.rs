@@ -1,0 +1,93 @@
+//! Parsing the address out of a peer's announce.
+
+use crate::config::EndpointFormat;
+
+/// The char allowlist keeps a malformed announce from injecting weird bytes
+/// into an interface name, which becomes a log and UI identifier.
+pub(super) fn parse_endpoint(payload: &[u8], format: &EndpointFormat) -> Option<(String, u16)> {
+    let s = std::str::from_utf8(payload).ok()?.trim();
+    match format {
+        EndpointFormat::Suffix(suffix) => {
+            let (host, port_str) = s.rsplit_once(':')?;
+            let port: u16 = port_str.parse().ok()?;
+            if suffix.is_empty() || !host.ends_with(suffix.as_str()) {
+                return None;
+            }
+            if !host
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'.' || b == b'-')
+            {
+                return None;
+            }
+            Some((host.to_owned(), port))
+        }
+        EndpointFormat::BracketedIpv6 => {
+            let inner = s.strip_prefix('[')?;
+            let (host, rest) = inner.split_once(']')?;
+            let port: u16 = rest.strip_prefix(':')?.parse().ok()?;
+            if !host.bytes().all(|b| b.is_ascii_hexdigit() || b == b':') {
+                return None;
+            }
+            Some((host.to_owned(), port))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn onion() -> EndpointFormat {
+        EndpointFormat::Suffix(".onion".into())
+    }
+    fn i2p() -> EndpointFormat {
+        EndpointFormat::Suffix(".b32.i2p".into())
+    }
+
+    #[test]
+    fn parses_onion_endpoint() {
+        let (h, p) = parse_endpoint(b"abc23xyz.onion:4242", &onion()).unwrap();
+        assert_eq!(h, "abc23xyz.onion");
+        assert_eq!(p, 4242);
+    }
+
+    #[test]
+    fn trims_trailing_whitespace() {
+        let (h, p) = parse_endpoint(b"  peer.b32.i2p:8000\n", &i2p()).unwrap();
+        assert_eq!(h, "peer.b32.i2p");
+        assert_eq!(p, 8000);
+    }
+
+    #[test]
+    fn rejects_wrong_suffix() {
+        assert!(parse_endpoint(b"peer.b32.i2p:4242", &onion()).is_none());
+    }
+
+    #[test]
+    fn rejects_injected_chars() {
+        assert!(parse_endpoint(b"weird space.onion:4242", &onion()).is_none());
+        assert!(parse_endpoint(b"NOTLOWER.onion:4242", &onion()).is_none());
+    }
+
+    #[test]
+    fn rejects_bad_port() {
+        assert!(parse_endpoint(b"peer.onion:70000", &onion()).is_none());
+        assert!(parse_endpoint(b"peer.onion:", &onion()).is_none());
+        assert!(parse_endpoint(b"peer.onion", &onion()).is_none());
+    }
+
+    #[test]
+    fn parses_bracketed_ipv6() {
+        let (h, p) = parse_endpoint(b"[200:abcd::1]:4242", &EndpointFormat::BracketedIpv6).unwrap();
+        assert_eq!(h, "200:abcd::1");
+        assert_eq!(p, 4242);
+    }
+
+    #[test]
+    fn rejects_missing_brackets_or_bad_ipv6_chars() {
+        // A tor-style suffix payload must not sneak through the ygg parser.
+        assert!(parse_endpoint(b"peer.onion:4242", &EndpointFormat::BracketedIpv6).is_none());
+        // Non-hex/colon char inside the brackets is rejected.
+        assert!(parse_endpoint(b"[ipv6-here]:4242", &EndpointFormat::BracketedIpv6).is_none());
+    }
+}

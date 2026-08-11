@@ -1,22 +1,19 @@
 //! Egress listen side: register a destination per service, announce each, and
 //! forward every inbound link to its service's local TCP endpoint.
 
+mod session;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use leviculum_std::api::{
-    Destination, DestinationHash, DestinationType, Direction, Identity, LinkHandle,
-};
+use leviculum_std::api::{Destination, DestinationHash, DestinationType, Direction, Identity};
 use leviculum_std::driver::ReticulumNode;
-use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::JoinHandle;
 
-use super::socks5;
 use crate::config::EgressListen;
-use crate::link::{Inbound, LinkMsg};
+use crate::link::Inbound;
 
 #[derive(Clone)]
 enum Backend {
@@ -78,10 +75,10 @@ pub async fn run(
             let handle = engine.link_handle(&link_id);
             match backend.clone() {
                 Backend::External(target) => {
-                    tokio::spawn(session_external(handle, from_link, target));
+                    tokio::spawn(session::session_external(handle, from_link, target));
                 }
                 Backend::EmbeddedSocks => {
-                    tokio::spawn(session_embedded(handle, from_link));
+                    tokio::spawn(session::session_embedded(handle, from_link));
                 }
             }
         }
@@ -112,62 +109,6 @@ fn announce_loop(
             tokio::time::sleep(interval).await;
         }
     })
-}
-
-async fn session_external(
-    handle: LinkHandle,
-    from_link: UnboundedReceiver<LinkMsg>,
-    target: String,
-) {
-    let tcp = match TcpStream::connect(&target).await {
-        Ok(tcp) => tcp,
-        Err(e) => {
-            tracing::warn!(target = %target, error = %e, "egress connect failed");
-            let _ = close(handle).await;
-            return;
-        }
-    };
-    pump_link(handle, from_link, tcp).await;
-}
-
-async fn session_embedded(handle: LinkHandle, mut from_link: UnboundedReceiver<LinkMsg>) {
-    let req = match socks5::handshake(&mut from_link).await {
-        Ok(r) => r,
-        Err(e) => {
-            tracing::debug!(error = %e, "socks handshake failed");
-            let _ = close(handle).await;
-            return;
-        }
-    };
-    if handle.send(&socks5::AUTH_NO_AUTH).await.is_err() {
-        return;
-    }
-    let mut tcp = match TcpStream::connect((req.host.as_str(), req.port)).await {
-        Ok(tcp) => tcp,
-        Err(e) => {
-            tracing::debug!(host = %req.host, port = req.port, error = %e, "upstream unreachable");
-            let _ = handle.send(&socks5::REPLY_HOST_UNREACHABLE).await;
-            let _ = close(handle).await;
-            return;
-        }
-    };
-    if handle.send(&socks5::REPLY_OK).await.is_err() {
-        return;
-    }
-    if !req.leftover.is_empty() && tcp.write_all(&req.leftover).await.is_err() {
-        let _ = close(handle).await;
-        return;
-    }
-    pump_link(handle, from_link, tcp).await;
-}
-
-async fn pump_link(handle: LinkHandle, from_link: UnboundedReceiver<LinkMsg>, tcp: TcpStream) {
-    super::relay::relay(&handle, from_link, tcp).await;
-    let _ = close(handle).await;
-}
-
-async fn close(mut handle: LinkHandle) {
-    let _ = handle.close().await;
 }
 
 #[cfg(test)]
