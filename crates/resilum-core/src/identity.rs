@@ -25,10 +25,18 @@ pub fn identity_hash_hex(identity: &Identity) -> String {
     HEXLOWER.encode(identity.hash())
 }
 
-pub fn lxmf_address_hex(identity: &Identity) -> String {
+/// The `lxmf.delivery` destination hash this identity answers on — the address
+/// peers put in a message, and the `source_hash` this node signs one with.
+///
+/// Computed rather than read off a registered destination, so it is known
+/// before the node starts.
+pub fn lxmf_address(identity: &Identity) -> [u8; 16] {
     let name_hash = Destination::compute_name_hash("lxmf", &["delivery"]);
-    let dest = Destination::compute_destination_hash(&name_hash, identity.hash());
-    HEXLOWER.encode(dest.as_bytes())
+    *Destination::compute_destination_hash(&name_hash, identity.hash()).as_bytes()
+}
+
+pub fn lxmf_address_hex(identity: &Identity) -> String {
+    HEXLOWER.encode(&lxmf_address(identity))
 }
 
 pub fn load_or_create(dir: &Path) -> Identity {

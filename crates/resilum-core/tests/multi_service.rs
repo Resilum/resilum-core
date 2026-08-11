@@ -6,21 +6,18 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use leviculum_std::NodeEvent;
-use leviculum_std::api::{Destination, Node as LevNode};
+use leviculum_std::api::Destination;
+use leviculum_std::driver::ReticulumNode;
 use resilum_core::dispatch::Events;
 use resilum_core::{Config, EgressListen, Node};
 use tokio::time::timeout;
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("resilum-ms-{tag}-{}", std::process::id()))
-}
+mod support;
 
-fn free_port() -> u16 {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
+use support::free_port;
+
+fn temp_dir(tag: &str) -> std::path::PathBuf {
+    support::temp_dir("ms", tag)
 }
 
 /// Echo server that prefixes every reply with `tag`, so callers can tell which
@@ -68,7 +65,7 @@ fn start_egress(services: Vec<EgressListen>, dir: &std::path::Path) -> (Node, u1
 
 /// Connect to `service`'s destination, send a byte, and return the first byte of
 /// the reply (the target's tag).
-async fn probe_service(engine: &Arc<LevNode>, events: &Events, service: &str) -> u8 {
+async fn probe_service(engine: &Arc<ReticulumNode>, events: &Events, service: &str) -> u8 {
     let mut ev = events.subscribe();
     let want = Destination::compute_name_hash("resilum", &["bridge", "tcp", service]);
 
@@ -86,10 +83,7 @@ async fn probe_service(engine: &Arc<LevNode>, events: &Events, service: &str) ->
     .await
     .unwrap_or_else(|_| panic!("discover {service}"));
 
-    let handle = engine
-        .connect_with_key(&dest_hash, &key)
-        .await
-        .expect("connect");
+    let handle = engine.connect(&dest_hash, &key).await.expect("connect");
     let link_id = *handle.link_id();
 
     timeout(Duration::from_secs(10), async {

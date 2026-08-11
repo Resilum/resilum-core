@@ -111,6 +111,24 @@ pub unsafe extern "C" fn resilum_node_is_running(node: *const ResilumNode) -> c_
     })
 }
 
+/// Re-announce this node now, without waiting for the next interval: its
+/// discovery endpoints and, when messaging is on, its LXMF delivery address.
+///
+/// Call it when the device's network changed. A peer cannot address a
+/// destination whose announce it has never seen, so a fresh interface is
+/// exactly when an announce is worth spending.
+///
+/// # Safety
+/// `node` must be a live pointer from `resilum_node_new_from_yaml`, or null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn resilum_node_announce_now(node: *const ResilumNode) {
+    guard((), || {
+        if let Some(node) = unsafe { node.as_ref() } {
+            node.0.trigger_discovery_announce();
+        }
+    })
+}
+
 /// The bound local SOCKS port, or 0 if the connect listener is not up.
 ///
 /// # Safety

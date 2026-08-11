@@ -7,7 +7,8 @@ use std::net::Ipv4Addr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use leviculum_std::api::{LinkHandle, Node as LevNode};
+use leviculum_std::api::LinkHandle;
+use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::time::{Instant, timeout};
 
@@ -94,7 +95,7 @@ fn parse_one(entry: &str) -> Option<(Ipv4Addr, u16)> {
 /// cannot be opened or every target fails. Each target uses a fresh link: on the
 /// egress a link maps one-to-one onto a session.
 pub async fn e2e_probe(
-    engine: &Arc<LevNode>,
+    engine: &Arc<ReticulumNode>,
     router: &Arc<LinkRouter>,
     candidate: &Candidate,
     strategy: &ProbeStrategy,

@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 
 use super::super::DiscoveryPlugin;
@@ -20,7 +20,7 @@ pub struct CovertDiscovered {
 struct Inner {
     cfg: CovertDiscoveryService,
     addresses: Arc<AddressSource>,
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     events: Events,
     attached: Mutex<HashMap<Vec<u8>, ByteChannelHandle>>,
     origin_registry: Arc<crate::discovery::OriginRegistry>,
@@ -30,7 +30,7 @@ impl CovertDiscovered {
     pub fn new(
         cfg: CovertDiscoveryService,
         addresses: Arc<AddressSource>,
-        engine: Arc<LevNode>,
+        engine: Arc<ReticulumNode>,
         events: Events,
         origin_registry: Arc<crate::discovery::OriginRegistry>,
     ) -> Self {

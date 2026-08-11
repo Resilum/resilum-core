@@ -6,8 +6,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use leviculum_std::api::{
-    Destination, DestinationHash, DestinationType, Direction, Identity, LinkHandle, Node as LevNode,
+    Destination, DestinationHash, DestinationType, Direction, Identity, LinkHandle,
 };
+use leviculum_std::driver::ReticulumNode;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -47,7 +48,7 @@ fn build_destination(identity: Identity, service: &str) -> Destination {
 /// Register and announce one destination per service, then forward each inbound
 /// link to its service's target until the router's `inbound` closes.
 pub async fn run(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     identity: Identity,
     services: Vec<EgressListen>,
     mut inbound: UnboundedReceiver<Inbound>,
@@ -74,7 +75,7 @@ pub async fn run(
 
     while let Some((link_id, dest_hash, from_link)) = inbound.recv().await {
         if let Some(backend) = backends.get(dest_hash.as_bytes()) {
-            let handle = engine.accept_link(&link_id);
+            let handle = engine.link_handle(&link_id);
             match backend.clone() {
                 Backend::External(target) => {
                     tokio::spawn(session_external(handle, from_link, target));
@@ -91,14 +92,17 @@ pub async fn run(
 }
 
 fn announce_loop(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     dest_hash: DestinationHash,
     interval: Duration,
     payload: Vec<u8>,
 ) -> JoinHandle<()> {
     tokio::spawn(async move {
         loop {
-            match engine.announce(&dest_hash, Some(&payload)).await {
+            match engine
+                .announce_destination(&dest_hash, Some(&payload))
+                .await
+            {
                 Ok(()) => tracing::debug!(
                     dest = ?data_encoding::HEXLOWER.encode(dest_hash.as_bytes()),
                     "egress announced",

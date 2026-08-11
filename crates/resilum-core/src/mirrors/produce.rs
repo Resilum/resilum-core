@@ -2,15 +2,14 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use leviculum_std::api::{
-    Destination, DestinationHash, DestinationType, Direction, Identity, Node as LevNode,
-};
+use leviculum_std::api::{Destination, DestinationHash, DestinationType, Direction, Identity};
+use leviculum_std::driver::ReticulumNode;
 
 use super::payload::{Advert, pack};
 use super::{APP_NAME, ASPECT};
 
-pub async fn run(
-    engine: Arc<LevNode>,
+pub async fn run_produce(
+    engine: Arc<ReticulumNode>,
     identity: Identity,
     interval: Duration,
     advertised_repos: Vec<String>,
@@ -28,7 +27,10 @@ pub async fn run(
             continue;
         };
         let advert = Advert::new(rngit_dest, advertised_repos.clone());
-        match engine.announce(&dest_hash, Some(&pack(&advert))).await {
+        match engine
+            .announce_destination(&dest_hash, Some(&pack(&advert)))
+            .await
+        {
             Ok(()) => tracing::debug!(
                 repos = ?advert.repos,
                 rngit = %advert.rngit,
@@ -39,7 +41,7 @@ pub async fn run(
     }
 }
 
-fn register(engine: &LevNode, identity: Identity) -> DestinationHash {
+fn register(engine: &ReticulumNode, identity: Identity) -> DestinationHash {
     let dest = Destination::new(
         Some(identity),
         Direction::In,

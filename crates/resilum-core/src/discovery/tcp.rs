@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::TcpClientHandle;
 use tokio::sync::Notify;
 
@@ -16,7 +16,7 @@ use crate::config::{DiscoveryService, EndpointFormat, SocksProxy};
 
 pub struct TcpDiscovered {
     cfg: DiscoveryService,
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     // Dropping a TcpClientHandle detaches its interface; hold them here.
     handles: Mutex<HashMap<String, TcpClientHandle>>,
     // Fires on every successful attach so the produce loop re-announces at once.
@@ -34,7 +34,7 @@ pub struct TcpDiscovered {
 impl TcpDiscovered {
     pub fn new(
         cfg: DiscoveryService,
-        engine: Arc<LevNode>,
+        engine: Arc<ReticulumNode>,
         trigger: Arc<Notify>,
         cache_path: Option<PathBuf>,
         cap_controller: Arc<CapController>,

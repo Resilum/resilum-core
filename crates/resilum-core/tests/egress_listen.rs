@@ -9,16 +9,12 @@ use leviculum_std::api::Destination;
 use resilum_core::{Config, EgressListen, Node};
 use tokio::time::timeout;
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("resilum-egr-{tag}-{}", std::process::id()))
-}
+mod support;
 
-fn free_port() -> u16 {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
+use support::free_port;
+
+fn temp_dir(tag: &str) -> std::path::PathBuf {
+    support::temp_dir("egr", tag)
 }
 
 /// A blocking TCP echo server on an ephemeral port.
@@ -96,10 +92,7 @@ fn egress_forwards_link_bytes_to_local_tcp() {
         .await
         .expect("discovered the egress announce");
 
-        let handle = engine
-            .connect_with_key(&dest_hash, &key)
-            .await
-            .expect("connect");
+        let handle = engine.connect(&dest_hash, &key).await.expect("connect");
         let link_id = *handle.link_id();
 
         timeout(Duration::from_secs(10), async {

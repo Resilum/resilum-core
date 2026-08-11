@@ -6,7 +6,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::time::Duration;
 
-use leviculum_std::api::{DestinationHash, LinkHandle, LinkId, Node as LevNode};
+use leviculum_std::api::{DestinationHash, LinkHandle, LinkId};
+use leviculum_std::driver::ReticulumNode;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::time::{Instant, timeout_at};
@@ -20,7 +21,7 @@ const PATH_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 const PATH_RETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 pub async fn run(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
     active: Arc<ActiveLinks>,
@@ -64,7 +65,7 @@ pub async fn run(
 }
 
 async fn session(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     router: Arc<LinkRouter>,
     active: Arc<ActiveLinks>,
     candidate: Candidate,
@@ -90,7 +91,7 @@ async fn session(
 /// attached inbound receiver. The engine recalls the peer's identity from its
 /// announce; the Ed25519 key is the second half of the public key.
 pub(super) async fn dial(
-    engine: &Arc<LevNode>,
+    engine: &Arc<ReticulumNode>,
     router: &Arc<LinkRouter>,
     candidate: &Candidate,
 ) -> Option<(LinkHandle, LinkId, UnboundedReceiver<LinkMsg>)> {
@@ -106,10 +107,7 @@ pub(super) async fn dial(
     }
     let identity = engine.get_identity(&dest_hash)?;
     let signing_key = <[u8; 32]>::try_from(&identity.public_key_bytes()[32..64]).ok()?;
-    let mut handle = engine
-        .connect_with_key(&dest_hash, &signing_key)
-        .await
-        .ok()?;
+    let mut handle = engine.connect(&dest_hash, &signing_key).await.ok()?;
     let link_id = *handle.link_id();
     let mut from_link = router.attach(link_id);
     if !wait_established(&mut from_link).await {

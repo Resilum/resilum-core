@@ -5,14 +5,14 @@
 use std::sync::{Arc, Mutex};
 
 use iroh::{Endpoint, EndpointAddr, EndpointId, TransportAddr};
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 
 use super::{Links, dial};
 use crate::discovery::DiscoveryPlugin;
 
 struct Active {
     endpoint: Endpoint,
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     links: Links,
 }
 
@@ -23,7 +23,7 @@ pub struct IrohDiscovery {
 
 impl IrohDiscovery {
     /// Wire the live transport in, so announces start producing and consuming.
-    pub fn activate(&self, endpoint: Endpoint, engine: Arc<LevNode>, links: Links) {
+    pub fn activate(&self, endpoint: Endpoint, engine: Arc<ReticulumNode>, links: Links) {
         *self.active.lock().expect("iroh discovery") = Some(Active {
             endpoint,
             engine,

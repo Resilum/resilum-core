@@ -1,28 +1,54 @@
-//! Render an `LxmfNodeEvent` as the FFI poll JSON: an inbound message or a
-//! delivery-state update. Events the app doesn't surface return `None`.
+//! A `RouterEvent` as the JSON the FFI polls.
 
 use data_encoding::{BASE64, HEXLOWER};
-use leviculum_lxmf::{DeliveryMethod, LxmfNodeEvent, Message};
+use leviculum_lxmf::Message;
+use leviculum_lxmf::router::{MessageState, RouterEvent};
 use serde_json::{Value, json};
 
-pub fn event_to_json(event: &LxmfNodeEvent) -> Option<String> {
+pub fn event_to_json(event: &RouterEvent) -> Option<String> {
     let value = match event {
-        LxmfNodeEvent::MessageReceived(message) => message_value(message),
-        LxmfNodeEvent::Submitted {
-            message_id, method, ..
-        } => delivery_value(message_id, submitted_state(*method)),
-        LxmfNodeEvent::Delivered { message_id } => delivery_value(message_id, "delivered"),
-        LxmfNodeEvent::DeliveryFailed { message_id, .. } => delivery_value(message_id, "failed"),
+        RouterEvent::MessageReceived(message) => message_value(message),
+        RouterEvent::MessageState { message_id, state } => {
+            delivery_value(message_id, state_name(*state))
+        }
+        // The router reports these against a message id the app never learned:
+        // an inbound duplicate or a bad signature is a message that, as far as
+        // the app is concerned, did not arrive.
         _ => return None,
     };
-    serde_json::to_string(&value).ok()
+    // A `json!` value fails to serialise only on a non-finite float, which
+    // reaches here from a peer's message timestamp — an arrived message.
+    match serde_json::to_string(&value) {
+        Ok(json) => Some(json),
+        Err(e) => {
+            tracing::warn!(error = %e, "lxmf event could not be rendered");
+            None
+        }
+    }
 }
 
-fn submitted_state(method: DeliveryMethod) -> &'static str {
-    match method {
-        DeliveryMethod::Propagated => "propagated",
-        _ => "sent",
+/// Exhaustive on purpose: an unnamed state is a message stuck in the UI with
+/// no explanation, so a new one has to be answered for here.
+fn state_name(state: MessageState) -> &'static str {
+    match state {
+        MessageState::Generating => "generating",
+        MessageState::Outbound => "queued",
+        MessageState::Sending => "sending",
+        MessageState::Sent => "sent",
+        // In a mailbox, not with the recipient — showing it as `delivered`
+        // would claim an arrival that has not happened.
+        MessageState::AwaitingCollection => "awaiting_collection",
+        MessageState::Delivered => "delivered",
+        MessageState::Rejected => "rejected",
+        MessageState::Cancelled => "cancelled",
+        MessageState::Failed => "failed",
     }
+}
+
+/// The `failed` update for a message the router refused outright, which it
+/// reports through its return value rather than as an event.
+pub(super) fn failed(message_id: &[u8; 32]) -> String {
+    delivery_value(message_id, "failed").to_string()
 }
 
 fn delivery_value(message_id: &[u8; 32], state: &str) -> Value {

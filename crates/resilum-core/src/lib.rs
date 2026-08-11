@@ -34,7 +34,7 @@ pub mod tor;
 pub mod ygg;
 
 pub use config::{
-    Config, DiscoveryService, EgressListen, EndpointFormat, I2pInterface, IngressConfig,
+    Config, DiscoveryService, EgressListen, EndpointFormat, I2pInterface, IngressConfig, LxmfConfig,
 };
 pub use config_file::{from_json, from_yaml};
 pub use error::{Error, Result};

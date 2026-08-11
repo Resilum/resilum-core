@@ -3,7 +3,8 @@
 use std::fs;
 use std::path::PathBuf;
 
-use leviculum_std::api::{Identity, NodeBuilder};
+use leviculum_std::api::Identity;
+use leviculum_std::driver::ReticulumNodeBuilder;
 
 use crate::{Config, Error, Result, identity};
 
@@ -14,7 +15,7 @@ use render::render_config;
 pub(crate) fn build_node(
     config: &Config,
     protect: Option<leviculum_std::socket_hook::OutboundSocketHook>,
-) -> Result<(NodeBuilder, Identity)> {
+) -> Result<(ReticulumNodeBuilder, Identity)> {
     let dir = config
         .storage_path
         .clone()
@@ -32,7 +33,7 @@ pub(crate) fn build_node(
     if let Some(network_identity) = &config.network_identity {
         identity::load_or_create_at(&resolve_under(network_identity, &dir));
     }
-    let mut builder = NodeBuilder::new()
+    let mut builder = ReticulumNodeBuilder::new()
         .identity(identity.clone())
         .storage_path(dir)
         .config_file(config_path);

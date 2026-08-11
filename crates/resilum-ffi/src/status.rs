@@ -103,7 +103,7 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
             status.path_count = engine.path_count();
             let mut peers: HashMap<usize, Vec<String>> = HashMap::new();
             let mut peer_nodes: HashMap<usize, Vec<String>> = HashMap::new();
-            for p in engine.path_table() {
+            for p in engine.path_table_entries() {
                 if p.hops == 1 {
                     peers
                         .entry(p.interface_index)

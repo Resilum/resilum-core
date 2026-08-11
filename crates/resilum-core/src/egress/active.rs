@@ -4,7 +4,8 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-use leviculum_std::api::{LinkId, Node as LevNode};
+use leviculum_std::api::LinkId;
+use leviculum_std::driver::ReticulumNode;
 
 #[derive(Default)]
 pub struct ActiveLinks {
@@ -31,7 +32,7 @@ impl ActiveLinks {
         }
     }
 
-    pub async fn teardown_for(&self, engine: &Arc<LevNode>, dest_hash: &[u8; 16]) {
+    pub async fn teardown_for(&self, engine: &Arc<ReticulumNode>, dest_hash: &[u8; 16]) {
         let ids: Vec<LinkId> = self
             .by_dest
             .lock()
@@ -40,7 +41,7 @@ impl ActiveLinks {
             .map(|set| set.into_iter().collect())
             .unwrap_or_default();
         for id in ids {
-            let mut handle = engine.accept_link(&id);
+            let mut handle = engine.link_handle(&id);
             let _ = handle.close().await;
         }
     }

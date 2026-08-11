@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 use super::Node;
 use crate::error::{Error, Result};
 use crate::event::{self, Event};
-use crate::{bridge, dispatch, engine, link, supervisor};
+use crate::{bridge, dispatch, engine, link, lxmf, supervisor};
 
 impl Node {
     pub fn start(&mut self) -> Result<()> {
@@ -17,7 +17,20 @@ impl Node {
             return Err(Error::AlreadyRunning);
         }
         let (builder, identity) = engine::build_node(&self.config, self.protect.clone())?;
-        let mut leviculum = builder.build().map_err(|e| Error::Engine(e.to_string()))?;
+        // Before `build_sync`, because that is where a core processor is
+        // installed — see `lxmf::install`.
+        let builder = match &self.config.lxmf {
+            Some(cfg) => {
+                let storage = self.config.storage_path.clone();
+                let (builder, handle) = lxmf::install(builder, cfg, &identity, storage.as_deref());
+                self.lxmf = Some(Arc::new(handle));
+                builder
+            }
+            None => builder,
+        };
+        let mut leviculum = builder
+            .build_sync()
+            .map_err(|e| Error::Engine(e.to_string()))?;
         self.runtime
             .block_on(leviculum.start())
             .map_err(|e| Error::Engine(e.to_string()))?;
@@ -68,6 +81,7 @@ impl Node {
         }
         self.router = None;
         self.identity = None;
+        self.lxmf = None;
         #[cfg(feature = "arti")]
         {
             self.embedded_tor = None;

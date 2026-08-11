@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use tokio::sync::Notify;
 
 use super::{Discovery, OriginRegistry, TcpDiscovered, cache, covert};
@@ -14,7 +14,7 @@ pub struct BuildParams<'a> {
     pub tcp: &'a [DiscoveryService],
     pub covert: &'a [CovertDiscoveryService],
     pub covert_addresses: &'a [Arc<covert::AddressSource>],
-    pub engine: Arc<LevNode>,
+    pub engine: Arc<ReticulumNode>,
     pub trigger: Arc<Notify>,
     pub storage_root: Option<&'a std::path::Path>,
     pub cap_controller: Arc<CapController>,

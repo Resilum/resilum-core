@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use netstack_smoltcp::TcpStream;
 use tokio::io::AsyncWriteExt;
 
@@ -18,7 +18,7 @@ use crate::egress::{
 use crate::link::LinkRouter;
 
 pub(super) struct FlowCtx {
-    pub engine: Arc<LevNode>,
+    pub engine: Arc<ReticulumNode>,
     pub router: Arc<LinkRouter>,
     pub registry: Arc<CandidateRegistry>,
     pub active: Arc<ActiveLinks>,

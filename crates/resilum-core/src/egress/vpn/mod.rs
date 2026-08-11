@@ -28,7 +28,7 @@ use crate::link::LinkRouter;
 /// Inputs for a routing hub, assembled by the node from its running state.
 #[non_exhaustive]
 pub struct VpnParams {
-    pub engine: Arc<leviculum_std::api::Node>,
+    pub engine: Arc<leviculum_std::driver::ReticulumNode>,
     pub router: Arc<LinkRouter>,
     pub registry: Arc<CandidateRegistry>,
     pub policy: IngressConfig,

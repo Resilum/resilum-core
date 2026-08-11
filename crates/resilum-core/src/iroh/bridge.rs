@@ -7,7 +7,7 @@ use std::task::{Context, Poll};
 
 use iroh::EndpointId;
 use iroh::endpoint::{Connection, RecvStream, SendStream};
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 use super::Links;
@@ -50,7 +50,7 @@ impl AsyncWrite for IrohStream {
 }
 
 /// Accept the peer's first bidi stream on an inbound connection and bridge it.
-pub async fn accept_link(engine: &LevNode, links: &Links, conn: Connection) {
+pub async fn accept_link(engine: &ReticulumNode, links: &Links, conn: Connection) {
     match conn.accept_bi().await {
         Ok((send, recv)) => register(engine, links, conn.remote_id(), send, recv),
         Err(e) => tracing::warn!(error = %e, "iroh accept_bi failed"),
@@ -58,14 +58,20 @@ pub async fn accept_link(engine: &LevNode, links: &Links, conn: Connection) {
 }
 
 /// Open a bidi stream on an outbound connection and bridge it.
-pub async fn dial_link(engine: &LevNode, links: &Links, conn: Connection) {
+pub async fn dial_link(engine: &ReticulumNode, links: &Links, conn: Connection) {
     match conn.open_bi().await {
         Ok((send, recv)) => register(engine, links, conn.remote_id(), send, recv),
         Err(e) => tracing::warn!(error = %e, "iroh open_bi failed"),
     }
 }
 
-fn register(engine: &LevNode, links: &Links, id: EndpointId, send: SendStream, recv: RecvStream) {
+fn register(
+    engine: &ReticulumNode,
+    links: &Links,
+    id: EndpointId,
+    send: SendStream,
+    recv: RecvStream,
+) {
     let name = format!("iroh[{}]", id.fmt_short());
     match engine.spawn_byte_channel(&name, IrohStream { send, recv }) {
         Ok(handle) => {

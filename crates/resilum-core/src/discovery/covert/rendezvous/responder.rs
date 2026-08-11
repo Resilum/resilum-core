@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 use leviculum_std::NodeEvent;
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::{Destination, DestinationHash, DestinationType, Direction, Identity};
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
@@ -17,7 +17,7 @@ use crate::config::CovertDiscoveryService;
 use crate::error::{Error, Result};
 
 pub fn build_destinations(
-    engine: &LevNode,
+    engine: &ReticulumNode,
     identity: Identity,
     covert: &[CovertDiscoveryService],
 ) -> Result<Vec<(String, DestinationHash)>> {
@@ -47,7 +47,7 @@ pub fn build_destinations(
 /// One responder task per configured covert carrier. Fires on every
 /// `RequestReceived` event on path `endpoint` and replies with our addresses.
 pub async fn run_responder(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     carrier: String,
     addresses: Arc<AddressSource>,
     mut events: Receiver<Arc<NodeEvent>>,

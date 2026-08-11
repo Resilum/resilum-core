@@ -69,6 +69,24 @@ fn iroh_absent_by_default() {
 }
 
 #[test]
+fn lxmf_section_enables_messaging_and_is_absent_by_default() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+lxmf:
+  display_name: test node
+  announce_interval_secs: 90
+",
+    )
+    .unwrap();
+    let lxmf = cfg.lxmf.expect("lxmf config");
+    assert_eq!(lxmf.display_name.as_deref(), Some("test node"));
+    assert_eq!(lxmf.announce_interval, std::time::Duration::from_secs(90));
+
+    assert!(from_yaml("instance_name: n").unwrap().lxmf.is_none());
+}
+
+#[test]
 fn parses_discovery_with_socks_override() {
     use crate::config::{EndpointFormat, SocksProxy};
     let cfg = from_yaml(

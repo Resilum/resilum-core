@@ -7,7 +7,8 @@ mod icmp;
 
 use std::sync::Arc;
 
-use leviculum_std::api::{Identity, Node as LevNode};
+use leviculum_std::api::Identity;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -17,7 +18,7 @@ use crate::covert::runner;
 /// Attach a covert client for `carrier` to `addr` in-process. Errors on a
 /// carrier not supported here.
 pub(in crate::discovery::covert) fn attach(
-    engine: &Arc<LevNode>,
+    engine: &Arc<ReticulumNode>,
     name: &str,
     carrier: &str,
     addr: &str,
@@ -44,7 +45,7 @@ const PUMP_CHUNK: usize = 4096;
 /// there). The blocking covert runner gets its own OS thread and exits when the
 /// duplex closes.
 fn bridge<C>(
-    engine: &Arc<LevNode>,
+    engine: &Arc<ReticulumNode>,
     name: &str,
     carrier: C,
     server: Identity,

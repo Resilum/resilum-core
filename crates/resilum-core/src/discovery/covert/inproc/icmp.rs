@@ -3,7 +3,8 @@
 use std::net::IpAddr;
 use std::sync::Arc;
 
-use leviculum_std::api::{Identity, Node as LevNode};
+use leviculum_std::api::Identity;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 
 use crate::covert::icmp::client::IcmpClient;
@@ -11,7 +12,7 @@ use crate::covert::icmp::id::tunnel_id;
 
 /// Build an ICMP carrier for `addr` (an IP) and bridge it in-process.
 pub(super) fn attach(
-    engine: &Arc<LevNode>,
+    engine: &Arc<ReticulumNode>,
     name: &str,
     addr: &str,
     server_pubkey: &[u8],

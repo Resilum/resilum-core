@@ -11,7 +11,7 @@ use std::net::{IpAddr, Ipv6Addr, SocketAddr};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 use std::sync::{Arc, Mutex};
 
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::task::JoinHandle;
 use tokio_smoltcp::device::AsyncCapture;
@@ -34,7 +34,7 @@ pub struct YggHandle {
     tasks: Vec<JoinHandle<()>>,
     _net: Arc<Net>,
     links: Links,
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     // Runs on teardown; deactivates the ygg discovery service (see `node::ygg_attach`).
     on_detach: Option<Box<dyn FnOnce() + Send>>,
 }
@@ -75,7 +75,7 @@ impl Drop for YggHandle {
 /// Accepts RNS links on `rns_port`; if `socks_port` is set, runs a loopback SOCKS
 /// proxy there so discovery can dial ygg peers. Must run inside the node runtime.
 pub fn attach(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     origin: Arc<OriginRegistry>,
     ygg_fd: RawFd,
     ygg_address: &str,
@@ -145,7 +145,7 @@ fn send_packet(fd: &mut OwnedFd, pkt: &[u8]) -> std::io::Result<()> {
 }
 
 async fn accept(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     origin: Arc<OriginRegistry>,
     net: Arc<Net>,
     address: Ipv6Addr,

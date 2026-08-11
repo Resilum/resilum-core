@@ -1,13 +1,60 @@
-//! Maps the FFI's LXMF message/event JSON onto `leviculum_lxmf` types. Pure
-//! conversion — no node, no I/O — so it is testable without the messaging
-//! backend it will feed once the std runtime can drive an `LxmfNode`.
+//! LXMF messaging: the router runs inside the engine's tick, the app talks to
+//! it through an [`LxmfHandle`], and [`send`]/[`poll`] map the FFI's JSON onto
+//! `leviculum_lxmf` types.
 
+mod checkpoint;
+mod handle;
 pub mod poll;
+mod processor;
 pub mod send;
+mod stamp;
+
+use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use leviculum_lxmf::Field;
 use leviculum_lxmf::constants::{FIELD_CUSTOM_DATA, FIELD_CUSTOM_TYPE};
+use leviculum_std::api::Identity;
+use leviculum_std::driver::ReticulumNodeBuilder;
 use serde_json::Value;
+
+pub use handle::LxmfHandle;
+
+use crate::config::LxmfConfig;
+
+/// Takes the builder rather than a built node: a processor installed later
+/// could hold a handle to the node it runs inside, and calling one of that
+/// handle's methods from a hook deadlocks the core on the first event.
+pub(crate) fn install(
+    builder: ReticulumNodeBuilder,
+    config: &LxmfConfig,
+    identity: &Identity,
+    storage_path: Option<&Path>,
+) -> (ReticulumNodeBuilder, LxmfHandle) {
+    let registered = Arc::new(AtomicBool::new(false));
+    let address = crate::identity::lxmf_address_hex(identity);
+    let (handle, commands, events) = handle::channel(address, registered.clone());
+    let (stamp_tx, stamp_rx) = tokio::sync::mpsc::unbounded_channel();
+    stamp::spawn(stamp_rx, handle.sender());
+    // No storage directory means no durable queue: a restart loses whatever
+    // was still in flight.
+    let checkpoint =
+        storage_path.map(|dir| checkpoint::Checkpoint::open(dir.join(CHECKPOINT_FILE)));
+    let processor = processor::LxmfProcessor::new(
+        config.clone(),
+        identity.clone(),
+        commands,
+        events,
+        stamp_tx,
+        registered,
+        checkpoint,
+    );
+    (builder.core_processor(processor), handle)
+}
+
+/// Where the router's checkpoint lives, under the node's storage directory.
+const CHECKPOINT_FILE: &str = "lxmf_state";
 
 /// The app's `{custom_type, custom_data}` as LXMF custom fields — each value a
 /// single msgpack value, as `Message::create` and the wire require.

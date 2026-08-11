@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use leviculum_std::InterfaceId;
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 
 pub const CAP_IDLE_PERCENT: u32 = 100;
 pub const CAP_BUSY_PERCENT: u32 = 1;
@@ -22,12 +22,12 @@ struct Entry {
 }
 
 pub struct CapController {
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     entries: Mutex<HashMap<InterfaceId, Entry>>,
 }
 
 impl CapController {
-    pub fn new(engine: Arc<LevNode>) -> Arc<Self> {
+    pub fn new(engine: Arc<ReticulumNode>) -> Arc<Self> {
         Arc::new(Self {
             engine,
             entries: Mutex::new(HashMap::new()),

@@ -12,9 +12,9 @@ mod registry;
 #[cfg(test)]
 mod tests;
 
-pub use consume::run as consume;
+pub use consume::run_consume;
 pub use payload::name_hash;
-pub use produce::run as produce;
+pub use produce::run_produce;
 pub use registry::{Entry, Registry};
 
 pub(crate) const APP_NAME: &str = "resilum";

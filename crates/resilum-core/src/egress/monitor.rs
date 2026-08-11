@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use tokio::time::{Instant, sleep};
 
 use crate::config::IngressConfig;
@@ -42,7 +42,7 @@ pub fn due_for_probe(c: &Candidate, now: f64, interval: f64) -> bool {
 }
 
 pub async fn run(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
     cfg: IngressConfig,

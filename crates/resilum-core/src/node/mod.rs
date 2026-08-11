@@ -1,12 +1,14 @@
+mod accessors;
 mod attach;
 mod interface;
 mod lifecycle;
 
 use std::collections::VecDeque;
-use std::sync::atomic::{AtomicU16, Ordering};
+use std::sync::atomic::AtomicU16;
 use std::sync::{Arc, Mutex};
 
-use leviculum_std::api::{Identity, Node as LevNode};
+use leviculum_std::api::Identity;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::socket_hook::OutboundSocketHook;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
@@ -15,7 +17,7 @@ use crate::config::Config;
 use crate::dispatch;
 use crate::egress::CandidateRegistry;
 use crate::error::{Error, Result};
-use crate::event::{self, Event};
+use crate::event;
 use crate::link::LinkRouter;
 use crate::mirrors;
 
@@ -24,10 +26,11 @@ use crate::mirrors;
 pub struct Node {
     pub(crate) config: Config,
     pub(crate) runtime: tokio::runtime::Runtime,
-    pub(crate) engine: Option<Arc<LevNode>>,
+    pub(crate) engine: Option<Arc<ReticulumNode>>,
     pub(crate) registry: Arc<CandidateRegistry>,
     pub(crate) router: Option<Arc<LinkRouter>>,
     pub(crate) identity: Option<Identity>,
+    pub(crate) lxmf: Option<Arc<crate::lxmf::LxmfHandle>>,
     pub(crate) protect: Option<OutboundSocketHook>,
     pub(crate) events: dispatch::Events,
     pub(crate) tasks: Vec<JoinHandle<()>>,
@@ -57,6 +60,7 @@ impl Node {
             registry: Arc::new(CandidateRegistry::default()),
             router: None,
             identity: None,
+            lxmf: None,
             protect: None,
             events: dispatch::Events::new(1024),
             tasks: Vec::new(),
@@ -72,79 +76,5 @@ impl Node {
             #[cfg(feature = "arti")]
             embedded_tor: None,
         })
-    }
-
-    pub fn is_running(&self) -> bool {
-        self.engine.is_some()
-    }
-
-    /// The bound local SOCKS/connect port, or `0` if the connect listener is not
-    /// up (no connect config, or not yet bound).
-    pub fn socks_port(&self) -> u16 {
-        self.socks_port.load(Ordering::Relaxed)
-    }
-
-    /// Shared engine handle for runtime tasks; `None` before start / after stop.
-    pub fn engine(&self) -> Option<Arc<LevNode>> {
-        self.engine.clone()
-    }
-
-    /// The running identity's private blob (base64), or `None` before start.
-    pub fn identity_base64(&self) -> Option<String> {
-        self.identity.as_ref().and_then(crate::identity::to_base64)
-    }
-
-    /// This node's LXMF delivery address (hex), or `None` before start. Derived
-    /// purely from the identity, so it is known without the messaging backend.
-    pub fn lxmf_address(&self) -> Option<String> {
-        self.identity
-            .as_ref()
-            .map(crate::identity::lxmf_address_hex)
-    }
-
-    /// The discovery overlay an interface was attached over (`tor` / `i2p` /
-    /// `yggdrasil` / `covert`), or `None` when resilum-core did not attach it
-    /// (bootstrap, LAN, or a leviculum-managed peer). Keyed by the interface id
-    /// from an interface-status snapshot.
-    pub fn discovered_via(&self, id: leviculum_std::InterfaceId) -> Option<String> {
-        self.origin_registry.get(id)
-    }
-
-    /// Wake the discovery produce loop to re-announce endpoints now, without
-    /// waiting for the next tick. Call this on external state changes the
-    /// bridge cannot observe from inside (Flutter posting a network-change
-    /// event through FFI, a hidden-service hostname just becoming ready, etc).
-    pub fn trigger_discovery_announce(&self) {
-        self.discovery_trigger.notify_waiters();
-    }
-
-    pub fn send(&mut self, _dest: &[u8], _data: &[u8]) -> Result<()> {
-        if self.engine.is_none() {
-            return Err(Error::NotRunning);
-        }
-        Ok(())
-    }
-
-    pub fn poll_event(&mut self) -> Option<Event> {
-        self.event_queue.lock().expect("event queue").pop_front()
-    }
-
-    pub fn config(&self) -> &Config {
-        &self.config
-    }
-
-    /// The shared egress candidate registry.
-    pub fn registry(&self) -> &Arc<CandidateRegistry> {
-        &self.registry
-    }
-
-    /// The node-event bus; subsystems subscribe to receive engine events.
-    pub fn events(&self) -> &dispatch::Events {
-        &self.events
-    }
-
-    /// Mesh-discovered rngit mirror advertisements from peers; `None` before start.
-    pub fn mirror_registry(&self) -> Option<&Arc<mirrors::Registry>> {
-        self.mirror_registry.as_ref()
     }
 }

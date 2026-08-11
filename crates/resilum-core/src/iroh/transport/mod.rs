@@ -5,7 +5,7 @@
 //! the node stays a full participant — only the direct path changes.
 
 use std::io;
-use std::net::{Ipv4Addr, Ipv6Addr, UdpSocket};
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::os::fd::AsRawFd;
 use std::sync::Arc;
 use std::task::{Context, Poll, ready};
@@ -18,7 +18,7 @@ use iroh_base::CustomAddr;
 use leviculum_std::socket_hook::OutboundSocketHook;
 use n0_watcher::Watchable;
 use tokio::io::ReadBuf;
-use tokio::net::UdpSocket as TokioUdp;
+use tokio::net::UdpSocket;
 
 use crate::config::IrohConfig;
 
@@ -52,21 +52,21 @@ impl std::fmt::Debug for ProtectedUdp {
 
 impl CustomTransport for ProtectedUdp {
     fn bind(&self) -> io::Result<Box<dyn CustomEndpoint>> {
-        let socket = UdpSocket::bind((Ipv6Addr::UNSPECIFIED, 0))
-            .or_else(|_| UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)))?;
+        let socket = std::net::UdpSocket::bind((Ipv6Addr::UNSPECIFIED, 0))
+            .or_else(|_| std::net::UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)))?;
         (self.hook)(socket.as_raw_fd());
         socket.set_nonblocking(true)?;
         let local = socket.local_addr()?;
         Ok(Box::new(UdpEndpoint {
             local: Watchable::new(vec![to_custom(local)]),
-            socket: Arc::new(TokioUdp::from_std(socket)?),
+            socket: Arc::new(UdpSocket::from_std(socket)?),
         }))
     }
 }
 
 #[derive(Debug)]
 struct UdpEndpoint {
-    socket: Arc<TokioUdp>,
+    socket: Arc<UdpSocket>,
     local: Watchable<Vec<CustomAddr>>,
 }
 
@@ -104,7 +104,7 @@ impl CustomEndpoint for UdpEndpoint {
 
 #[derive(Debug)]
 struct UdpSender {
-    socket: Arc<TokioUdp>,
+    socket: Arc<UdpSocket>,
 }
 
 impl CustomSender for UdpSender {

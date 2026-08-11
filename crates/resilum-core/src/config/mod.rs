@@ -2,11 +2,13 @@ mod covert_discovery;
 mod discovery;
 mod egress;
 mod ingress;
+mod lxmf;
 
 pub use covert_discovery::CovertDiscoveryService;
 pub use discovery::{DiscoveryService, EndpointFormat, SocksProxy};
 pub use egress::EgressListen;
 pub use ingress::IngressConfig;
+pub use lxmf::LxmfConfig;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -66,6 +68,8 @@ pub struct Config {
     pub discover_interfaces: bool,
     pub i2p: Option<I2pInterface>,
     pub iroh: Option<IrohConfig>,
+    /// Presence enables LXMF messaging on this node's own identity.
+    pub lxmf: Option<LxmfConfig>,
     /// `0` disables auto-connect.
     pub autoconnect_max: usize,
     pub egress: Vec<EgressListen>,
@@ -103,6 +107,7 @@ impl Config {
             discover_interfaces: true,
             i2p: None,
             iroh: None,
+            lxmf: None,
             autoconnect_max: 5,
             egress: Vec::new(),
             ingress: None,

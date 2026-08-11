@@ -7,7 +7,7 @@ mod env_expand;
 use serde::Deserialize;
 
 use crate::Config;
-use entries::{DiscoveryFile, EgressFile, I2pFile, IngressFile};
+use entries::{DiscoveryFile, EgressFile, I2pFile, IngressFile, LxmfFile};
 
 pub fn from_json(json: &str) -> Result<Config, String> {
     serde_json::from_str::<FileConfig>(json)
@@ -53,6 +53,8 @@ struct FileConfig {
     rngit_destination_file: Option<std::path::PathBuf>,
     #[serde(default)]
     discovery: Vec<DiscoveryFile>,
+    #[serde(default)]
+    lxmf: Option<LxmfFile>,
 }
 
 fn yes() -> bool {
@@ -84,6 +86,7 @@ impl FileConfig {
         cfg.ingress = self.ingress.map(Into::into);
         cfg.advertised_mirrors = self.advertised_mirrors;
         cfg.rngit_destination_file = self.rngit_destination_file;
+        cfg.lxmf = self.lxmf.map(Into::into);
         if !self.discovery.is_empty() {
             let mut services = Vec::new();
             for entry in self.discovery {

@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use leviculum_std::api::{Identity, Node as LevNode};
+use leviculum_std::api::Identity;
+use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc;
 
 use crate::egress;
@@ -10,7 +11,7 @@ use crate::node::Node;
 
 pub(super) fn bring_up(
     node: &mut Node,
-    engine: &Arc<LevNode>,
+    engine: &Arc<ReticulumNode>,
     identity: &Identity,
     router: &Arc<link::LinkRouter>,
     inbound_rx: mpsc::UnboundedReceiver<link::Inbound>,

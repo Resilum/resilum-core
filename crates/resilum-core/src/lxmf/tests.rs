@@ -1,13 +1,15 @@
+use data_encoding::{BASE64, HEXLOWER};
+use leviculum_lxmf::DeliveryMethod;
+use leviculum_lxmf::router::{MessageState, RouterEvent};
+use serde_json::{Value, json};
+
 use super::poll::event_to_json;
 use super::send::build_message;
-use data_encoding::{BASE64, HEXLOWER};
-use leviculum_lxmf::{DeliveryMethod, LxmfNodeEvent};
-use serde_json::{Value, json};
 
 #[test]
 fn send_roundtrips_body_and_structured_custom_data() {
     let id = crate::identity::generate();
-    let source_hash = *id.hash();
+    let source_hash = crate::identity::lxmf_address(&id);
     let dest = "00112233445566778899aabbccddeeff";
     let content_b64 = BASE64.encode(b"hello");
     let req = json!({
@@ -26,7 +28,7 @@ fn send_roundtrips_body_and_structured_custom_data() {
     assert_eq!(msg.content, b"hello");
     assert_eq!(msg.method, DeliveryMethod::Direct);
 
-    let out = event_to_json(&LxmfNodeEvent::MessageReceived(msg)).expect("json");
+    let out = event_to_json(&RouterEvent::MessageReceived(Box::new(msg))).expect("json");
     let v: Value = serde_json::from_str(&out).unwrap();
     assert_eq!(v["type"], "message");
     assert_eq!(v["source"], HEXLOWER.encode(&source_hash));
@@ -37,22 +39,29 @@ fn send_roundtrips_body_and_structured_custom_data() {
     assert_eq!(v["fields"]["custom_data"]["items"], json!([1, 2, 3]));
 }
 
+/// The state strings are the app's contract, not an internal name: a UI keys
+/// its delivery ticks off them, so a rename here is a silently broken client.
 #[test]
-fn delivery_events_map_to_states() {
+fn every_message_state_has_its_app_facing_name() {
     let mid = [7u8; 32];
-    for (event, state) in [
-        (LxmfNodeEvent::Delivered { message_id: mid }, "delivered"),
-        (
-            LxmfNodeEvent::DeliveryFailed {
-                message_id: mid,
-                reason: leviculum_lxmf::DeliveryFailure::DirectPacketTimeout,
-            },
-            "failed",
-        ),
+    for (state, name) in [
+        (MessageState::Generating, "generating"),
+        (MessageState::Outbound, "queued"),
+        (MessageState::Sending, "sending"),
+        (MessageState::Sent, "sent"),
+        (MessageState::AwaitingCollection, "awaiting_collection"),
+        (MessageState::Delivered, "delivered"),
+        (MessageState::Rejected, "rejected"),
+        (MessageState::Cancelled, "cancelled"),
+        (MessageState::Failed, "failed"),
     ] {
+        let event = RouterEvent::MessageState {
+            message_id: mid,
+            state,
+        };
         let v: Value = serde_json::from_str(&event_to_json(&event).unwrap()).unwrap();
         assert_eq!(v["type"], "delivery");
-        assert_eq!(v["state"], state);
+        assert_eq!(v["state"], name);
         assert_eq!(v["message_id"], HEXLOWER.encode(&mid));
     }
 }
@@ -60,7 +69,7 @@ fn delivery_events_map_to_states() {
 #[test]
 fn rejects_bad_method_and_dest() {
     let id = crate::identity::generate();
-    let sh = *id.hash();
+    let sh = crate::identity::lxmf_address(&id);
     let bad_method = r#"{"dest":"00112233445566778899aabbccddeeff","method":"bogus"}"#;
     let bad_dest = r#"{"dest":"xyz","method":"direct"}"#;
     assert!(build_message(bad_method, &id, sh, 0.0).is_err());

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::{Destination, DestinationHash, DestinationType, Direction, Identity};
 use tokio::sync::Notify;
 
@@ -15,7 +15,7 @@ use crate::error::{Error, Result};
 /// `(service, dest_hash)` pairs for the produce loop to key its per-service
 /// announces off.
 pub fn build_destinations(
-    engine: &LevNode,
+    engine: &ReticulumNode,
     identity: Identity,
     services: &[DiscoveryService],
 ) -> Result<Vec<(String, DestinationHash)>> {
@@ -29,7 +29,7 @@ pub fn build_destinations(
 /// Register one `resilum.discovery.<service>` destination and return its
 /// `(service, hash)` — used for services outside the `discovery` list (iroh).
 pub fn build_destination(
-    engine: &LevNode,
+    engine: &ReticulumNode,
     identity: Identity,
     service: &str,
 ) -> Result<(String, DestinationHash)> {
@@ -51,7 +51,7 @@ pub fn build_destination(
 /// or whenever `trigger.notify_waiters()` fires (e.g. Flutter posts a
 /// network-change event through FFI).
 pub async fn run_produce(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     discovery: Arc<Discovery>,
     destinations: Vec<(String, DestinationHash)>,
     interval: Duration,
@@ -70,7 +70,7 @@ pub async fn run_produce(
 }
 
 async fn announce_all(
-    engine: &LevNode,
+    engine: &ReticulumNode,
     discovery: &Discovery,
     destinations: &[(String, DestinationHash)],
 ) {
@@ -81,7 +81,7 @@ async fn announce_all(
             continue;
         };
         let packed = announce_payload::pack(Some(endpoint), "*", &[]);
-        match engine.announce(dest_hash, Some(&packed)).await {
+        match engine.announce_destination(dest_hash, Some(&packed)).await {
             Ok(()) => tracing::debug!(
                 service = %service,
                 endpoint = %String::from_utf8_lossy(endpoint),

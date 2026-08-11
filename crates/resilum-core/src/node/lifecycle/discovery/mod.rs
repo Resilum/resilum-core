@@ -1,14 +1,22 @@
+mod resolve;
+
 use std::sync::Arc;
 
-use leviculum_std::api::{Identity, Node as LevNode};
+use leviculum_std::api::Identity;
+use leviculum_std::driver::ReticulumNode;
 
 #[cfg(feature = "arti")]
 use crate::error::Error;
 use crate::error::Result;
 use crate::node::Node;
 use crate::{announce_cap, announce_trigger, discovery};
+use resolve::resolve_discovery;
 
-pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identity) -> Result<()> {
+pub(super) fn bring_up(
+    node: &mut Node,
+    engine: &Arc<ReticulumNode>,
+    identity: &Identity,
+) -> Result<()> {
     let wants_iroh = cfg!(feature = "iroh") && node.config.iroh.is_some();
     if node.config.discovery.is_empty() && node.config.covert_discovery.is_empty() && !wants_iroh {
         return Ok(());
@@ -24,7 +32,7 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identi
     )));
 
     #[cfg(feature = "arti")]
-    let embedded_tor = if wants_embedded_arti(&node.config.discovery) {
+    let embedded_tor = if resolve::wants_embedded_arti(&node.config.discovery) {
         Some(
             node.runtime
                 .block_on(crate::tor::EmbeddedTor::spawn(storage_root))
@@ -113,36 +121,4 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<LevNode>, identity: &Identi
         node.embedded_tor = embedded_tor;
     }
     Ok(())
-}
-
-#[cfg(feature = "arti")]
-fn wants_embedded_arti(services: &[crate::config::DiscoveryService]) -> bool {
-    use crate::config::SocksProxy;
-    services
-        .iter()
-        .any(|s| matches!(s.socks_proxy, Some(SocksProxy::EmbeddedArti)))
-}
-
-fn resolve_discovery(
-    services: &[crate::config::DiscoveryService],
-    #[cfg(feature = "arti")] arti_port: Option<u16>,
-) -> Vec<crate::config::DiscoveryService> {
-    services
-        .iter()
-        .map(|s| {
-            let out = s.clone();
-            #[cfg(feature = "arti")]
-            let out = {
-                use crate::config::SocksProxy;
-                let mut out = out;
-                if let Some(SocksProxy::EmbeddedArti) = out.socks_proxy
-                    && let Some(port) = arti_port
-                {
-                    out.socks_proxy = Some(SocksProxy::External("127.0.0.1".into(), port));
-                }
-                out
-            };
-            out
-        })
-        .collect()
 }

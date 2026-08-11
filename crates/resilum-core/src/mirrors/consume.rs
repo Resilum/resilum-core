@@ -6,7 +6,7 @@ use tokio::sync::broadcast;
 use super::Registry;
 use super::payload::{name_hash, parse};
 
-pub async fn run(registry: Arc<Registry>, mut bus: broadcast::Receiver<Arc<NodeEvent>>) {
+pub async fn run_consume(registry: Arc<Registry>, mut bus: broadcast::Receiver<Arc<NodeEvent>>) {
     let want = name_hash();
     loop {
         let ev = match bus.recv().await {

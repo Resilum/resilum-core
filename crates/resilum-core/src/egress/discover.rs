@@ -5,7 +5,8 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use leviculum_std::NodeEvent;
-use leviculum_std::api::{Destination, Node as LevNode};
+use leviculum_std::api::Destination;
+use leviculum_std::driver::ReticulumNode;
 use tokio::sync::broadcast;
 
 use crate::Event;
@@ -16,7 +17,7 @@ use crate::event::{self, Queue};
 const APP_NAME: &str = "resilum";
 
 pub async fn run(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     registry: Arc<CandidateRegistry>,
     active: Arc<ActiveLinks>,
     events: Queue,

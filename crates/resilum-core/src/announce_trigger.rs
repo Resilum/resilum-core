@@ -6,12 +6,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use leviculum_std::InterfaceId;
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use tokio::sync::Notify;
 
 const WATCH_INTERVAL: Duration = Duration::from_secs(5);
 
-pub async fn run(engine: Arc<LevNode>, trigger: Arc<Notify>) {
+pub async fn run(engine: Arc<ReticulumNode>, trigger: Arc<Notify>) {
     let mut seen: HashSet<InterfaceId> = HashSet::new();
     let mut first_observation = true;
     let mut ticker = tokio::time::interval(WATCH_INTERVAL);

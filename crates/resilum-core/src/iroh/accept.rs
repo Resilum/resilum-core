@@ -4,11 +4,11 @@
 use std::sync::Arc;
 
 use iroh::Endpoint;
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 
 use super::{Links, bridge};
 
-pub async fn run(endpoint: Endpoint, engine: Arc<LevNode>, links: Links) {
+pub async fn run(endpoint: Endpoint, engine: Arc<ReticulumNode>, links: Links) {
     while let Some(incoming) = endpoint.accept().await {
         let engine = engine.clone();
         let links = links.clone();

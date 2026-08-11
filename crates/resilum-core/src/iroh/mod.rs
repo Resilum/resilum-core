@@ -19,7 +19,7 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use iroh::{Endpoint, EndpointId};
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::task::JoinHandle;
 
@@ -35,7 +35,7 @@ pub struct IrohHandle {
     endpoint: Endpoint,
     tasks: Vec<JoinHandle<()>>,
     links: Links,
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     discovery: Option<Arc<IrohDiscovery>>,
     runtime: tokio::runtime::Handle,
 }
@@ -83,7 +83,7 @@ impl Drop for IrohHandle {
 /// peers, and wire the warm-discovery plugin (if any) to the live transport.
 /// `dir` holds the persisted secret. Must run inside the node runtime.
 pub async fn attach(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     dir: &Path,
     cfg: &IrohConfig,
     discovery: Option<Arc<IrohDiscovery>>,

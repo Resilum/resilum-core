@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use leviculum_std::NodeEvent;
-use leviculum_std::api::Node as LevNode;
+use leviculum_std::driver::ReticulumNode;
 use leviculum_std::{Destination, DestinationType, Direction, Identity, LinkId};
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
@@ -21,7 +21,7 @@ const REQUEST_WAIT: Duration = Duration::from_millis(REQUEST_TIMEOUT_MS + 2_000)
 /// Fetch a peer's covert addresses. Returns the parsed `(carrier, addresses)`
 /// tuple on success, or `None` on link failure, timeout, or malformed reply.
 pub async fn fetch_endpoint(
-    engine: Arc<LevNode>,
+    engine: Arc<ReticulumNode>,
     announcer_pubkey: Vec<u8>,
     carrier: String,
     events: Receiver<Arc<NodeEvent>>,
@@ -38,10 +38,7 @@ pub async fn fetch_endpoint(
     .ok()?;
     let dest_hash = *dest.hash();
 
-    let handle = engine
-        .connect_with_key(&dest_hash, &signing_key)
-        .await
-        .ok()?;
+    let handle = engine.connect(&dest_hash, &signing_key).await.ok()?;
     let link_id = *handle.link_id();
 
     let mut events = events;
