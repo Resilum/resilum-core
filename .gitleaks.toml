@@ -1,0 +1,48 @@
+title = "resilum-core"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "build-host-home-directory"
+description = "A path under a build host's home directory"
+regex = '''(/home|/Users|/mnt/[a-z]/Users|[A-Za-z]:[\\/]Users)[\\/][^\\/\s"']+'''
+
+[[rules]]
+id = "non-latin-script"
+description = "Text in a script this project does not write in"
+regex = '''[\x{0400}-\x{04FF}]'''
+
+[[rules]]
+id = "routable-ipv4"
+description = "An IPv4 address that belongs to somebody"
+regex = '''(?:^|[^\w.])((?:\d{1,3}\.){3}\d{1,3})(?:[^\w.]|$)'''
+[rules.allowlist]
+regexTarget = "match"
+regexes = [
+  # Loopback, RFC 1918, link-local, CGNAT, this-network, broadcast.
+  '''\b(?:127|10|0|255)\.''',
+  '''\b192\.168\.''',
+  '''\b172\.(?:1[6-9]|2\d|3[01])\.''',
+  '''\b169\.254\.''',
+  '''\b100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.''',
+  # RFC 5737 documentation and RFC 2544 benchmarking: reserved for writing
+  # about networks rather than reaching them.
+  '''\b192\.0\.2\.''',
+  '''\b198\.51\.100\.''',
+  '''\b203\.0\.113\.''',
+  '''\b198\.1[89]\.''',
+  # Version numbers and the like read as four dotted groups too.
+  '''\b\d{4,}\.''',
+]
+
+[allowlist]
+description = "Paths whose content is patterns, notes, or a deliberate target list"
+paths = [
+  '''\.gitleaks\.toml$''',
+  '''lints/.*\.txt$''',
+  '''docs/__.*''',
+  # The egress speed probe has to reach hosts that are actually up; these are
+  # the addresses the node dials, not an example.
+  '''crates/resilum-core/src/egress/probe/targets\.rs$''',
+]

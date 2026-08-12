@@ -61,47 +61,13 @@ if [ -n "$dense" ]; then
     exit 1
 fi
 
-step "index leaks (paths, language, private patterns)"
-# The index, not the working tree: skip-worktree hides local edits only while
-# that local flag survives.
-leak_patterns=
-for list in lints/leak-patterns.txt lints/private-patterns.txt; do
-    [ -f "$list" ] || continue
-    while read -r pattern; do
-        [ -n "$pattern" ] || continue
-        leak_patterns="${leak_patterns:+$leak_patterns|}$pattern"
-    done < <(grep -v '^#' "$list")
-done
-[ -n "$leak_patterns" ] || { printf '  ✗ lints/leak-patterns.txt is missing\n'; exit 1; }
-# `:!` excludes the pattern lists, which match themselves by construction.
-if git grep --cached -nP "$leak_patterns" -- ':!lints/*-patterns.txt'; then
-    printf '  ✗ the index carries a local path, another language, or a private pattern\n'
-    exit 1
-fi
-
-step "history leaks (commits not yet pushed)"
-# The step above reads the current tree, so a path added in one commit and
-# taken out in the next still ships once the range is pushed.
-if upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null); then
-    span="$upstream..HEAD"
-    printf '  range: %s\n' "$span"
-else
-    span=HEAD
-    printf '  no upstream branch; scanning the whole history\n'
-fi
-leaking_commits=$(
-    for sha in $(git rev-list "$span"); do
-        git show --format= "$sha" -- . ':!lints/*-patterns.txt' \
-            | grep -qP "^\+.*($leak_patterns)" || continue
-        git log -1 --format='  %h %s' "$sha"
-    done
-)
-if [ -n "$leaking_commits" ]; then
-    printf '%s\n' "$leaking_commits"
-    printf '  ✗ commit(s) above add a local path, another language, or a private pattern\n'
-    printf '    rewrite them before pushing: git rebase, or reset + amend + cherry-pick\n'
-    exit 1
-fi
+step "gitleaks (staged and history)"
+require gitleaks 'https://github.com/gitleaks/gitleaks#installing'
+# Rules live in .gitleaks.toml; the baseline holds what is already published,
+# so only new findings fail. Staged first: that is what a commit is about to
+# carry, and the tree can hold local edits that never become one.
+gitleaks git --staged --no-banner --redact
+gitleaks git --baseline-path .gitleaks-baseline.json --no-banner --redact
 
 step "ast-grep (structural lints, lints/)"
 require ast-grep 'cargo install ast-grep --locked  |  npm i -g @ast-grep/cli'
