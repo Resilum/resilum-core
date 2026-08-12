@@ -21,6 +21,12 @@ require() {
     exit 1
 }
 
+# Files git knows about plus new ones it does not ignore, so a file is linted
+# before it is ever staged.
+tracked_and_new() {
+    git ls-files --cached --others --exclude-standard "$@"
+}
+
 step "rustfmt"
 cargo fmt --all
 
@@ -108,15 +114,15 @@ if [ -f "$PATCH_CONFIG" ]; then
     trap restore_patch_config EXIT
     printf '  [patch] moved aside for this step\n'
 fi
-cargo metadata --format-version 1 --quiet >/dev/null
-cargo metadata --format-version 1 --locked --quiet >/dev/null
+cargo metadata --format-version 1 --offline --quiet >/dev/null
+cargo metadata --format-version 1 --offline --locked --quiet >/dev/null
 restore_patch_config
 trap - EXIT
 
 step "shellcheck"
 require shellcheck 'https://github.com/koalaman/shellcheck#installing'
 mapfile -t scripts < <(
-    git ls-files -z | while IFS= read -r -d '' f; do
+    tracked_and_new -z | while IFS= read -r -d '' f; do
         case "$f" in
             *.sh) printf '%s\n' "$f" ;;
             *)
@@ -138,7 +144,7 @@ require cargo-deny 'cargo install cargo-deny --locked'
 cargo deny check advisories licenses sources -D warnings -A unmatched-source
 
 step "hadolint (Dockerfiles)"
-mapfile -t dockerfiles < <(git ls-files -- 'Dockerfile' '*/Dockerfile' '*.dockerfile')
+mapfile -t dockerfiles < <(tracked_and_new -- 'Dockerfile' '*/Dockerfile' '*.dockerfile')
 [ "${#dockerfiles[@]}" -gt 0 ] || { printf '  ✗ no Dockerfile found to check\n'; exit 1; }
 printf '  %s\n' "${dockerfiles[@]}"
 if command -v hadolint >/dev/null 2>&1; then
@@ -159,7 +165,9 @@ yamllint --strict .
 
 step "markdownlint"
 require markdownlint-cli2 'npm i -g markdownlint-cli2'
-markdownlint-cli2 README.md docs/*.md
+mapfile -t docs < <(tracked_and_new -- '*.md')
+[ "${#docs[@]}" -gt 0 ] || { printf '  ✗ no markdown found to check\n'; exit 1; }
+markdownlint-cli2 "${docs[@]}"
 
 step "docker build"
 if [ "$RUN_DOCKER" = true ]; then
