@@ -24,10 +24,10 @@ async fn parses_domain_connect() {
 #[tokio::test]
 async fn parses_ipv4_connect_with_leftover() {
     let mut rx = feed(&[
-        0x05, 0x01, 0x00, 0x05, 0x01, 0x00, 0x01, 1, 1, 1, 1, 0x01, 0xbb, b'G', b'E', b'T',
+        0x05, 0x01, 0x00, 0x05, 0x01, 0x00, 0x01, 198, 18, 0, 1, 0x01, 0xbb, b'G', b'E', b'T',
     ]);
     let req = handshake(&mut rx).await.unwrap();
-    assert_eq!(req.host, "1.1.1.1");
+    assert_eq!(req.host, "198.18.0.1");
     assert_eq!(req.port, 443);
     assert_eq!(req.leftover, b"GET");
 }

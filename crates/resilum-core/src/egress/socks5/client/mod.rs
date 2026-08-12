@@ -76,16 +76,15 @@ mod tests {
 
     #[tokio::test]
     async fn addr_request_round_trips_through_the_server_parser_v4() {
-        let (host, port) = parse_request(Target::Addr("1.1.1.1:443".parse().unwrap())).await;
-        assert_eq!(host, "1.1.1.1");
+        let (host, port) = parse_request(Target::Addr("198.18.0.1:443".parse().unwrap())).await;
+        assert_eq!(host, "198.18.0.1");
         assert_eq!(port, 443);
     }
 
     #[tokio::test]
     async fn addr_request_round_trips_through_the_server_parser_v6() {
-        let (host, port) =
-            parse_request(Target::Addr("[2606:4700:4700::1111]:53".parse().unwrap())).await;
-        assert_eq!(host, "2606:4700:4700::1111");
+        let (host, port) = parse_request(Target::Addr("[2001:2::1]:53".parse().unwrap())).await;
+        assert_eq!(host, "2001:2::1");
         assert_eq!(port, 53);
     }
 

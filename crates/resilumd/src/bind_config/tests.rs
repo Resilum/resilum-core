@@ -3,9 +3,9 @@ use super::regions::replace_region;
 
 #[test]
 fn parse_ygg_requires_scheme() {
-    assert!(parse_ygg_listen("tcp://1.2.3.4:80").is_ok());
+    assert!(parse_ygg_listen("tcp://198.18.0.1:80").is_ok());
     assert!(parse_ygg_listen("tls://[::1]:443").is_ok());
-    assert!(parse_ygg_listen("1.2.3.4:80").is_err());
+    assert!(parse_ygg_listen("198.18.0.1:80").is_err());
 }
 
 #[test]

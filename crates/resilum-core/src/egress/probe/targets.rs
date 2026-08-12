@@ -46,15 +46,15 @@ mod tests {
     #[test]
     fn parses_ipv4_port_and_rejects_junk() {
         assert_eq!(
-            parse_one("1.1.1.1:443"),
-            Some((Ipv4Addr::new(1, 1, 1, 1), 443))
+            parse_one("198.18.0.1:443"),
+            Some((Ipv4Addr::new(198, 18, 0, 1), 443))
         );
         assert_eq!(
-            parse_one(" 9.9.9.9:53 "),
-            Some((Ipv4Addr::new(9, 9, 9, 9), 53))
+            parse_one(" 198.18.0.2:53 "),
+            Some((Ipv4Addr::new(198, 18, 0, 2), 53))
         );
-        assert_eq!(parse_one("1.1.1.1:0"), None);
+        assert_eq!(parse_one("198.18.0.1:0"), None);
         assert_eq!(parse_one("host.name:443"), None);
-        assert_eq!(parse_one("1.1.1.1"), None);
+        assert_eq!(parse_one("198.18.0.1"), None);
     }
 }

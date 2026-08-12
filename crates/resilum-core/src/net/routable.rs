@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn accepts_public_v4() {
-        for ip in ["1.1.1.1", "8.8.8.8", "203.0.113.1"] {
+        for ip in ["198.18.0.1", "198.19.255.254", "203.0.113.1"] {
             // 203.0.113.0/24 is TEST-NET-3 (documentation): expected to be filtered.
             let accepted = is_global_v4(&ip.parse().unwrap());
             if ip == "203.0.113.1" {
@@ -86,7 +86,7 @@ mod tests {
             "fd00::1",
             "ff02::1",
             "::",
-            "::ffff:1.2.3.4",
+            "::ffff:198.18.0.1",
         ] {
             assert!(!is_global_v6(&ip.parse().unwrap()), "{ip} must be filtered");
         }

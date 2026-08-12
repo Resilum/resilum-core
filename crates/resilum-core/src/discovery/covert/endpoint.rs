@@ -40,9 +40,9 @@ mod tests {
 
     #[test]
     fn rejects_empty_carrier_or_addrs() {
-        assert!(parse(b":1.2.3.4").is_none());
+        assert!(parse(b":198.18.0.1").is_none());
         assert!(parse(b"icmp:").is_none());
-        assert!(parse(b"icmp:1.2.3.4,").is_none());
+        assert!(parse(b"icmp:198.18.0.1,").is_none());
     }
 
     proptest! {
