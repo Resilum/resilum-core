@@ -9,7 +9,14 @@ description = "Shared core for a Resilum node: transports, discovery, egress pol
 leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "f43184bc0780c2cac9c0e7e8456ef3a7a971e01d" }
 leviculum-core = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "f43184bc0780c2cac9c0e7e8456ef3a7a971e01d" }
 leviculum-lxmf = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "f43184bc0780c2cac9c0e7e8456ef3a7a971e01d" }
-tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros", "io-util", "net"] }
+tokio = { version = "1", features = [
+  "rt-multi-thread",
+  "time",
+  "sync",
+  "macros",
+  "io-util",
+  "net",
+] }
 tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -27,14 +34,28 @@ futures = "0.3"
 netstack-smoltcp = "0.2.4"
 simple-dns = "0.12"
 
-arti-client = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls", "static-sqlite", "onion-service-client"] }
+arti-client = { version = "0.44", optional = true, default-features = false, features = [
+  "tokio",
+  "rustls",
+  "static-sqlite",
+  "onion-service-client",
+] }
 tokio-util = { version = "0.7", features = ["compat"], optional = true }
-tor-rtcompat = { version = "0.44", optional = true, default-features = false, features = ["tokio", "rustls"] }
-rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std"] }
+tor-rtcompat = { version = "0.44", optional = true, default-features = false, features = [
+  "tokio",
+  "rustls",
+] }
+rustls = { version = "0.23", optional = true, default-features = false, features = [
+  "ring",
+  "std",
+] }
 yosemite = { version = "0.7", optional = true }
 tokio-smoltcp = { version = "0.6", optional = true }
 iroh = { version = "=1.0.3", optional = true }
-iroh-base = { version = "=1.0.3", optional = true, default-features = false, features = ["key", "relay"] }
+iroh-base = { version = "=1.0.3", optional = true, default-features = false, features = [
+  "key",
+  "relay",
+] }
 noq-udp = { version = "1.1", optional = true, default-features = false }
 n0-watcher = { version = "1.0", optional = true }
 
@@ -44,7 +65,13 @@ arti = ["dep:arti-client", "dep:tokio-util", "dep:tor-rtcompat", "dep:rustls"]
 i2p = ["dep:yosemite"]
 ygg = ["dep:tokio-smoltcp"]
 iroh = ["dep:iroh"]
-iroh-protect = ["iroh", "iroh/unstable-custom-transports", "dep:iroh-base", "dep:noq-udp", "dep:n0-watcher"]
+iroh-protect = [
+  "iroh",
+  "iroh/unstable-custom-transports",
+  "dep:iroh-base",
+  "dep:noq-udp",
+  "dep:n0-watcher",
+]
 
 [dev-dependencies]
 proptest = "1.11"

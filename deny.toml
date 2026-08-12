@@ -3,40 +3,40 @@
 [advisories]
 version = 2
 ignore = [
-    # rsa Marvin timing sidechannel. Pulled by arti-client → tor-keymgr →
-    # ssh-key-fork-arti. Arti uses RSA only for internal key storage of legacy
-    # Tor identity material — no network-observable RSA decryption path.
-    # Upstream Tor Project tracks; will drop when the rsa crate ships a
-    # constant-time impl. Not exploitable in our usage.
-    { id = "RUSTSEC-2023-0071", reason = "arti-only internal key storage; no network RSA decryption" },
-    # paste is a compile-time proc-macro with no runtime surface. Author
-    # archived; arti depends via pwd-grp → fs-mistrust. Migration pending
-    # upstream.
-    { id = "RUSTSEC-2024-0436", reason = "compile-time proc-macro; no runtime attack surface" },
+  # rsa Marvin timing sidechannel. Pulled by arti-client → tor-keymgr →
+  # ssh-key-fork-arti. Arti uses RSA only for internal key storage of legacy
+  # Tor identity material — no network-observable RSA decryption path.
+  # Upstream Tor Project tracks; will drop when the rsa crate ships a
+  # constant-time impl. Not exploitable in our usage.
+  { id = "RUSTSEC-2023-0071", reason = "arti-only internal key storage; no network RSA decryption" },
+  # paste is a compile-time proc-macro with no runtime surface. Author
+  # archived; arti depends via pwd-grp → fs-mistrust. Migration pending
+  # upstream.
+  { id = "RUSTSEC-2024-0436", reason = "compile-time proc-macro; no runtime attack surface" },
 ]
 
 [licenses]
 version = 2
 confidence-threshold = 0.9
 allow = [
-    "AGPL-3.0-only",
-    "AGPL-3.0-or-later",
-    "GPL-3.0-only",
-    "Apache-2.0",
-    "MIT",
-    "0BSD",
-    "BSD-1-Clause",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "BSL-1.0",
-    "MPL-2.0",
-    "Unicode-3.0",
-    "Unlicense",
-    "Zlib",
-    "bzip2-1.0.6",
-    "CC0-1.0",
-    "CDLA-Permissive-2.0",
-    "ISC",
+  "AGPL-3.0-only",
+  "AGPL-3.0-or-later",
+  "GPL-3.0-only",
+  "Apache-2.0",
+  "MIT",
+  "0BSD",
+  "BSD-1-Clause",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+  "bzip2-1.0.6",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
 ]
 
 [bans]

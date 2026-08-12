@@ -24,6 +24,10 @@ require() {
 step "rustfmt"
 cargo fmt --all
 
+step "taplo (TOML)"
+require taplo 'cargo install taplo-cli --locked'
+RUST_LOG=warn taplo fmt
+
 step "file length (<= $MAX_LINES lines)"
 too_long=$(find crates -name '*.rs' -exec awk -v max="$MAX_LINES" \
     'END { if (NR > max) printf "  %d\t%s\n", NR, FILENAME }' {} \; | sort -rn)
@@ -86,9 +90,46 @@ cargo test --workspace
 step "doc (deny broken links)"
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --quiet
 
+step "Cargo.lock matches the pins"
+# With the local [patch] active the lock loses the pinned revisions, so it is
+# moved aside: the committed lock is the one a fresh clone resolves.
+PATCH_CONFIG=.cargo/config.toml
+PATCH_STASH=
+
+restore_patch_config() {
+    [ -n "$PATCH_STASH" ] || return 0
+    mv "$PATCH_STASH" "$PATCH_CONFIG"
+    PATCH_STASH=
+}
+
+if [ -f "$PATCH_CONFIG" ]; then
+    PATCH_STASH=$(mktemp)
+    mv "$PATCH_CONFIG" "$PATCH_STASH"
+    trap restore_patch_config EXIT
+    printf '  [patch] moved aside for this step\n'
+fi
+cargo metadata --format-version 1 --quiet >/dev/null
+cargo metadata --format-version 1 --locked --quiet >/dev/null
+restore_patch_config
+trap - EXIT
+
 step "shellcheck"
 require shellcheck 'https://github.com/koalaman/shellcheck#installing'
-shellcheck check.sh
+mapfile -t scripts < <(
+    git ls-files -z | while IFS= read -r -d '' f; do
+        case "$f" in
+            *.sh) printf '%s\n' "$f" ;;
+            *)
+                [ -f "$f" ] || continue
+                IFS= read -r shebang <"$f" 2>/dev/null || continue
+                case "$shebang" in '#!'*sh | '#!'*sh\ *) printf '%s\n' "$f" ;; esac
+                ;;
+        esac
+    done
+)
+[ "${#scripts[@]}" -gt 0 ] || { printf '  ✗ no scripts found to check\n'; exit 1; }
+printf '  %s\n' "${scripts[@]}"
+shellcheck "${scripts[@]}"
 
 step "cargo-deny (advisories, licenses, sources)"
 require cargo-deny 'cargo install cargo-deny --locked'
@@ -96,11 +137,16 @@ require cargo-deny 'cargo install cargo-deny --locked'
 # only under a local [patch] that replaced the git dependency with a path.
 cargo deny check advisories licenses sources -D warnings -A unmatched-source
 
-step "hadolint (Dockerfile)"
+step "hadolint (Dockerfiles)"
+mapfile -t dockerfiles < <(git ls-files -- 'Dockerfile' '*/Dockerfile' '*.dockerfile')
+[ "${#dockerfiles[@]}" -gt 0 ] || { printf '  ✗ no Dockerfile found to check\n'; exit 1; }
+printf '  %s\n' "${dockerfiles[@]}"
 if command -v hadolint >/dev/null 2>&1; then
-    hadolint Dockerfile
+    hadolint "${dockerfiles[@]}"
 elif command -v docker >/dev/null 2>&1; then
-    docker run --rm -i hadolint/hadolint:v2.14.0 hadolint - <Dockerfile
+    for f in "${dockerfiles[@]}"; do
+        docker run --rm -i hadolint/hadolint:v2.14.0 hadolint - <"$f"
+    done
 else
     printf '  ✗ neither hadolint nor docker is installed\n'
     printf '    install: https://github.com/hadolint/hadolint#install (or any docker)\n'

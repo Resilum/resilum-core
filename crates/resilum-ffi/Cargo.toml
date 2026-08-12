@@ -9,7 +9,12 @@ description = "C-ABI wrapper over resilum-core for Dart FFI (mobile)."
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
-resilum-core = { path = "../resilum-core", features = ["arti", "i2p", "ygg", "iroh-protect"] }
+resilum-core = { path = "../resilum-core", features = [
+  "arti",
+  "i2p",
+  "ygg",
+  "iroh-protect",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

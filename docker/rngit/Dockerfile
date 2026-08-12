@@ -7,7 +7,7 @@ RUN apk add --no-cache --no-scripts \
         python3=3.12.13-r0 \
         py3-pip=24.3.1-r0 \
  && pip install --no-cache-dir --break-system-packages --root-user-action=ignore \
-        rns \
+        rns==1.4.0 \
  && adduser -D -H -u 1000 rngit \
  && mkdir -p /config \
  && chown rngit:rngit /config
