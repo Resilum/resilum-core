@@ -11,6 +11,9 @@ pub struct EgressListen {
     /// `*` means unknown.
     pub exit_country: String,
     pub announce_interval: Duration,
+    /// Let peers reach loopback, RFC 1918 and link-local through this node.
+    /// Off by default: on it exposes the node's own services and its LAN.
+    pub allow_private: bool,
 }
 
 impl EgressListen {
@@ -20,6 +23,7 @@ impl EgressListen {
             target,
             exit_country: "*".into(),
             announce_interval: default_announce_interval(),
+            allow_private: false,
         }
     }
 }

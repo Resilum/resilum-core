@@ -32,12 +32,15 @@ pub(in crate::config_file) struct EgressFile {
     exit_country: String,
     #[serde(default)]
     announce_interval_secs: Option<u64>,
+    #[serde(default)]
+    allow_private: bool,
 }
 
 impl From<EgressFile> for EgressListen {
     fn from(f: EgressFile) -> Self {
         let mut e = EgressListen::new(f.service, f.target);
         e.exit_country = f.exit_country;
+        e.allow_private = f.allow_private;
         if let Some(secs) = f.announce_interval_secs {
             e.announce_interval = Duration::from_secs(secs);
         }

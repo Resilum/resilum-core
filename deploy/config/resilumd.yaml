@@ -62,6 +62,9 @@ egress:
   #   target: 127.0.0.1:4447
   # - service: socks-egress    # embedded SOCKS5, direct clearnet exit
   #   exit_country: DE
+  #   allow_private: false     # `true` lets peers reach this host's loopback
+  #                            # services and its LAN — only for a node whose
+  #                            # peers are all trusted
 
 # Accept local TCP and forward through the fastest mesh egress provider.
 # `use_own: smart` never picks your own socks-egress (would defeat anonymity)

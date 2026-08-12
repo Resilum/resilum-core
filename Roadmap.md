@@ -6,8 +6,6 @@ that closes them.
 
 ## Security
 
-- Embedded SOCKS egress dials any host a peer names: resolve first, reject
-  loopback, private, link-local and cloud metadata through `net::is_globally_routable`
 - Egress links are accepted without authentication
 - Covert server allocates a session before authentication, and the session table
   has no upper bound

@@ -1,6 +1,7 @@
 //! Egress listen side: register a destination per service, announce each, and
 //! forward every inbound link to its service's local TCP endpoint.
 
+mod policy;
 mod session;
 
 use std::collections::HashMap;
@@ -18,7 +19,7 @@ use crate::link::Inbound;
 #[derive(Clone)]
 enum Backend {
     External(String),
-    EmbeddedSocks,
+    EmbeddedSocks { allow_private: bool },
 }
 
 const APP_NAME: &str = "resilum";
@@ -65,7 +66,9 @@ pub async fn run(
         ));
         let backend = match cfg.target.clone() {
             Some(t) => Backend::External(t),
-            None => Backend::EmbeddedSocks,
+            None => Backend::EmbeddedSocks {
+                allow_private: cfg.allow_private,
+            },
         };
         backends.insert(*dest_hash.as_bytes(), backend);
     }
@@ -77,8 +80,8 @@ pub async fn run(
                 Backend::External(target) => {
                     tokio::spawn(session::session_external(handle, from_link, target));
                 }
-                Backend::EmbeddedSocks => {
-                    tokio::spawn(session::session_embedded(handle, from_link));
+                Backend::EmbeddedSocks { allow_private } => {
+                    tokio::spawn(session::session_embedded(handle, from_link, allow_private));
                 }
             }
         }
