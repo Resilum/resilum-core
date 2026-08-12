@@ -63,23 +63,43 @@ fi
 
 step "index leaks (paths, language, private patterns)"
 # The index, not the working tree: skip-worktree hides local edits only while
-# that local flag survives. Patterns are categories, never literals — one
-# spelling out what it hides would leak it; project-specific ones live in the
-# untracked lints/private-patterns.txt.
-# A home directory on any of the platforms someone might build this on:
-# /home/<user>, /Users/<user>, C:\Users\<user>, /mnt/c/Users/<user>. `/root`
-# is deliberately absent — it names no person and is a real path inside the
-# container images.
-home_dir='(/home|/Users|/mnt/[a-z]/Users|[A-Za-z]:[\\/]Users)[\\/][^\\/[:space:]"'"'"']+'
-leak_patterns="$home_dir"'|[\x{0400}-\x{04FF}]'
-if [ -f lints/private-patterns.txt ]; then
+# that local flag survives.
+leak_patterns=
+for list in lints/leak-patterns.txt lints/private-patterns.txt; do
+    [ -f "$list" ] || continue
     while read -r pattern; do
-        [ -n "$pattern" ] && leak_patterns="$leak_patterns|$pattern"
-    done < <(grep -v '^#' lints/private-patterns.txt)
-fi
-# `:!` excludes this file, whose own pattern list would otherwise match.
-if git grep --cached -nP "$leak_patterns" -- ':!check.sh'; then
+        [ -n "$pattern" ] || continue
+        leak_patterns="${leak_patterns:+$leak_patterns|}$pattern"
+    done < <(grep -v '^#' "$list")
+done
+[ -n "$leak_patterns" ] || { printf '  ✗ lints/leak-patterns.txt is missing\n'; exit 1; }
+# `:!` excludes the pattern lists, which match themselves by construction.
+if git grep --cached -nP "$leak_patterns" -- ':!lints/*-patterns.txt'; then
     printf '  ✗ the index carries a local path, another language, or a private pattern\n'
+    exit 1
+fi
+
+step "history leaks (commits not yet pushed)"
+# The step above reads the current tree, so a path added in one commit and
+# taken out in the next still ships once the range is pushed.
+if upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null); then
+    span="$upstream..HEAD"
+    printf '  range: %s\n' "$span"
+else
+    span=HEAD
+    printf '  no upstream branch; scanning the whole history\n'
+fi
+leaking_commits=$(
+    for sha in $(git rev-list "$span"); do
+        git show --format= "$sha" -- . ':!lints/*-patterns.txt' \
+            | grep -qP "^\+.*($leak_patterns)" || continue
+        git log -1 --format='  %h %s' "$sha"
+    done
+)
+if [ -n "$leaking_commits" ]; then
+    printf '%s\n' "$leaking_commits"
+    printf '  ✗ commit(s) above add a local path, another language, or a private pattern\n'
+    printf '    rewrite them before pushing: git rebase, or reset + amend + cherry-pick\n'
     exit 1
 fi
 
