@@ -3,6 +3,9 @@ target/
 *.md
 .codeberg-token
 
+# The local [patch] points at a worktree outside the build context.
+.cargo/
+
 # Everything under deploy/config is per-node runtime, keep only templates.
 deploy/config/**
 !deploy/config/**/

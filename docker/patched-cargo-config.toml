@@ -1,0 +1,6 @@
+# Copied into the build stage by docker/Dockerfile.patched, which bind-mounts
+# the worktree at /leviculum.
+[patch."https://codeberg.org/Lew_Palm/leviculum.git"]
+leviculum-std = { path = "/leviculum/leviculum-std" }
+leviculum-core = { path = "/leviculum/leviculum-core" }
+leviculum-lxmf = { path = "/leviculum/leviculum-lxmf" }

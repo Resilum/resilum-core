@@ -26,6 +26,9 @@ deploy/config/**
 # Local dev compose override
 deploy/compose.override.yaml
 
+# Local dev cargo config: [patch] pointing at a leviculum worktree
+.cargo/
+
 docs/__check/
 
 # Leak patterns are project-private by definition
