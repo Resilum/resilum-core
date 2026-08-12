@@ -1,3 +1,4 @@
+---
 services:
   resilum:
     image: resilum:latest
@@ -13,12 +14,6 @@ services:
       - ./config:/config
     environment:
       RUST_LOG: "info,resilum_core=debug,leviculum_std=debug"
-    healthcheck:
-      test: ["CMD", "sh", "-c", "grep -q '@rns/resilum' /proc/net/unix"]
-      interval: 5s
-      timeout: 2s
-      retries: 3
-      start_period: 60s
 
   rngit:
     build: ../docker/rngit

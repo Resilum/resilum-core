@@ -33,6 +33,7 @@ pub fn run(path: &Path) {
     let _iroh = attach_iroh(&mut node);
     announce_startup(&node);
     spawn_stats(&node);
+    spawn_health(&node);
 
     let (tx, rx) = mpsc::channel();
     if let Err(e) = ctrlc::set_handler(move || {
@@ -79,6 +80,17 @@ fn announce_startup(node: &Node) {
         identity = %id_hash,
         "started"
     );
+}
+
+fn spawn_health(node: &Node) {
+    let Some(engine) = node.engine() else {
+        return;
+    };
+    let path = crate::health::file_path(
+        node.config().storage_path.as_deref(),
+        std::env::var("RESILUM_HEALTH_FILE").ok(),
+    );
+    crate::health::spawn(engine, path);
 }
 
 fn spawn_stats(node: &Node) {

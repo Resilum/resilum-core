@@ -5,6 +5,7 @@ mod bind_config;
 mod config;
 mod covert;
 mod daemon;
+mod health;
 mod i2pd_export;
 mod mirrors;
 mod subcommands;

@@ -22,7 +22,9 @@ RUN apk add --no-cache --no-scripts \
  && adduser -D -H -u 1000 resilum \
  && mkdir -p /config /var/run/yggdrasil \
  && chown resilum:resilum /config /var/run/yggdrasil
-COPY --chmod=755 docker/entrypoint.sh /entrypoint.sh
+COPY --chmod=755 docker/entrypoint.sh docker/healthcheck.sh /
 COPY --from=build /resilumd /usr/local/bin/resilumd
 USER resilum
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
+    CMD ["/healthcheck.sh"]
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]
