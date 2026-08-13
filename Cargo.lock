@@ -4586,6 +4586,7 @@ name = "resilum-ffi"
 version = "0.0.0"
 dependencies = [
  "cbindgen",
+ "ndk-context",
  "paranoid-android",
  "resilum-core",
  "serde",

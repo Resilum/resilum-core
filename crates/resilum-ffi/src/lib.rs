@@ -9,6 +9,7 @@ mod iroh;
 mod logging;
 mod lxmf;
 mod node;
+mod platform;
 mod status;
 #[cfg(unix)]
 mod vpn;
@@ -21,6 +22,7 @@ pub use iroh::*;
 pub use logging::*;
 pub use lxmf::*;
 pub use node::*;
+pub use platform::*;
 pub use status::*;
 #[cfg(unix)]
 pub use vpn::*;

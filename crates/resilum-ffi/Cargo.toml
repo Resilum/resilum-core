@@ -21,6 +21,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 paranoid-android = "0.2"
+ndk-context = "0.1"
 
 [build-dependencies]
 cbindgen = "0.29"
