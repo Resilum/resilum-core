@@ -24,6 +24,7 @@ pub(super) enum Command {
 pub struct LxmfHandle {
     commands: mpsc::Sender<Command>,
     events: Mutex<mpsc::Receiver<String>>,
+    inbox: Arc<super::inbox::Inbox>,
     depth: Arc<AtomicUsize>,
     registered: Arc<AtomicBool>,
     address: String,
@@ -56,11 +57,19 @@ impl LxmfHandle {
         self.send(Command::Announce)
     }
 
-    /// Next queued event, as the JSON the FFI hands the app.
+    /// Next queued event, as the JSON the FFI hands the app. Received messages
+    /// go first; a delivery update can wait behind them.
     ///
     /// The poisoned lock is recovered from: it is only ever held across a
     /// `try_recv`, and `None` would claim the mesh went quiet.
     pub fn next_event(&self) -> Option<String> {
+        if let Some(json) = self.inbox.pop() {
+            return Some(json);
+        }
+        let refused = self.inbox.take_dropped();
+        if refused > 0 {
+            return Some(format!(r#"{{"type":"overflow","dropped":{refused}}}"#));
+        }
         let events = self.events.lock().unwrap_or_else(|e| e.into_inner());
         let json = events.try_recv().ok()?;
         self.depth.fetch_sub(1, Ordering::Relaxed);
@@ -110,6 +119,7 @@ impl EventSink {
 pub(super) fn channel(
     address: String,
     registered: Arc<AtomicBool>,
+    inbox: Arc<super::inbox::Inbox>,
 ) -> (LxmfHandle, mpsc::Receiver<Command>, EventSink) {
     let (commands, command_rx) = mpsc::channel();
     let (events, event_rx) = mpsc::channel();
@@ -117,6 +127,7 @@ pub(super) fn channel(
     let handle = LxmfHandle {
         commands,
         events: Mutex::new(event_rx),
+        inbox,
         depth: depth.clone(),
         registered,
         address,

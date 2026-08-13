@@ -4,6 +4,7 @@
 
 mod checkpoint;
 mod handle;
+mod inbox;
 pub mod poll;
 mod processor;
 pub mod send;
@@ -34,7 +35,11 @@ pub(crate) fn install(
 ) -> (ReticulumNodeBuilder, LxmfHandle) {
     let registered = Arc::new(AtomicBool::new(false));
     let address = crate::identity::lxmf_address_hex(identity);
-    let (handle, commands, events) = handle::channel(address, registered.clone());
+    let inbox = Arc::new(match storage_path {
+        Some(dir) => inbox::Inbox::open(dir.join(INBOX_FILE)),
+        None => inbox::Inbox::ephemeral(),
+    });
+    let (handle, commands, events) = handle::channel(address, registered.clone(), inbox.clone());
     let (stamp_tx, stamp_rx) = tokio::sync::mpsc::unbounded_channel();
     stamp::spawn(stamp_rx, handle.sender());
     // No storage directory means no durable queue: a restart loses whatever
@@ -44,17 +49,23 @@ pub(crate) fn install(
     let processor = processor::LxmfProcessor::new(
         config.clone(),
         identity.clone(),
-        commands,
-        events,
-        stamp_tx,
-        registered,
-        checkpoint,
+        processor::Wiring {
+            commands,
+            events,
+            inbox,
+            stamps: stamp_tx,
+            registered,
+            checkpoint,
+        },
     );
     (builder.core_processor(processor), handle)
 }
 
 /// Where the router's checkpoint lives, under the node's storage directory.
 const CHECKPOINT_FILE: &str = "lxmf_state";
+
+/// Received messages the app has not taken yet.
+const INBOX_FILE: &str = "lxmf_inbox";
 
 /// The app's `{custom_type, custom_data}` as LXMF custom fields — each value a
 /// single msgpack value, as `Message::create` and the wire require.

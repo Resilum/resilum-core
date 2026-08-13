@@ -81,7 +81,11 @@ impl LxmfProcessor {
             }
             return;
         }
+        let received = matches!(event, RouterEvent::MessageReceived(_));
         match crate::lxmf::poll::event_to_json(&event) {
+            // A delivery update stays in the queue because the next one
+            // supersedes it; a message has no such successor.
+            Some(json) if received => self.inbox.push(json),
             Some(json) => self.events.push(json),
             None => tracing::debug!(event = ?event, "lxmf router event"),
         }

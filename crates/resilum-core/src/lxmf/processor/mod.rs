@@ -28,6 +28,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::checkpoint::Checkpoint;
 use super::handle::{Command, EventSink};
+use super::inbox::Inbox;
 use crate::config::LxmfConfig;
 
 /// Bounds how long a submitted message waits to be picked up: an event tap
@@ -54,6 +55,7 @@ pub(super) struct LxmfProcessor {
     config: LxmfConfig,
     commands: Receiver<Command>,
     events: EventSink,
+    inbox: Arc<Inbox>,
     stamps: UnboundedSender<DeliveryStampRequest>,
     registered: Arc<AtomicBool>,
     /// `None` when the node has no storage directory, i.e. nowhere durable to
@@ -62,23 +64,26 @@ pub(super) struct LxmfProcessor {
     state: State,
 }
 
+/// Everything the processor talks to the rest of the node through.
+pub(super) struct Wiring {
+    pub(super) commands: Receiver<Command>,
+    pub(super) events: EventSink,
+    pub(super) inbox: Arc<Inbox>,
+    pub(super) stamps: UnboundedSender<DeliveryStampRequest>,
+    pub(super) registered: Arc<AtomicBool>,
+    pub(super) checkpoint: Option<Checkpoint>,
+}
+
 impl LxmfProcessor {
-    pub(super) fn new(
-        config: LxmfConfig,
-        identity: Identity,
-        commands: Receiver<Command>,
-        events: EventSink,
-        stamps: UnboundedSender<DeliveryStampRequest>,
-        registered: Arc<AtomicBool>,
-        checkpoint: Option<Checkpoint>,
-    ) -> Self {
+    pub(super) fn new(config: LxmfConfig, identity: Identity, wiring: Wiring) -> Self {
         Self {
             config,
-            commands,
-            events,
-            stamps,
-            registered,
-            checkpoint,
+            commands: wiring.commands,
+            events: wiring.events,
+            inbox: wiring.inbox,
+            stamps: wiring.stamps,
+            registered: wiring.registered,
+            checkpoint: wiring.checkpoint,
             state: State::Unregistered(Box::new(identity)),
         }
     }
