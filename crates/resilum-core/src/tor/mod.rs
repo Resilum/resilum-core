@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use arti_client::config::CfgPath;
-use arti_client::{TorClient, TorClientConfig};
+use arti_client::{BootstrapBehavior, TorClient, TorClientConfig};
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
@@ -23,17 +23,30 @@ pub struct EmbeddedTor {
 }
 
 impl EmbeddedTor {
-    /// Bootstrap Arti. `state_root`, when set, roots its cache/state there — a
-    /// sandboxed host lacks a writable OS-default dir for them.
+    /// Start Arti and expose its SOCKS listener. `state_root`, when set, roots
+    /// its cache/state there — a sandboxed host lacks a writable OS-default dir
+    /// for them.
+    ///
+    /// The directory bootstrap runs off this call: where Tor is blocked it
+    /// retries indefinitely, and this has to return.
     pub async fn spawn(state_root: Option<&Path>) -> io::Result<Self> {
         // Arti needs rustls' process-default CryptoProvider installed, else TLS
         // panics mid-bootstrap.
         let _ = rustls::crypto::ring::default_provider().install_default();
         let config =
             build_config(state_root).map_err(|e| io::Error::other(format!("arti config: {e}")))?;
-        let client: ArtiClient = TorClient::create_bootstrapped(config)
-            .await
-            .map_err(|e| io::Error::other(format!("arti bootstrap: {e}")))?;
+        let client: ArtiClient = TorClient::builder()
+            .config(config)
+            .bootstrap_behavior(BootstrapBehavior::OnDemand)
+            .create_unbootstrapped()
+            .map_err(|e| io::Error::other(format!("arti client: {e}")))?;
+
+        let warm = Arc::clone(&client);
+        tokio::spawn(async move {
+            if let Err(e) = warm.bootstrap().await {
+                tracing::warn!(error = %e, "arti bootstrap failed; retried on first use");
+            }
+        });
 
         let listener =
             TcpListener::bind(SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 0)).await?;
@@ -95,5 +108,26 @@ async fn accept_loop(listener: TcpListener, client: ArtiClient) {
                 tracing::debug!(error = %e, "arti socks conn ended");
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn spawn_returns_without_waiting_for_the_directory() {
+        let dir = std::env::temp_dir().join(format!("resilum-tor-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let tor = tokio::time::timeout(Duration::from_secs(10), EmbeddedTor::spawn(Some(&dir)))
+            .await
+            .expect("spawn must not wait for the directory")
+            .expect("spawn must succeed");
+        assert!(tor.port() != 0, "the SOCKS port has to be known at once");
+
+        std::fs::remove_dir_all(&dir).ok();
     }
 }
