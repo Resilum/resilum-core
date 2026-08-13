@@ -35,31 +35,13 @@ require taplo 'cargo install taplo-cli --locked'
 RUST_LOG=warn taplo fmt
 
 step "file length (<= $MAX_LINES lines)"
-too_long=$(find crates -name '*.rs' -exec awk -v max="$MAX_LINES" \
-    'END { if (NR > max) printf "  %d\t%s\n", NR, FILENAME }' {} \; | sort -rn)
-if [ -n "$too_long" ]; then
-    printf '%s\n' "$too_long"
-    printf '  ✗ file(s) over %s lines; split into a directory module\n' "$MAX_LINES"
-    exit 1
-fi
+cargo run --quiet -p xtask -- file-length "$MAX_LINES" crates
 
 step "comment density (<= $MAX_COMMENT_PCT% of non-blank lines)"
-# tokei rather than counting `//` lines: it parses the language, so a `//`
-# inside a string literal is code and a doc block is not miscounted. Prose that
-# outgrows this is usually restating what the code says.
-require tokei 'cargo install tokei --locked'
-require jq 'https://jqlang.github.io/jq/download/'
-dense=$(tokei --output json crates \
-    | jq -r --argjson max "$MAX_COMMENT_PCT" '
-        .Rust.reports[]
-        | select(.stats.comments + .stats.code > 0)
-        | select(.stats.comments * 100 / (.stats.comments + .stats.code) > $max)
-        | "  \(.stats.comments * 100 / (.stats.comments + .stats.code) | floor)%  \(.name)"')
-if [ -n "$dense" ]; then
-    printf '%s\n' "$dense"
-    printf '  ✗ comment density over %s%%; cut what the code already says\n' "$MAX_COMMENT_PCT"
-    exit 1
-fi
+# Comments inside code only: `///` and `//!` document the API, and no threshold
+# separates a needed doc from prose — that is a review question. Counted off
+# the parse tree, so a `//` inside a string literal is not a comment.
+cargo run --quiet -p xtask -- comment-density "$MAX_COMMENT_PCT" crates
 
 step "gitleaks (staged and history)"
 require gitleaks 'https://github.com/gitleaks/gitleaks#installing'
@@ -105,6 +87,17 @@ cargo metadata --format-version 1 --offline --locked --quiet >/dev/null
 restore_patch_config
 trap - EXIT
 
+step "scripts stay shell"
+# A `python3 -c '...'` argument is just a string to the shell linter, so an
+# embedded language passes every gate here while being linted by none.
+foreign=$(grep -nE "(^|[|&;( ])(python3?|perl|ruby|node|deno)( |$)" check.sh \
+    | grep -v '^[0-9]*: *#' || true)
+if [ -n "$foreign" ]; then
+    printf '%s\n' "$foreign"
+    printf '  ✗ the checker is shell and external tools; put logic in its own file\n'
+    exit 1
+fi
+
 step "shellcheck"
 require shellcheck 'https://github.com/koalaman/shellcheck#installing'
 mapfile -t scripts < <(
@@ -123,11 +116,11 @@ mapfile -t scripts < <(
 printf '  %s\n' "${scripts[@]}"
 shellcheck "${scripts[@]}"
 
-step "cargo-deny (advisories, licenses, sources)"
+step "cargo-deny (advisories, bans, licenses, sources)"
 require cargo-deny 'cargo install cargo-deny --locked'
 # `-D warnings`, because cargo-deny exits 0 on them. `unmatched-source` fires
 # only under a local [patch] that replaced the git dependency with a path.
-cargo deny check advisories licenses sources -D warnings -A unmatched-source
+cargo deny check advisories bans licenses sources -D warnings -A unmatched-source
 
 step "hadolint (Dockerfiles)"
 mapfile -t dockerfiles < <(tracked_and_new -- 'Dockerfile' '*/Dockerfile' '*.dockerfile')

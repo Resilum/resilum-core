@@ -41,6 +41,10 @@ allow = [
 
 [bans]
 multiple-versions = "allow"
+# ndk-context keeps the Android handles in a static, so the resolver only sees
+# what we install while both link the same copy. A second version compiles
+# fine and silently reverts the DNS fallback.
+deny = [{ crate = "ndk-context", deny-multiple-versions = true }]
 
 [sources]
 unknown-registry = "deny"
