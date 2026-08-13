@@ -86,6 +86,10 @@ impl LxmfProcessor {
         let hash = DestinationHash::new(ready.delivery_hash);
         match core.announce_destination(&hash, Some(&app_data)) {
             Ok(core_output) => {
+                tracing::info!(
+                    address = %crate::hex::encode(ready.delivery_hash.iter()),
+                    "lxmf announce sent",
+                );
                 // Through `absorb` rather than merged straight into `out`: the
                 // call ends in event processing, so its output can carry events
                 // the router still needs to see.

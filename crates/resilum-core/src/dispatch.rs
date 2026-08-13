@@ -46,9 +46,9 @@ pub async fn forward(events: Events, mut rx: EventReceiver) {
         match &event {
             NodeEvent::AnnounceReceived { announce, .. } => {
                 tracing::debug!(
-                    id = %hex_head(&announce.computed_identity_hash()),
-                    dest = %hex_head(announce.destination_hash().as_ref()),
-                    name = %hex_head(announce.name_hash()),
+                    id = %crate::hex::head(&announce.computed_identity_hash()),
+                    dest = %crate::hex::head(announce.destination_hash().as_ref()),
+                    name = %crate::hex::head(announce.name_hash()),
                     "announce"
                 );
             }
@@ -57,20 +57,12 @@ pub async fn forward(events: Events, mut rx: EventReceiver) {
                 destination_hash,
                 is_initiator,
             } => {
-                tracing::info!(?link_id, dest = %hex_head(destination_hash.as_ref()), initiator = is_initiator, "link established");
+                tracing::info!(?link_id, dest = %crate::hex::head(destination_hash.as_ref()), initiator = is_initiator, "link established");
             }
             _ => {}
         }
         events.publish(event);
     }
-}
-
-fn hex_head(bytes: &[u8]) -> String {
-    use std::fmt::Write;
-    bytes.iter().take(8).fold(String::new(), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    })
 }
 
 #[cfg(test)]

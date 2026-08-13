@@ -25,6 +25,10 @@ impl LxmfProcessor {
         };
         self.state = match register(core, identity, self.checkpoint.as_ref()) {
             Ok(ready) => {
+                tracing::info!(
+                    address = %crate::hex::encode(ready.delivery_hash.iter()),
+                    "lxmf ready",
+                );
                 self.registered.store(true, Ordering::Relaxed);
                 State::Ready(Box::new(ready))
             }

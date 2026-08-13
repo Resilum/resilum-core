@@ -15,6 +15,7 @@ pub mod egress;
 mod engine;
 mod error;
 mod event;
+pub mod hex;
 pub mod identity;
 #[cfg(feature = "iroh")]
 pub mod iroh;

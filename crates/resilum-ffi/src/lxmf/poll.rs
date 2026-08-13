@@ -12,7 +12,8 @@ use crate::node::ResilumNode;
 ///   "timestamp": 0.0, "title_b64":"...", "content_b64":"...",
 ///   "fields": { "custom_type":"...", "custom_data": <value> } }
 /// { "type":"delivery", "message_id":"<hex>", "state":"generating" | "queued" |
-///   "sending" | "sent" | "delivered" | "rejected" | "cancelled" | "failed" }
+///   "sending" | "sent" | "awaiting_collection" | "delivered" | "rejected" |
+///   "cancelled" | "failed" }
 /// { "type":"overflow", "dropped": 0 }
 /// ```
 /// `delivery` tracks a message this node sent, keyed by the id
