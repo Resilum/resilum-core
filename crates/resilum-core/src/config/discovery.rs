@@ -4,9 +4,13 @@ use std::path::PathBuf;
 /// and hands the host + port to `spawn_tcp_client`.
 #[derive(Clone, Debug)]
 pub enum EndpointFormat {
-    /// `<host><suffix>:<port>`, host restricted to lowercase ASCII alnum + `.-`
-    /// (Tor `.onion`, I2P `.b32.i2p`).
-    Suffix(String),
+    /// A base32 label plus a suffix, as Tor and I2P name a service.
+    Base32 {
+        suffix: String,
+        /// Bytes the label decodes to, so a malformed announce is refused
+        /// rather than rebuilt into an address that resolves nowhere.
+        label_len: usize,
+    },
     /// `[<ipv6>]:<port>` (Yggdrasil): the announced IPv6 is dialed directly.
     BracketedIpv6,
 }
@@ -48,7 +52,11 @@ impl DiscoveryService {
         Self {
             service: "tor".into(),
             name_prefix: "TorDiscovered".into(),
-            endpoint_format: EndpointFormat::Suffix(".onion".into()),
+            // A v3 onion label is the key, its checksum and the version.
+            endpoint_format: EndpointFormat::Base32 {
+                suffix: ".onion".into(),
+                label_len: 35,
+            },
             socks_proxy: Some(SocksProxy::External("127.0.0.1".into(), 9050)),
             hostname_path: Some(PathBuf::from("/config/tor/hidden_service/hostname")),
             rns_port: 4242,
@@ -73,7 +81,11 @@ impl DiscoveryService {
         Self {
             service: "i2p".into(),
             name_prefix: "I2PDiscovered".into(),
-            endpoint_format: EndpointFormat::Suffix(".b32.i2p".into()),
+            // A b32 destination is the 32-byte hash of the full destination.
+            endpoint_format: EndpointFormat::Base32 {
+                suffix: ".b32.i2p".into(),
+                label_len: 32,
+            },
             socks_proxy: Some(SocksProxy::External("127.0.0.1".into(), 4447)),
             hostname_path: Some(PathBuf::from("/config/i2p/hidden_service/hostname")),
             rns_port: 4242,

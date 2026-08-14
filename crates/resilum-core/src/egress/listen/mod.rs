@@ -57,7 +57,11 @@ pub async fn run(
         let dest = build_destination(identity.clone(), &cfg.service);
         let dest_hash = *dest.hash();
         engine.register_destination(dest);
-        let payload = crate::announce_payload::pack(None, &cfg.exit_country, &[]);
+        let (payload, _) = crate::announce_payload::pack(
+            &std::collections::BTreeMap::new(),
+            &cfg.exit_country,
+            leviculum_core::announce_app_data_budget(true),
+        );
         announcers.push(announce_loop(
             engine.clone(),
             dest_hash,

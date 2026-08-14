@@ -1,6 +1,6 @@
-//! Announce-driven peer discovery: each plugin advertises one transport
-//! endpoint and reacts to peers advertising the same `resilum.discovery.<svc>`
-//! aspect. Incoming announces route to a plugin by their name-hash.
+//! Announce-driven peer discovery: one announce carries every transport this
+//! node has ready, and each endpoint in it routes to the plugin for its
+//! service.
 
 mod build;
 mod cache;
@@ -8,15 +8,16 @@ mod consume;
 pub mod covert;
 mod origin;
 mod produce;
+pub mod service;
 mod tcp;
 pub use build::{BuildParams, build_covert_addresses, build_from_services};
 pub use cache::run_prune_loop;
 pub use consume::run_consume;
 pub use origin::OriginRegistry;
-pub use produce::{build_destination, build_destinations, run_produce};
+pub use produce::{build_destination, run_produce};
 pub use tcp::TcpDiscovered;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use leviculum_std::api::Destination;
@@ -36,36 +37,33 @@ pub trait DiscoveryPlugin: Send + Sync {
     fn consume_endpoint(&self, payload: &[u8], announcer_pubkey: &[u8]);
 }
 
-/// Plugins keyed by the name-hash of their discovery aspect.
+/// Plugins keyed by the service they speak for, which is how a peer names its
+/// endpoints in the announce.
 #[derive(Default)]
 pub struct Discovery {
-    by_name_hash: HashMap<Vec<u8>, Arc<dyn DiscoveryPlugin>>,
-    services: HashMap<Vec<u8>, String>,
+    by_service: BTreeMap<String, Arc<dyn DiscoveryPlugin>>,
 }
 
 impl Discovery {
     pub fn register(&mut self, service: &str, plugin: Arc<dyn DiscoveryPlugin>) {
-        let nh = name_hash(service);
-        self.services.insert(nh.clone(), service.to_owned());
-        self.by_name_hash.insert(nh, plugin);
+        self.by_service.insert(service.to_owned(), plugin);
     }
 
-    /// Route an announce to the matching plugin's `consume_endpoint`.
-    pub fn on_announce(&self, name_hash: &[u8], app_data: &[u8], announcer_pubkey: &[u8]) {
-        if let Some(plugin) = self.by_name_hash.get(name_hash) {
-            plugin.consume_endpoint(app_data, announcer_pubkey);
+    /// Hand each endpoint in an announce to the plugin for its service; a
+    /// service this node does not run is not an error.
+    pub fn on_announce(&self, endpoints: &BTreeMap<String, Vec<u8>>, announcer_pubkey: &[u8]) {
+        for (service, endpoint) in endpoints {
+            if let Some(plugin) = self.by_service.get(service) {
+                plugin.consume_endpoint(endpoint, announcer_pubkey);
+            }
         }
     }
 
-    /// Each registered service with its current produced endpoint (for the
-    /// announce loop); services whose transport is not ready are skipped.
-    pub fn endpoints(&self) -> Vec<(String, Vec<u8>)> {
-        self.by_name_hash
+    /// Every service whose transport is ready, for the announce loop.
+    pub fn endpoints(&self) -> BTreeMap<String, Vec<u8>> {
+        self.by_service
             .iter()
-            .filter_map(|(nh, plugin)| {
-                let service = self.services.get(nh)?.clone();
-                Some((service, plugin.produce_endpoint()?))
-            })
+            .filter_map(|(service, plugin)| Some((service.clone(), plugin.produce_endpoint()?)))
             .collect()
     }
 }
@@ -109,14 +107,25 @@ mod tests {
         }
     }
 
+    fn announced(pairs: &[(&str, &[u8])]) -> BTreeMap<String, Vec<u8>> {
+        pairs
+            .iter()
+            .map(|(s, e)| ((*s).to_owned(), e.to_vec()))
+            .collect()
+    }
+
     #[test]
-    fn routes_matching_announce_only() {
+    fn each_endpoint_reaches_the_plugin_for_its_service() {
         let plugin = Arc::new(Fake::default());
         let mut d = Discovery::default();
         d.register("tor", plugin.clone());
 
-        d.on_announce(&name_hash("tor"), b"payload", b"pubkey");
-        d.on_announce(&name_hash("i2p"), b"other", b"pubkey"); // no plugin → ignored
+        // One announce, two services: the one nothing is registered for is
+        // another node's transport, not an error.
+        d.on_announce(
+            &announced(&[("tor", b"payload"), ("i2p", b"other")]),
+            b"pubkey",
+        );
 
         assert_eq!(
             plugin.consumed.lock().unwrap().as_slice(),
@@ -128,9 +137,6 @@ mod tests {
     fn endpoints_lists_registered_services() {
         let mut d = Discovery::default();
         d.register("tor", Arc::new(Fake::default()));
-        let eps = d.endpoints();
-        assert_eq!(eps.len(), 1);
-        assert_eq!(eps[0].0, "tor");
-        assert_eq!(eps[0].1, b"endpoint");
+        assert_eq!(d.endpoints(), announced(&[("tor", b"endpoint")]));
     }
 }

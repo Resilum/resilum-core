@@ -9,7 +9,6 @@ pub struct Candidate {
     pub service: String,
     /// Exit country; `*` means unknown.
     pub exit_country: String,
-    pub capabilities: Vec<String>,
     /// Mesh leg latency (consumer → provider), seconds.
     pub link_rtt: Option<f64>,
     /// Egress leg latency (provider → internet), seconds.
@@ -24,7 +23,6 @@ impl Candidate {
             dest_hash,
             service: service.into(),
             exit_country: "*".into(),
-            capabilities: Vec::new(),
             link_rtt: None,
             egress_side: None,
             healthy: true,
@@ -47,13 +45,7 @@ pub struct CandidateRegistry {
 
 impl CandidateRegistry {
     /// Returns `true` when the candidate was newly discovered (not just refreshed).
-    pub fn upsert(
-        &self,
-        service: &str,
-        dest_hash: Vec<u8>,
-        exit_country: &str,
-        caps: Vec<String>,
-    ) -> bool {
+    pub fn upsert(&self, service: &str, dest_hash: Vec<u8>, exit_country: &str) -> bool {
         let mut map = self.by_service.lock().expect("registry lock");
         let svc = map.entry(service.to_owned()).or_default();
         let is_new = !svc.contains_key(&dest_hash);
@@ -61,7 +53,6 @@ impl CandidateRegistry {
             .entry(dest_hash.clone())
             .or_insert_with(|| Candidate::new(dest_hash, service));
         cand.exit_country = exit_country.to_owned();
-        cand.capabilities = caps;
         is_new
     }
 

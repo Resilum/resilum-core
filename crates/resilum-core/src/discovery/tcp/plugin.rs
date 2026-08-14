@@ -3,8 +3,8 @@
 use std::sync::atomic::Ordering;
 
 use super::TcpDiscovered;
-use super::endpoint::parse_endpoint;
-use crate::config::{EndpointFormat, SocksProxy};
+use super::endpoint::{encode_endpoint, parse_endpoint};
+use crate::config::SocksProxy;
 use crate::discovery::{DiscoveryPlugin, cache};
 
 impl DiscoveryPlugin for TcpDiscovered {
@@ -13,11 +13,7 @@ impl DiscoveryPlugin for TcpDiscovered {
             return None;
         }
         let host = self.detect_host()?;
-        let payload = match self.cfg.endpoint_format {
-            EndpointFormat::BracketedIpv6 => format!("[{}]:{}", host, self.cfg.rns_port),
-            EndpointFormat::Suffix(_) => format!("{}:{}", host, self.cfg.rns_port),
-        };
-        Some(payload.into_bytes())
+        encode_endpoint(&host, self.cfg.rns_port, &self.cfg.endpoint_format)
     }
 
     fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {

@@ -1,93 +1,50 @@
-//! Parsing the address out of a peer's announce.
+//! The address a peer advertises, on the wire and back. Binary rather than
+//! text: base32 costs 60% more than the bytes it spells out.
+
+use std::net::Ipv6Addr;
 
 use crate::config::EndpointFormat;
 
-/// The char allowlist keeps a malformed announce from injecting weird bytes
-/// into an interface name, which becomes a log and UI identifier.
+pub(super) fn encode_endpoint(host: &str, port: u16, format: &EndpointFormat) -> Option<Vec<u8>> {
+    let mut out = match format {
+        EndpointFormat::BracketedIpv6 => host.parse::<Ipv6Addr>().ok()?.octets().to_vec(),
+        EndpointFormat::Base32 { suffix, label_len } => {
+            let label = host.strip_suffix(suffix.as_str())?;
+            let decoded = data_encoding::BASE32_NOPAD
+                .decode(label.to_ascii_uppercase().as_bytes())
+                .ok()?;
+            (decoded.len() == *label_len).then_some(decoded)?
+        }
+    };
+    out.extend_from_slice(&port.to_be_bytes());
+    Some(out)
+}
+
 pub(super) fn parse_endpoint(payload: &[u8], format: &EndpointFormat) -> Option<(String, u16)> {
-    let s = std::str::from_utf8(payload).ok()?.trim();
-    match format {
-        EndpointFormat::Suffix(suffix) => {
-            let (host, port_str) = s.rsplit_once(':')?;
-            let port: u16 = port_str.parse().ok()?;
-            if suffix.is_empty() || !host.ends_with(suffix.as_str()) {
-                return None;
-            }
-            if !host
-                .bytes()
-                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'.' || b == b'-')
-            {
-                return None;
-            }
-            Some((host.to_owned(), port))
-        }
-        EndpointFormat::BracketedIpv6 => {
-            let inner = s.strip_prefix('[')?;
-            let (host, rest) = inner.split_once(']')?;
-            let port: u16 = rest.strip_prefix(':')?.parse().ok()?;
-            if !host.bytes().all(|b| b.is_ascii_hexdigit() || b == b':') {
-                return None;
-            }
-            Some((host.to_owned(), port))
-        }
+    let (address, port) = payload.split_at_checked(payload.len().checked_sub(2)?)?;
+    let port = u16::from_be_bytes([port[0], port[1]]);
+    if port == 0 {
+        return None;
     }
+    let host = match format {
+        EndpointFormat::BracketedIpv6 => {
+            let octets: [u8; 16] = address.try_into().ok()?;
+            Ipv6Addr::from(octets).to_string()
+        }
+        EndpointFormat::Base32 { suffix, label_len } => {
+            if address.len() != *label_len {
+                return None;
+            }
+            format!(
+                "{}{suffix}",
+                data_encoding::BASE32_NOPAD
+                    .encode(address)
+                    .to_ascii_lowercase()
+            )
+        }
+    };
+    Some((host, port))
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn onion() -> EndpointFormat {
-        EndpointFormat::Suffix(".onion".into())
-    }
-    fn i2p() -> EndpointFormat {
-        EndpointFormat::Suffix(".b32.i2p".into())
-    }
-
-    #[test]
-    fn parses_onion_endpoint() {
-        let (h, p) = parse_endpoint(b"abc23xyz.onion:4242", &onion()).unwrap();
-        assert_eq!(h, "abc23xyz.onion");
-        assert_eq!(p, 4242);
-    }
-
-    #[test]
-    fn trims_trailing_whitespace() {
-        let (h, p) = parse_endpoint(b"  peer.b32.i2p:8000\n", &i2p()).unwrap();
-        assert_eq!(h, "peer.b32.i2p");
-        assert_eq!(p, 8000);
-    }
-
-    #[test]
-    fn rejects_wrong_suffix() {
-        assert!(parse_endpoint(b"peer.b32.i2p:4242", &onion()).is_none());
-    }
-
-    #[test]
-    fn rejects_injected_chars() {
-        assert!(parse_endpoint(b"weird space.onion:4242", &onion()).is_none());
-        assert!(parse_endpoint(b"NOTLOWER.onion:4242", &onion()).is_none());
-    }
-
-    #[test]
-    fn rejects_bad_port() {
-        assert!(parse_endpoint(b"peer.onion:70000", &onion()).is_none());
-        assert!(parse_endpoint(b"peer.onion:", &onion()).is_none());
-        assert!(parse_endpoint(b"peer.onion", &onion()).is_none());
-    }
-
-    #[test]
-    fn parses_bracketed_ipv6() {
-        let (h, p) = parse_endpoint(b"[200:abcd::1]:4242", &EndpointFormat::BracketedIpv6).unwrap();
-        assert_eq!(h, "200:abcd::1");
-        assert_eq!(p, 4242);
-    }
-
-    #[test]
-    fn rejects_missing_brackets_or_bad_ipv6_chars() {
-        // A tor-style suffix payload must not sneak through the ygg parser.
-        assert!(parse_endpoint(b"peer.onion:4242", &EndpointFormat::BracketedIpv6).is_none());
-        // Non-hex/colon char inside the brackets is rejected.
-        assert!(parse_endpoint(b"[ipv6-here]:4242", &EndpointFormat::BracketedIpv6).is_none());
-    }
-}
+mod tests;

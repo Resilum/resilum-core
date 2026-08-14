@@ -46,12 +46,7 @@ pub async fn run(
         }
         match announce_payload::parse(announce.app_data()) {
             Some(p) => {
-                let added = registry.upsert(
-                    &service,
-                    dest_hash.to_vec(),
-                    &p.exit_country,
-                    p.capabilities,
-                );
+                let added = registry.upsert(&service, dest_hash.to_vec(), &p.exit_country);
                 tracing::debug!(service = %service, dest = %dest_hex, added, "egress candidate");
                 if added {
                     event::push(&events, Event::PeerDiscovered(dest_hash.to_vec()));

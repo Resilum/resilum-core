@@ -25,8 +25,7 @@ pub(super) fn bring_up(
         let active = Arc::new(egress::ActiveLinks::default());
         if let Some(target) = ingress.target {
             if let Some(first) = ingress.services.first() {
-                node.registry
-                    .upsert(first, target.to_vec(), "*", Vec::new());
+                node.registry.upsert(first, target.to_vec(), "*");
             }
         } else {
             for service in &ingress.services {

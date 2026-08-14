@@ -2,34 +2,28 @@
 
 use iroh::{EndpointAddr, EndpointId, TransportAddr};
 
-/// `<hex endpoint id>[@<relay url>]` — all a peer needs to route to us without a
-/// lookup. Text, because the announce envelope carries endpoints as UTF-8 (raw
-/// key bytes would not survive it).
+/// The 32-byte endpoint id, then the relay's host if there is one. Raw rather
+/// than hex, and the host without its scheme: both halved a field that shares
+/// one announce with every other transport.
 pub(super) fn encode_addr(addr: &EndpointAddr) -> Vec<u8> {
-    let mut out = data_encoding::HEXLOWER.encode(addr.id.as_bytes());
-    if let Some(relay) = addr.addrs.iter().find_map(|a| match a {
-        TransportAddr::Relay(url) => Some(url.to_string()),
+    let mut out = addr.id.as_bytes().to_vec();
+    if let Some(host) = addr.addrs.iter().find_map(|a| match a {
+        TransportAddr::Relay(url) => url.host_str().map(str::to_owned),
         _ => None,
     }) {
-        out.push('@');
-        out.push_str(&relay);
+        out.extend_from_slice(host.as_bytes());
     }
-    out.into_bytes()
+    out
 }
 
 pub(super) fn parse_addr(payload: &[u8]) -> Option<EndpointAddr> {
-    let text = std::str::from_utf8(payload).ok()?;
-    let (id_hex, relay) = match text.split_once('@') {
-        Some((id, relay)) => (id, Some(relay)),
-        None => (text, None),
-    };
-    let id_bytes: [u8; 32] = data_encoding::HEXLOWER
-        .decode(id_hex.as_bytes())
-        .ok()?
-        .try_into()
-        .ok()?;
+    let (id_bytes, host) = payload.split_at_checked(iroh::PublicKey::LENGTH)?;
+    let id_bytes: [u8; iroh::PublicKey::LENGTH] = id_bytes.try_into().ok()?;
     let mut addr = EndpointAddr::new(EndpointId::from_bytes(&id_bytes).ok()?);
-    if let Some(url) = relay.and_then(|r| r.parse().ok()) {
+    if !host.is_empty()
+        && let Ok(host) = std::str::from_utf8(host)
+        && let Ok(url) = format!("https://{host}/").parse()
+    {
         addr = addr.with_relay_url(url);
     }
     Some(addr)
@@ -60,10 +54,16 @@ mod tests {
         let url: iroh::RelayUrl = "https://relay.example./".parse().unwrap();
         let sent = encode_addr(&EndpointAddr::new(id).with_relay_url(url.clone()));
 
-        let packed = crate::announce_payload::pack(Some(&sent), "*", &[]);
+        let eps = std::collections::BTreeMap::from([("iroh".to_owned(), sent)]);
+        let (packed, _) = crate::announce_payload::pack(
+            &eps,
+            "*",
+            leviculum_core::announce_app_data_budget(true),
+        );
         let received = crate::announce_payload::parse(&packed)
             .expect("envelope parses")
-            .endpoint
+            .endpoints
+            .remove("iroh")
             .expect("endpoint present");
 
         let back = parse_addr(&received).expect("addr parses after the envelope");

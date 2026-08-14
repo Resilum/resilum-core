@@ -101,9 +101,10 @@ discovery:
     )
     .unwrap();
     assert_eq!(cfg.discovery.len(), 3);
-    assert!(
-        matches!(cfg.discovery[0].endpoint_format, EndpointFormat::Suffix(ref s) if s == ".onion")
-    );
+    assert!(matches!(
+        cfg.discovery[0].endpoint_format,
+        EndpointFormat::Base32 { ref suffix, .. } if suffix == ".onion"
+    ));
     assert!(
         matches!(&cfg.discovery[0].socks_proxy, Some(SocksProxy::External(h, 9051)) if h == "127.0.0.1")
     );

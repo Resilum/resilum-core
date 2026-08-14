@@ -7,53 +7,40 @@ use tokio::sync::Notify;
 
 use super::{APP_NAME, Discovery};
 use crate::announce_payload;
-use crate::config::DiscoveryService;
 use crate::error::{Error, Result};
 
-/// One `resilum.discovery.<service>` destination per configured plugin,
-/// registered with the engine so incoming announces route to it. Returned as
-/// `(service, dest_hash)` pairs for the produce loop to key its per-service
-/// announces off.
-pub fn build_destinations(
-    engine: &ReticulumNode,
-    identity: Identity,
-    services: &[DiscoveryService],
-) -> Result<Vec<(String, DestinationHash)>> {
-    let mut out = Vec::with_capacity(services.len());
-    for cfg in services {
-        out.push(build_destination(engine, identity.clone(), &cfg.service)?);
-    }
-    Ok(out)
+/// Fill up to what an announce can carry rather than be refused for overrunning
+/// it. Ratcheted announces have less room, so that is the figure to respect.
+fn app_data_budget() -> usize {
+    leviculum_core::announce_app_data_budget(true)
 }
 
-/// Register one `resilum.discovery.<service>` destination and return its
-/// `(service, hash)` — used for services outside the `discovery` list (iroh).
-pub fn build_destination(
-    engine: &ReticulumNode,
-    identity: Identity,
-    service: &str,
-) -> Result<(String, DestinationHash)> {
+/// The single `resilum.discovery` destination every transport announces on.
+///
+/// An announce costs about 170 bytes of key, hashes and signature before any
+/// payload, so one per service spends more on framing than on endpoints.
+pub fn build_destination(engine: &ReticulumNode, identity: Identity) -> Result<DestinationHash> {
     let dest = Destination::new(
         Some(identity),
         Direction::In,
         DestinationType::Single,
         APP_NAME,
-        &["discovery", service],
+        &["discovery"],
     )
-    .map_err(|e| Error::Engine(format!("discovery destination for {service}: {e}")))?;
+    .map_err(|e| Error::Engine(format!("discovery destination: {e}")))?;
     let hash = *dest.hash();
     engine.register_destination(dest);
-    Ok((service.to_owned(), hash))
+    Ok(hash)
 }
 
-/// Periodic produce: announce each ready plugin's endpoint. Runs once at
+/// Periodic produce: one announce carrying every ready endpoint. Runs once at
 /// startup for immediate discoverability, then re-announces every `interval`
 /// or whenever `trigger.notify_waiters()` fires (e.g. Flutter posts a
 /// network-change event through FFI).
 pub async fn run_produce(
     engine: Arc<ReticulumNode>,
     discovery: Arc<Discovery>,
-    destinations: Vec<(String, DestinationHash)>,
+    destination: DestinationHash,
     interval: Duration,
     trigger: Arc<Notify>,
 ) {
@@ -61,7 +48,7 @@ pub async fn run_produce(
     // interval fires immediately on the first tick, giving discoverability
     // without waiting a full period.
     loop {
-        announce_all(&engine, &discovery, &destinations).await;
+        announce_all(&engine, &discovery, &destination).await;
         tokio::select! {
             _ = ticker.tick() => {}
             _ = trigger.notified() => {}
@@ -72,22 +59,30 @@ pub async fn run_produce(
 async fn announce_all(
     engine: &ReticulumNode,
     discovery: &Discovery,
-    destinations: &[(String, DestinationHash)],
+    destination: &DestinationHash,
 ) {
-    let ready: std::collections::HashMap<_, _> = discovery.endpoints().into_iter().collect();
-    for (service, dest_hash) in destinations {
-        let Some(endpoint) = ready.get(service) else {
-            tracing::debug!(service = %service, "endpoint not ready, skipping announce");
-            continue;
-        };
-        let packed = announce_payload::pack(Some(endpoint), "*", &[]);
-        match engine.announce_destination(dest_hash, Some(&packed)).await {
-            Ok(()) => tracing::debug!(
-                service = %service,
-                endpoint = %String::from_utf8_lossy(endpoint),
-                "announced",
-            ),
-            Err(e) => tracing::warn!(service = %service, error = %e, "announce failed"),
-        }
+    let ready = discovery.endpoints();
+    if ready.is_empty() {
+        tracing::debug!("no transport is ready, skipping announce");
+        return;
+    }
+    let (packed, left_out) = announce_payload::pack(&ready, "*", app_data_budget());
+    if !left_out.is_empty() {
+        tracing::warn!(
+            services = ?left_out,
+            "announce is full; these transports are not advertised",
+        );
+    }
+    let announced: Vec<&str> = ready
+        .keys()
+        .map(String::as_str)
+        .filter(|s| !left_out.iter().any(|out| out == s))
+        .collect();
+    match engine
+        .announce_destination(destination, Some(&packed))
+        .await
+    {
+        Ok(()) => tracing::debug!(services = ?announced, bytes = packed.len(), "announced"),
+        Err(e) => tracing::warn!(error = %e, "announce failed"),
     }
 }

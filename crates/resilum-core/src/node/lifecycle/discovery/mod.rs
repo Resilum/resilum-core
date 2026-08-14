@@ -80,20 +80,12 @@ pub(super) fn bring_up(
     node.tasks
         .push(tokio::spawn(discovery::run_consume(plugins.clone(), bus)));
 
-    let mut destinations = discovery::build_destinations(engine, identity.clone(), &discovery_cfg)?;
-    #[cfg(feature = "iroh")]
-    if node.config.iroh.is_some() {
-        destinations.push(discovery::build_destination(
-            engine,
-            identity.clone(),
-            "iroh",
-        )?);
-    }
-    destinations.extend(discovery::covert::rendezvous::build_destinations(
+    let destination = discovery::build_destination(engine, identity.clone())?;
+    discovery::covert::rendezvous::build_destinations(
         engine,
         identity.clone(),
         &node.config.covert_discovery,
-    )?);
+    )?;
     for (cfg, addresses) in node.config.covert_discovery.iter().zip(&covert_addresses) {
         node.tasks
             .push(tokio::spawn(discovery::covert::rendezvous::run_responder(
@@ -106,7 +98,7 @@ pub(super) fn bring_up(
     node.tasks.push(tokio::spawn(discovery::run_produce(
         engine.clone(),
         plugins,
-        destinations,
+        destination,
         node.config.discovery_announce_interval,
         node.discovery_trigger.clone(),
     )));
