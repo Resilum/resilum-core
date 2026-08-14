@@ -36,6 +36,7 @@ pub async fn build(
 /// Common configuration shared by the stable and protected builders: ALPN,
 /// relay, resolver, and the optional publisher.
 pub(super) fn base_builder(secret: SecretKey, cfg: &IrohConfig) -> Result<Builder, String> {
+    super::resolvers::log_system();
     let mut builder = Endpoint::builder(Minimal)
         .secret_key(secret)
         .alpns(vec![ALPN.to_vec()])

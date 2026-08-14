@@ -9,6 +9,7 @@ mod dial;
 mod engine;
 mod key;
 mod plugin;
+mod resolvers;
 #[cfg(feature = "iroh-protect")]
 mod transport;
 

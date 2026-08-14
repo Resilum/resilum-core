@@ -1,8 +1,13 @@
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
 use data_encoding::{BASE64, HEXLOWER};
 use leviculum_lxmf::DeliveryMethod;
 use leviculum_lxmf::router::{MessageState, RouterEvent};
 use serde_json::{Value, json};
 
+use super::handle::{MAX_QUEUED_EVENTS, channel};
+use super::inbox::{Inbox, MAX_HELD};
 use super::poll::event_to_json;
 use super::send::build_message;
 
@@ -63,6 +68,37 @@ fn every_message_state_has_its_app_facing_name() {
         assert_eq!(v["type"], "delivery");
         assert_eq!(v["state"], name);
         assert_eq!(v["message_id"], HEXLOWER.encode(&mid));
+    }
+}
+
+/// The app warns "your messages are gone, ask for them again" on one of these
+/// and says nothing on the other, so an unlabelled overflow is a lie either way.
+#[test]
+fn a_full_inbox_and_a_full_event_queue_are_told_apart() {
+    let inbox = Arc::new(Inbox::ephemeral());
+    let (handle, _commands, mut sink) =
+        channel("aa".into(), Arc::new(AtomicBool::new(true)), inbox.clone());
+
+    for i in 0..MAX_HELD + 2 {
+        inbox.push(format!("{{\"type\":\"message\",\"n\":{i}}}"));
+    }
+    assert_eq!(drain_to_overflow(&handle)["kind"], "messages");
+
+    for i in 0..=MAX_QUEUED_EVENTS {
+        sink.push(format!("{{\"type\":\"delivery\",\"n\":{i}}}"));
+    }
+    while handle.next_event().is_some() {}
+    sink.push(r#"{"type":"delivery"}"#.into());
+    assert_eq!(drain_to_overflow(&handle)["kind"], "delivery");
+}
+
+fn drain_to_overflow(handle: &super::LxmfHandle) -> Value {
+    loop {
+        let json = handle.next_event().expect("an overflow is still queued");
+        let v: Value = serde_json::from_str(&json).unwrap();
+        if v["type"] == "overflow" {
+            return v;
+        }
     }
 }
 

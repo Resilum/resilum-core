@@ -11,7 +11,7 @@ use crate::error::{Error, Result};
 /// Capped because a backgrounded app stops polling while the mesh keeps
 /// delivering: the loss is counted and reported as an `overflow` event rather
 /// than growing until the process is killed.
-const MAX_QUEUED_EVENTS: usize = 4096;
+pub(super) const MAX_QUEUED_EVENTS: usize = 4096;
 
 pub(super) enum Command {
     /// Built and signed off the core lock, so the hook only has to accept it.
@@ -68,7 +68,7 @@ impl LxmfHandle {
         }
         let refused = self.inbox.take_dropped();
         if refused > 0 {
-            return Some(format!(r#"{{"type":"overflow","dropped":{refused}}}"#));
+            return Some(overflow("messages", refused));
         }
         let events = self.events.lock().unwrap_or_else(|e| e.into_inner());
         let json = events.try_recv().ok()?;
@@ -87,6 +87,12 @@ impl LxmfHandle {
     }
 }
 
+/// `messages` means received messages are gone and the sender has to repeat
+/// them; `delivery` only that some delivery states were superseded unseen.
+fn overflow(kind: &str, dropped: u64) -> String {
+    format!(r#"{{"type":"overflow","kind":"{kind}","dropped":{dropped}}}"#)
+}
+
 /// The processor's end: every push is non-blocking, which is what lets it run
 /// under the core lock.
 pub(super) struct EventSink {
@@ -103,7 +109,7 @@ impl EventSink {
         }
         if self.dropped > 0 {
             let lost = std::mem::take(&mut self.dropped);
-            self.emit(format!(r#"{{"type":"overflow","dropped":{lost}}}"#));
+            self.emit(overflow("delivery", lost));
         }
         self.emit(json);
     }

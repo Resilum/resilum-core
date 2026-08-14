@@ -14,12 +14,14 @@ use crate::node::ResilumNode;
 /// { "type":"delivery", "message_id":"<hex>", "state":"generating" | "queued" |
 ///   "sending" | "sent" | "awaiting_collection" | "delivered" | "rejected" |
 ///   "cancelled" | "failed" }
-/// { "type":"overflow", "dropped": 0 }
+/// { "type":"overflow", "kind":"messages" | "delivery", "dropped": 0 }
 /// ```
 /// `delivery` tracks a message this node sent, keyed by the id
 /// `resilum_lxmf_send` returned. `overflow` says how many events were discarded
-/// because the queue filled up, which happens only if the app stops polling
-/// while the mesh keeps delivering. Free with `resilum_string_free`.
+/// because a queue filled up, which happens only if the app stops polling while
+/// the mesh keeps delivering: `"kind":"messages"` means received messages are
+/// gone and their senders have to repeat them, `"delivery"` only that some
+/// delivery states were superseded unseen. Free with `resilum_string_free`.
 ///
 /// # Safety
 /// `node` must be a live handle or null.

@@ -4551,6 +4551,7 @@ dependencies = [
  "arti-client",
  "data-encoding",
  "futures",
+ "hickory-resolver",
  "hmac",
  "if-addrs",
  "iroh",

@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 mod store;
 
 /// Without a ceiling a flood fills the disk instead of the queue.
-const MAX_HELD: usize = 10_000;
+pub(super) const MAX_HELD: usize = 10_000;
 
 pub(super) struct Inbox {
     held: Mutex<BTreeMap<u64, String>>,
