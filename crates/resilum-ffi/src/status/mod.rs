@@ -22,7 +22,7 @@ use crate::node::ResilumNode;
 /// # Safety
 /// `node` must be a live handle from `resilum_node_new_*` or null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *mut c_char {
+pub unsafe extern "C" fn resilum_node_status(node: *const ResilumNode) -> *mut c_char {
     guard(std::ptr::null_mut(), || {
         let Some(node) = (unsafe { node.as_ref() }) else {
             return std::ptr::null_mut();
@@ -97,7 +97,7 @@ pub unsafe extern "C" fn resilum_node_status_json(node: *const ResilumNode) -> *
     })
 }
 
-/// Free a string returned by this library (e.g. `resilum_node_status_json`).
+/// Free a string returned by this library (e.g. `resilum_node_status`).
 ///
 /// # Safety
 /// `s` must be a pointer returned by this library, or null. Do not free twice.

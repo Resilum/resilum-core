@@ -9,7 +9,7 @@ use crate::{RESILUM_ERR_FAILED, RESILUM_OK, guard};
 /// logcat on Android, stderr elsewhere. Level from the `RUST_LOG` env var
 /// (default `info`). Idempotent; returns `RESILUM_OK`.
 #[unsafe(no_mangle)]
-pub extern "C" fn resilum_init_logging() -> c_int {
+pub extern "C" fn resilum_logging_init() -> c_int {
     static ONCE: Once = Once::new();
     guard(RESILUM_ERR_FAILED, || {
         ONCE.call_once(init_subscriber);

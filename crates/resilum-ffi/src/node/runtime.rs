@@ -44,7 +44,7 @@ pub unsafe extern "C" fn resilum_node_socks_port(node: *const ResilumNode) -> u1
 /// non-null, must stay valid for the node's lifetime.
 #[cfg(unix)]
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_node_set_protect(
+pub unsafe extern "C" fn resilum_node_set_socket_protector(
     node: *mut ResilumNode,
     protect: Option<extern "C" fn(std::os::raw::c_int)>,
 ) -> c_int {

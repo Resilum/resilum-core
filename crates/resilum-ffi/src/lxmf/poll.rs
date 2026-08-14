@@ -24,7 +24,7 @@ use crate::node::ResilumNode;
 /// # Safety
 /// `node` must be a live handle or null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_lxmf_poll(node: *const ResilumNode) -> *mut c_char {
+pub unsafe extern "C" fn resilum_lxmf_poll_event(node: *const ResilumNode) -> *mut c_char {
     guard(std::ptr::null_mut(), || {
         let Some(node) = (unsafe { node.as_ref() }) else {
             return std::ptr::null_mut();

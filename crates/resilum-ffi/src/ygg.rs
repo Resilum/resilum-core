@@ -9,7 +9,7 @@ use crate::node::ResilumNode;
 use crate::{guard, set_error};
 
 /// An opaque Yggdrasil attachment handle.
-pub struct ResilumYgg(YggHandle);
+pub struct ResilumYggdrasil(YggHandle);
 
 /// Attach the Yggdrasil packet conduit `ygg_fd` (the gomobile engine's packet
 /// channel), accepting RNS links arriving over ygg. `ygg_address` is the
@@ -23,11 +23,11 @@ pub struct ResilumYgg(YggHandle);
 /// valid file descriptor the caller leaves to the transport; `ygg_address` a
 /// valid NUL-terminated string.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_ygg_attach(
+pub unsafe extern "C" fn resilum_yggdrasil_attach(
     node: *const ResilumNode,
     ygg_fd: c_int,
     ygg_address: *const c_char,
-) -> *mut ResilumYgg {
+) -> *mut ResilumYggdrasil {
     guard(std::ptr::null_mut(), || {
         let Some(node) = (unsafe { node.as_ref() }) else {
             set_error("null node");
@@ -42,7 +42,7 @@ pub unsafe extern "C" fn resilum_ygg_attach(
             return std::ptr::null_mut();
         };
         match node.0.ygg_attach(ygg_fd, address) {
-            Ok(handle) => Box::into_raw(Box::new(ResilumYgg(handle))),
+            Ok(handle) => Box::into_raw(Box::new(ResilumYggdrasil(handle))),
             Err(e) => {
                 set_error(e.to_string());
                 std::ptr::null_mut()
@@ -55,9 +55,9 @@ pub unsafe extern "C" fn resilum_ygg_attach(
 /// conduit fd. Passing null is a no-op.
 ///
 /// # Safety
-/// `handle` must come from `resilum_ygg_attach` and be detached at most once.
+/// `handle` must come from `resilum_yggdrasil_attach` and be detached at most once.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_ygg_detach(handle: *mut ResilumYgg) {
+pub unsafe extern "C" fn resilum_yggdrasil_detach(handle: *mut ResilumYggdrasil) {
     if !handle.is_null() {
         unsafe { Box::from_raw(handle) }.0.detach();
     }

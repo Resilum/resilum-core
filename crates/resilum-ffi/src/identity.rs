@@ -46,7 +46,7 @@ pub extern "C" fn resilum_identity_generate() -> *mut c_char {
 /// # Safety
 /// `private_base64` must be a valid NUL-terminated string or null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_identity_hash(private_base64: *const c_char) -> *mut c_char {
+pub unsafe extern "C" fn resilum_identity_hashes(private_base64: *const c_char) -> *mut c_char {
     guard(std::ptr::null_mut(), || {
         if private_base64.is_null() {
             set_error("private_base64 is null");

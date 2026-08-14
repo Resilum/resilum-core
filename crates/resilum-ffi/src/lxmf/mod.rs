@@ -19,7 +19,7 @@ use crate::set_error;
 /// # Safety
 /// `node` must be a live handle or null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_lxmf_available(node: *const ResilumNode) -> c_int {
+pub unsafe extern "C" fn resilum_lxmf_is_available(node: *const ResilumNode) -> c_int {
     guard(0, || {
         let Some(node) = (unsafe { node.as_ref() }) else {
             return 0;

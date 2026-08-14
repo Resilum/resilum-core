@@ -41,7 +41,7 @@ pub unsafe extern "C" fn resilum_iroh_attach(node: *const ResilumNode) -> *mut R
 /// # Safety
 /// `handle` must come from `resilum_iroh_attach` or be null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_iroh_node_id(handle: *const ResilumIroh) -> *mut c_char {
+pub unsafe extern "C" fn resilum_iroh_endpoint_id(handle: *const ResilumIroh) -> *mut c_char {
     guard(std::ptr::null_mut(), || {
         let Some(handle) = (unsafe { handle.as_ref() }) else {
             return std::ptr::null_mut();
