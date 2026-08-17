@@ -6,9 +6,9 @@
 //! - `icmp` — client works everywhere via `SOCK_DGRAM/IPPROTO_ICMP` (Linux,
 //!   Android with `INTERNET` permission, iOS without entitlements); server
 //!   side needs raw sockets (root or `CAP_NET_RAW`).
-//! - `dns` — plain UDP :53 as a client, works from any non-privileged app.
+//! - `dns` — plain UDP :53 as a client, works from any unprivileged process.
 //! - `arp`, `ntp`, `dhcp`, `snmp` — planned; either require raw sockets or
-//!   privileged ports, or on mobile ride the packet-tunnel API
+//!   privileged ports, or a packet-tunnel API where the platform offers one
 //!   (`VpnService` / `NEPacketTunnelProvider`).
 
 pub mod carrier;

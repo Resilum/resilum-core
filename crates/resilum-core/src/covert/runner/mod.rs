@@ -1,7 +1,7 @@
 //! Transport-agnostic pump: bytes flow between an `uplink` channel and the
 //! engine, engine output goes to an `on_output` closure. Callers plug either
-//! a PipeInterface subprocess (stdin/stdout) or an in-process bridge (mobile
-//! FFI) into these two seams — the runner itself does no I/O.
+//! a PipeInterface subprocess (stdin/stdout) or an in-process bridge into
+//! these two seams — the runner itself does no I/O.
 
 mod drive;
 mod threads;

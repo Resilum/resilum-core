@@ -3,7 +3,7 @@ name = "resilum-ffi"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "C-ABI wrapper over resilum-core for Dart FFI (mobile)."
+description = "C-ABI wrapper over resilum-core for embedding callers."
 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]

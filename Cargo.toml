@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "crates/resilum-core",
+  "crates/resilum-nostr",
   "crates/resilumd",
   "crates/resilum-ffi",
   "crates/xtask",
@@ -11,7 +12,7 @@ members = [
 version = "0.0.0"
 edition = "2024"
 # AGPL-3.0 because the core links the leviculum Rust Reticulum stack, which is
-# AGPL-3.0. The copyleft propagates to the whole project (core + daemon + mobile).
+# AGPL-3.0.
 license = "AGPL-3.0-only"
 
 [workspace.lints.clippy]

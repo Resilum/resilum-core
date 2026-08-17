@@ -31,7 +31,7 @@ pub(super) struct FlowCtx {
     pub i2p: Option<Arc<super::i2p::I2pConduit>>,
 }
 
-/// A synthetic FakeDNS address carries the hostname the app actually meant; hand
+/// A synthetic FakeDNS address carries the hostname really meant; hand
 /// the egress the name so it resolves close to the exit. Real addresses pass
 /// through literally.
 fn target_for(fakedns: &FakeDns, dest: SocketAddr) -> Target {

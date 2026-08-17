@@ -1,4 +1,4 @@
-//! LXMF messaging: the router runs inside the engine's tick, the app talks to
+//! LXMF messaging: the router runs inside the engine's tick, a caller talks to
 //! it through an [`LxmfHandle`], and [`send`]/[`poll`] map the FFI's JSON onto
 //! `leviculum_lxmf` types.
 
@@ -7,6 +7,8 @@ mod handle;
 mod inbox;
 pub mod poll;
 mod processor;
+mod request;
+pub mod requeue;
 pub mod send;
 mod stamp;
 
@@ -21,6 +23,7 @@ use leviculum_std::driver::ReticulumNodeBuilder;
 use serde_json::Value;
 
 pub use handle::LxmfHandle;
+pub use request::RequestError;
 
 use crate::config::LxmfConfig;
 
@@ -53,8 +56,9 @@ pub(crate) fn install(
             commands,
             events,
             inbox,
-            stamps: stamp_tx,
+            stamps: stamp::Jobs::new(stamp_tx),
             registered,
+            router_state: handle.router_state(),
             checkpoint,
         },
     );
@@ -64,10 +68,10 @@ pub(crate) fn install(
 /// Where the router's checkpoint lives, under the node's storage directory.
 const CHECKPOINT_FILE: &str = "lxmf_state";
 
-/// Received messages the app has not taken yet.
+/// Received messages the caller has not taken yet.
 const INBOX_FILE: &str = "lxmf_inbox";
 
-/// The app's `{custom_type, custom_data}` as LXMF custom fields — each value a
+/// A request's `{custom_type, custom_data}` as LXMF custom fields — each value a
 /// single msgpack value, as `Message::create` and the wire require.
 fn encode_fields(custom_type: Option<&str>, custom_data: Option<&Value>) -> Vec<Field> {
     let mut fields = Vec::new();
@@ -85,7 +89,7 @@ fn encode_fields(custom_type: Option<&str>, custom_data: Option<&Value>) -> Vec<
 }
 
 /// Inverse of [`encode_fields`]: recover `{custom_type, custom_data}` from an
-/// LXMF message's fields, ignoring fields the app doesn't model.
+/// LXMF message's fields, ignoring the fields this crate does not model.
 fn decode_fields(fields: &[Field]) -> (Option<String>, Option<Value>) {
     let mut custom_type = None;
     let mut custom_data = None;

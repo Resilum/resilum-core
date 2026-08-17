@@ -11,7 +11,6 @@ use std::sync::Mutex;
 
 use leviculum_std::InterfaceId;
 
-/// `interface id -> discovery origin` for interfaces resilum-core attached.
 #[derive(Default)]
 pub struct OriginRegistry {
     by_id: Mutex<HashMap<InterfaceId, String>>,
@@ -20,19 +19,19 @@ pub struct OriginRegistry {
 impl OriginRegistry {
     /// Record the origin of an interface at attach time.
     pub fn record(&self, id: InterfaceId, origin: impl Into<String>) {
-        self.by_id
-            .lock()
-            .expect("origin registry poisoned")
-            .insert(id, origin.into());
+        self.held().insert(id, origin.into());
     }
 
     /// The origin an interface was discovered on, or `None` when resilum-core
     /// did not attach it (bootstrap, LAN, or a leviculum-managed peer).
+    #[must_use]
     pub fn get(&self, id: InterfaceId) -> Option<String> {
-        self.by_id
-            .lock()
-            .expect("origin registry poisoned")
-            .get(&id)
-            .cloned()
+        self.held().get(&id).cloned()
+    }
+
+    /// Poison is recovered from: the lock only ever guards a single map op, so
+    /// there is no torn value to inherit.
+    fn held(&self) -> std::sync::MutexGuard<'_, HashMap<InterfaceId, String>> {
+        self.by_id.lock().unwrap_or_else(|e| e.into_inner())
     }
 }

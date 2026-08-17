@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
+use data_encoding::HEXLOWER;
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 
@@ -40,9 +41,9 @@ impl Node {
         self.identity.as_ref().and_then(crate::identity::to_base64)
     }
 
-    /// This node's LXMF delivery address (hex), or `None` before start. Derived
-    /// purely from the identity, so it is known without the messaging backend.
-    pub fn lxmf_address(&self) -> Option<String> {
+    /// `None` before start. Derived purely from the identity, so it is known
+    /// without the messaging backend.
+    pub fn lxmf_address_hex(&self) -> Option<String> {
         self.identity
             .as_ref()
             .map(crate::identity::lxmf_address_hex)
@@ -63,9 +64,9 @@ impl Node {
     }
 
     /// Wake the discovery produce loop to re-announce endpoints now, without
-    /// waiting for the next tick. Call this on external state changes the
-    /// bridge cannot observe from inside (Flutter posting a network-change
-    /// event through FFI, a hidden-service hostname just becoming ready, etc).
+    /// waiting for the next tick. Call this on external state changes this
+    /// crate cannot observe from inside — an embedder posting a network-change
+    /// event, a hidden-service hostname just becoming ready.
     ///
     /// The LXMF delivery destination goes out with them: a peer that has not
     /// seen its announce cannot message this node, and a network change is
@@ -84,8 +85,13 @@ impl Node {
         Ok(())
     }
 
+    /// The poisoned lock is recovered from: it is only ever held across a push
+    /// or a pop, and `None` would claim the node had nothing to report.
     pub fn poll_event(&mut self) -> Option<Event> {
-        self.event_queue.lock().expect("event queue").pop_front()
+        self.event_queue
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .pop_front()
     }
 
     pub fn config(&self) -> &Config {
@@ -105,5 +111,26 @@ impl Node {
     /// Mesh-discovered rngit mirror advertisements from peers; `None` before start.
     pub fn mirror_registry(&self) -> Option<&Arc<mirrors::Registry>> {
         self.mirror_registry.as_ref()
+    }
+
+    /// Nostr bridges heard on the mesh (hex LXMF addresses), so a caller can
+    /// offer one as an upstream without the user typing it in by hand. Empty
+    /// until at least one bridge announces itself.
+    #[must_use]
+    pub fn nostr_relays(&self) -> Vec<String> {
+        self.nostr_relay
+            .discovered()
+            .iter()
+            .map(|addr| HEXLOWER.encode(addr))
+            .collect()
+    }
+
+    /// Start or stop announcing this node as a Nostr bridge. A bridge crate
+    /// calls this once the node is running and it knows both its own LXMF
+    /// address and whether its configuration says to publish; `address:
+    /// None` withdraws the announce on the next tick without forgetting what
+    /// this node has discovered of other bridges.
+    pub fn advertise_nostr_relay(&self, address: Option<[u8; 16]>) {
+        self.nostr_relay.set_advertise(address);
     }
 }

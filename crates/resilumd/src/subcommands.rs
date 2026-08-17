@@ -4,9 +4,7 @@ use std::path::PathBuf;
 
 use crate::{bind_config, covert, i2pd_export, mirrors, ygg_seed};
 
-/// Runs the verb in `argv` and does not return, or returns so `main` can fall
-/// through to the daemon.
-pub fn dispatch(argv: &[String]) {
+pub fn dispatch_or_exit(argv: &[String]) {
     match argv.first().map(String::as_str) {
         Some("generate-identity") => generate_identity(argv),
         Some("i2pd-export-hostname") => {

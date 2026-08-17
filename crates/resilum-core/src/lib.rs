@@ -1,5 +1,5 @@
 //! Shared core for a Resilum node, built on the leviculum Reticulum stack.
-//! Consumed by `resilumd` and, via `resilum-ffi`, the mobile app.
+//! Consumed directly by a Rust caller, or over the C ABI through `resilum-ffi`.
 
 pub mod announce_cap;
 pub mod announce_payload;
@@ -31,6 +31,7 @@ pub mod spec;
 pub mod supervisor;
 #[cfg(feature = "arti")]
 pub mod tor;
+mod wall_clock;
 #[cfg(feature = "ygg")]
 pub mod ygg;
 

@@ -15,7 +15,7 @@ pub(in crate::config_file) struct LxmfFile {
     display_name: Option<String>,
     #[serde(default)]
     announce_interval_secs: Option<u64>,
-    /// 32-hex mailbox to pin. Omit to use the nearest node that announces one.
+    /// 32-hex propagation node to pin. Omit to use the nearest one announced.
     #[serde(default)]
     propagation_node: Option<String>,
 }
@@ -35,7 +35,7 @@ impl From<LxmfFile> for LxmfConfig {
 }
 
 /// A malformed hash falls back to automatic selection rather than failing the
-/// whole config: messaging still works, it just picks its own mailbox.
+/// whole config: messaging still works, it just picks its own node.
 fn parse_destination(hex: &str) -> Option<DestinationHash> {
     let bytes = HEXLOWER.decode(hex.as_bytes()).ok()?;
     match <[u8; 16]>::try_from(bytes.as_slice()) {

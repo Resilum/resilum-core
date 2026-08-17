@@ -9,10 +9,10 @@ pub struct Candidate {
     pub service: String,
     /// Exit country; `*` means unknown.
     pub exit_country: String,
-    /// Mesh leg latency (consumer → provider), seconds.
+    /// Consumer → provider, seconds.
     pub link_rtt: Option<f64>,
-    /// Egress leg latency (provider → internet), seconds.
-    pub egress_side: Option<f64>,
+    /// Provider → internet, seconds.
+    pub egress_rtt: Option<f64>,
     pub healthy: bool,
     pub last_probe: Option<f64>,
 }
@@ -24,7 +24,7 @@ impl Candidate {
             service: service.into(),
             exit_country: "*".into(),
             link_rtt: None,
-            egress_side: None,
+            egress_rtt: None,
             healthy: true,
             last_probe: None,
         }
@@ -32,7 +32,7 @@ impl Candidate {
 
     /// Total latency (mesh + egress), or `None` until both legs are probed.
     pub fn effective_latency(&self) -> Option<f64> {
-        Some(self.link_rtt? + self.egress_side?)
+        Some(self.link_rtt? + self.egress_rtt?)
     }
 }
 
@@ -79,7 +79,7 @@ impl CandidateRegistry {
         map.values().flat_map(|m| m.values().cloned()).collect()
     }
 
-    /// Write back probe results. `Some((link_rtt, egress_side))` marks healthy
+    /// Write back probe results. `Some((link_rtt, egress_rtt))` marks healthy
     /// and records both legs; `None` marks unhealthy. `now` timestamps the probe.
     pub fn record_probe(
         &self,
@@ -93,9 +93,9 @@ impl CandidateRegistry {
             return;
         };
         match result {
-            Some((link_rtt, egress_side)) => {
+            Some((link_rtt, egress_rtt)) => {
                 cand.link_rtt = Some(link_rtt);
-                cand.egress_side = Some(egress_side);
+                cand.egress_rtt = Some(egress_rtt);
                 cand.healthy = true;
             }
             None => cand.healthy = false,

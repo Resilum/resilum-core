@@ -16,7 +16,7 @@ impl DiscoveryPlugin for TcpDiscovered {
         encode_endpoint(&host, self.cfg.rns_port, &self.cfg.endpoint_format)
     }
 
-    fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {
+    fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: Option<&[u8]>) {
         if !self.active.load(Ordering::Relaxed) {
             return;
         }
@@ -25,7 +25,9 @@ impl DiscoveryPlugin for TcpDiscovered {
             return;
         };
         let name = format!("{}[{}]:{}", self.cfg.name_prefix, host, port);
-        let mut guard = self.handles.lock().expect("handles");
+        // The poisoned lock is recovered from: it is only ever held across a
+        // map lookup and an insert, and refusing here would strand the peer.
+        let mut guard = self.handles.lock().unwrap_or_else(|e| e.into_inner());
         if guard.contains_key(&name) {
             return;
         }
@@ -61,7 +63,7 @@ impl TcpDiscovered {
             return;
         };
         let mut records = cache::load(path);
-        cache::upsert(&mut records, payload, cache::now_ts());
+        cache::upsert(&mut records, payload, crate::wall_clock::unix_now());
         if let Err(e) = cache::save(path, &records) {
             tracing::warn!(service = %self.cfg.service, error = %e, "cache save failed");
         }

@@ -1,23 +1,62 @@
-//! Node state snapshot for the UI, as a JSON string over the C ABI.
+//! Node state snapshot for the caller, as a JSON string over the C ABI.
 //!
-//! JSON keeps the wire schema evolvable without touching the C ABI: new fields
-//! appear in the object, the two entry points below stay fixed. It never leaves
-//! the device — the app decodes it locally.
+//! JSON keeps the wire schema evolvable without touching the C ABI.
 
+mod build;
+mod lxmf;
 mod model;
+#[cfg(test)]
+mod tests;
 
-use std::collections::HashMap;
 use std::ffi::CString;
 use std::os::raw::c_char;
 
-use model::{Interface, NodeStatus, Transport, hex16, interface_source};
-
 use crate::guard;
 use crate::node::ResilumNode;
+use crate::set_error;
 
-/// A JSON snapshot of node state (running, socks_port, identity, path_count,
-/// interfaces, transport counters), or null on error. Free the returned string
-/// with `resilum_string_free`.
+/// A JSON snapshot of node state, or null on error with the reason in
+/// `resilum_last_error`. Free with `resilum_string_free`. Shape:
+/// ```json
+/// {
+///   "running": true,
+///   "socks_port": 0,
+///   "identity_hash": "<32-hex>" | null,
+///   "reachable_destinations": 0,
+///   "interfaces": [
+///     { "name": "<string>",
+///       "added_by": "autoconnect" | "bootstrap" | "other",
+///       "kind": "tcp" | "udp" | "i2p" | "serial" | "rnode" | "...",
+///       "discovered_via": "tor" | "i2p" | "yggdrasil" | "covert" | "direct",
+///       "online": true, "local_client": false,
+///       "rx_bytes": 0, "tx_bytes": 0, "bitrate": 0 | null,
+///       "peer_nodes": ["<32-hex>"], "peer_hashes": ["<32-hex>"] }
+///   ],
+///   "transport": { "packets_sent": 0, "packets_received": 0,
+///                  "packets_forwarded": 0, "packets_dropped": 0,
+///                  "announces_processed": 0 } | null,
+///   "nostr_relays": ["<32-hex>"],
+///   "lxmf": { "ready": true, "address": "<32-hex>", "queued_count": 0,
+///             "queued_ids": ["<64-hex>"],
+///             "propagation_node": "<32-hex>" | null } | null
+/// }
+/// ```
+/// `identity_hash` and `transport` are `null` before start. `added_by` is
+/// inferred from `name`; `kind` and `discovered_via` come from the engine and
+/// are orthogonal to each other — a peer found over I2P is still dialed as
+/// `tcp`. `nostr_relays` are Nostr bridge LXMF addresses heard on the mesh.
+///
+/// `lxmf` is `null` when this node has no messaging configured — never an
+/// absent key, so the caller can tell "messaging is off" from "this build
+/// predates the field". Its `queued_count` is sampled once per engine tick, not
+/// read live, so it can lag a just-submitted message by one call.
+/// `lxmf.queued_ids` names the messages that count covers, from the same
+/// sample — a caller that lost its own record of what it sent reconciles
+/// against it rather than discarding every delivery event for an id it does not
+/// recognise, and an id in it can be handed to
+/// `resilum_lxmf_requeue_with_method`. `lxmf.propagation_node` is likewise
+/// `null` rather than absent when the router has selected none — the state a
+/// `propagated` send is refused in — and can turn non-null on a later call.
 ///
 /// # Safety
 /// `node` must be a live handle from `resilum_node_new_*` or null.
@@ -25,85 +64,23 @@ use crate::node::ResilumNode;
 pub unsafe extern "C" fn resilum_node_status(node: *const ResilumNode) -> *mut c_char {
     guard(std::ptr::null_mut(), || {
         let Some(node) = (unsafe { node.as_ref() }) else {
+            set_error("null node");
             return std::ptr::null_mut();
         };
-        let mut status = NodeStatus {
-            running: node.0.is_running(),
-            socks_port: node.0.socks_port(),
-            identity: None,
-            path_count: 0,
-            interfaces: Vec::new(),
-            transport: None,
-        };
-        if let Some(engine) = node.0.engine() {
-            status.identity = Some(hex16(&engine.identity_hash()));
-            status.path_count = engine.path_count();
-            let mut peers: HashMap<usize, Vec<String>> = HashMap::new();
-            let mut peer_nodes: HashMap<usize, Vec<String>> = HashMap::new();
-            for p in engine.path_table_entries() {
-                if p.hops == 1 {
-                    peers
-                        .entry(p.interface_index)
-                        .or_default()
-                        .push(hex16(&p.hash));
-                    if let Some(id) = engine.get_identity(&p.hash.into()) {
-                        let node = hex16(id.hash());
-                        let nodes = peer_nodes.entry(p.interface_index).or_default();
-                        if !nodes.contains(&node) {
-                            nodes.push(node);
-                        }
-                    }
-                }
+        let status = build::snapshot(node);
+        let json = match serde_json::to_string(&status) {
+            Ok(json) => json,
+            Err(e) => {
+                set_error(format!("status is not representable as JSON: {e}"));
+                return std::ptr::null_mut();
             }
-            status.interfaces = engine
-                .interface_stats()
-                .into_iter()
-                .map(|i| Interface {
-                    source: interface_source(&i.name),
-                    kind: i.kind.as_str(),
-                    discovered_via: node
-                        .0
-                        .discovered_via(i.interface_id)
-                        .unwrap_or_else(|| "direct".into()),
-                    peer_nodes: peer_nodes
-                        .get(&i.interface_id.0)
-                        .cloned()
-                        .unwrap_or_default(),
-                    peer_hashes: peers.get(&i.interface_id.0).cloned().unwrap_or_default(),
-                    name: i.name,
-                    online: i.online,
-                    local_client: i.is_local_client,
-                    rx_bytes: i.rx_bytes,
-                    tx_bytes: i.tx_bytes,
-                    bitrate: i.configured_bitrate,
-                })
-                .collect();
-            let t = engine.transport_stats();
-            status.transport = Some(Transport {
-                packets_sent: t.packets_sent(),
-                packets_received: t.packets_received(),
-                packets_forwarded: t.packets_forwarded(),
-                packets_dropped: t.packets_dropped(),
-                announces_processed: t.announces_processed(),
-            });
-        }
-        match serde_json::to_string(&status)
-            .ok()
-            .and_then(|s| CString::new(s).ok())
-        {
-            Some(c) => c.into_raw(),
-            None => std::ptr::null_mut(),
+        };
+        match CString::new(json) {
+            Ok(c) => c.into_raw(),
+            Err(_) => {
+                set_error("status JSON contains an interior NUL");
+                std::ptr::null_mut()
+            }
         }
     })
-}
-
-/// Free a string returned by this library (e.g. `resilum_node_status`).
-///
-/// # Safety
-/// `s` must be a pointer returned by this library, or null. Do not free twice.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn resilum_string_free(s: *mut c_char) {
-    if !s.is_null() {
-        drop(unsafe { CString::from_raw(s) });
-    }
 }

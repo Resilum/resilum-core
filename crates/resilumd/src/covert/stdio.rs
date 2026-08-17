@@ -1,5 +1,5 @@
-//! stdin/stdout ↔ runner glue for PipeInterface subprocess mode. Only used
-//! by the server-side daemon — mobile bridges the runner in-process instead.
+//! stdin/stdout ↔ runner glue for PipeInterface subprocess mode. Used only
+//! where the runner is a subprocess; an embedder bridges it in-process instead.
 
 use std::io::{self, Read, Write};
 use std::net::IpAddr;

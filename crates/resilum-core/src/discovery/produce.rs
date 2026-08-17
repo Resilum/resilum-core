@@ -35,8 +35,8 @@ pub fn build_destination(engine: &ReticulumNode, identity: Identity) -> Result<D
 
 /// Periodic produce: one announce carrying every ready endpoint. Runs once at
 /// startup for immediate discoverability, then re-announces every `interval`
-/// or whenever `trigger.notify_waiters()` fires (e.g. Flutter posts a
-/// network-change event through FFI).
+/// or whenever `trigger.notify_waiters()` fires (an embedder reporting a
+/// network change, say).
 pub async fn run_produce(
     engine: Arc<ReticulumNode>,
     discovery: Arc<Discovery>,
@@ -45,8 +45,6 @@ pub async fn run_produce(
     trigger: Arc<Notify>,
 ) {
     let mut ticker = tokio::time::interval(interval);
-    // interval fires immediately on the first tick, giving discoverability
-    // without waiting a full period.
     loop {
         announce_all(&engine, &discovery, &destination).await;
         tokio::select! {

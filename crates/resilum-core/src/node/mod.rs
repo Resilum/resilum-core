@@ -39,6 +39,10 @@ pub struct Node {
     pub(crate) discovery_trigger: Arc<Notify>,
     pub(crate) mirror_registry: Option<Arc<mirrors::Registry>>,
     pub(crate) origin_registry: Arc<crate::discovery::OriginRegistry>,
+    // Starts collect-only and stays that way until a bridge running on this
+    // node hands over its own LXMF address through `advertise_nostr_relay`:
+    // the address is the bridge crate's to know, not this one's.
+    pub(crate) nostr_relay: Arc<crate::discovery::NostrRelayPlugin>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
     #[cfg(feature = "iroh")]
@@ -69,6 +73,7 @@ impl Node {
             discovery_trigger: Arc::new(Notify::new()),
             mirror_registry: None,
             origin_registry: Arc::new(crate::discovery::OriginRegistry::default()),
+            nostr_relay: crate::discovery::NostrRelayPlugin::new(None),
             #[cfg(all(unix, feature = "ygg"))]
             ygg_discovery: None,
             #[cfg(feature = "iroh")]

@@ -1,5 +1,5 @@
 //! Carrier contracts used by the covert engine. Two halves so a build without
-//! server capability (mobile client) can implement only the client one.
+//! the server capability can implement only the client one.
 //!
 //! `ReplyTo` is the carrier-shaped return address (an `IpAddr` for ICMP, a
 //! `(SocketAddr, DomainName)` for DNS, a MAC for ARP, etc). The engine is

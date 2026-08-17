@@ -18,7 +18,7 @@ pub(super) async fn serve(socket: UdpSocket, fakedns: Arc<FakeDns>) {
             continue;
         }
         if let Some(reply) = fakedns.answer(&payload) {
-            // Reply appears to come from the resolver the app queried.
+            // Reply appears to come from the resolver the process queried.
             if tx.send((reply, remote, local)).await.is_err() {
                 break;
             }

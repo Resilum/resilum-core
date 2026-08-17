@@ -1,10 +1,10 @@
-// Minimal resilum-ffi usage. Compile against resilum.h and link libresilum_ffi.
+// Compile against resilum.h and link libresilum_ffi.
 #include <stdio.h>
 #include "resilum.h"
 
 int main(void) {
     const char *config =
-        "instance_name: mobile\n"
+        "instance_name: example\n"
         "connect:\n"
         "  services: [socks-egress]\n"
         "  listen_tcp: 127.0.0.1:0\n";
@@ -20,10 +20,8 @@ int main(void) {
         return 1;
     }
 
-    // Point the app's traffic at this local SOCKS port.
     printf("SOCKS on 127.0.0.1:%u\n", resilum_node_socks_port(node));
 
-    // Drain status events.
     ResilumEvent *event;
     while ((event = resilum_node_poll_event(node)) != NULL) {
         printf("event kind=%d\n", resilum_event_kind(event));

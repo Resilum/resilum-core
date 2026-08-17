@@ -1,6 +1,6 @@
 ---
-# Reference resilumd config for the Docker deploy. Bind-mounted at /config in
-# the container; the entrypoint reads /config/resilumd.yaml on startup.
+# Bind-mounted at /config in the container; the entrypoint reads
+# /config/resilumd.yaml on startup.
 
 instance_name: resilum
 
@@ -12,14 +12,12 @@ storage_path: /config/state
 # configured purely via `listen`/`bootstrap`.
 default_anchors: true
 
-# Auto-discover and mesh with peers via the Reticulum interface-discovery layer.
 discover_interfaces: true
 
 # Address peers should dial back on, when it differs from `listen` (NAT,
 # port-forward). Announced verbatim to the mesh.
 # reachable_on: "203.0.113.10"
 
-# Optional public TCP listener, so remote peers can reach this node directly.
 # listen: "[::]:4242"
 
 # Extra always-on anchors on top of `default_anchors`.
@@ -28,12 +26,15 @@ discover_interfaces: true
 
 # Transport-discovery plugins: each attaches discovered peers over its
 # transport and (when it can determine our own reachable endpoint) announces
-# ours for others to attach.
+# ours for others to attach. `iroh` is the exception: it resolves peers but
+# only announces this node when given `publish: true`, so that a leaf does not
+# beacon its address by default.
 discovery:
   - service: yggdrasil
   - service: tor
   - service: i2p
   - service: iroh
+  #   publish: true
 
 # Canonical rngit-mirror repo names this node hosts, announced in the mesh so
 # `resilumd mirrors find <repo>` on any peer prints live
@@ -41,8 +42,8 @@ discovery:
 # fills these via `rngit mirror <upstream> rns://self/mirrors/<name>` in the
 # sidecar container.
 advertised_mirrors:
-  - resilum-core
-  - resilum-mobile
+  - REPLACE-WITH-A-REPO-NAME-YOU-MIRROR
+  # - another-repo-name
 rngit_destination_file: /config/rngit/state/destination
 
 # Optional native I2P interface (needs a local i2pd with SAM on 127.0.0.1:7656).
@@ -51,27 +52,56 @@ rngit_destination_file: /config/rngit/state/destination
 #   peers:
 #     - somebase32.b32.i2p
 
-# Be an exit for mesh peers. Chaining through local tor/i2p (defaults below)
-# is anonymity-neutral: the exit hop is inside Tor/I2P, not your public IP.
-# Uncommenting `- service: socks-egress` opts into a raw public-IP exit —
-# same legal/abuse exposure as running a Tor exit, avoid on identifiable hosts.
+# Be an exit for mesh peers. With the tor/i2p providers below, the traffic
+# leaves the Tor or I2P network, not this host's address. `- service:
+# socks-egress` instead sends peers' traffic out of this host's own public
+# address: this node is what appears in the destination's logs, and what any
+# complaint about that traffic is addressed to.
 egress:
   - service: tor
     target: 127.0.0.1:9050
   # - service: i2p             # only lets peers reach .i2p sites, not clearnet
   #   target: 127.0.0.1:4447
-  # - service: socks-egress    # embedded SOCKS5, direct clearnet exit
+  # - service: socks-egress
   #   exit_country: DE
   #   allow_private: false     # `true` lets peers reach this host's loopback
   #                            # services and its LAN — only for a node whose
   #                            # peers are all trusted
 
-# Accept local TCP and forward through the fastest mesh egress provider.
-# `use_own: smart` never picks your own socks-egress (would defeat anonymity)
-# but allows own tor/i2p.
+# `services` is which provider kinds to look for, not an order of preference —
+# every discovered one is ranked by measured latency. `use_own: smart` skips
+# your own socks-egress, which would put your own traffic back on your own
+# address, but allows your own tor/i2p.
 ingress:
   services: [socks-egress, tor]
   listen_tcp: 127.0.0.1:${RESILUM_SOCKS_PORT:-10808}
-  use_own: smart               # smart | true | false
+  # smart | "true" | "false" — the last two need the quotes: unquoted they are
+  # YAML booleans and the config fails to load. Anything else means smart.
+  use_own: smart
   allow_countries: []
   deny_countries: []
+
+# Messaging. Registers this node's LXMF delivery destination so peers can send
+# it messages, and is what the Nostr bridge below carries them over — without
+# it the bridge has no way to reach a device and refuses to start.
+lxmf: {}
+
+# Carry direct messages between this mesh and the ordinary Nostr network. The
+# device does every piece of cryptography; this node is a postman with a
+# websocket and can read nothing it carries.
+nostr:
+  upstreams:
+    - wss://relay.damus.io
+  publish: false               # advertise as a bridge in the discovery announce
+  allow_npubs: []              # empty: anyone on the mesh may use this bridge,
+                               # to subscribe and to publish. List npubs to make
+                               # it personal — then only they may do either, and
+                               # publishing requires having subscribed first.
+  legacy_dm: true              # also accept inbound kind 4, which names its
+                               # sender in the clear and invites spam
+  publish_kinds: [1059, 4]     # kinds this bridge will send OUT to the relays.
+                               # Independent of `legacy_dm`, which only decides
+                               # what is asked for inbound: leaving 4 here with
+                               # `legacy_dm: false` still publishes kind 4.
+  retention: 7d                # how long an undelivered event and an
+                               # unrefreshed subscription are kept

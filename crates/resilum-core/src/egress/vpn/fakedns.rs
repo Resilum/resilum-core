@@ -1,6 +1,6 @@
 //! FakeDNS: answer A queries locally with synthetic addresses from a reserved
 //! pool, keeping a fakeip↔hostname map so the router can recover the name when
-//! the app later connects to that address. DNS never leaves the device.
+//! the process later connects to that address. DNS never leaves the device.
 
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv4Addr};

@@ -1,6 +1,6 @@
-//! resilum-ffi — C-ABI surface over `resilum-core` for the mobile app
-//! (`dart:ffi`). Opaque-pointer wrappers; every entry point catches panics
-//! (unwinding into C is undefined behaviour).
+//! resilum-ffi — C-ABI surface over `resilum-core` for an embedding caller.
+//! Opaque-pointer wrappers; every entry point catches panics (unwinding into C
+//! is undefined behaviour).
 
 mod event;
 mod identity;
@@ -11,6 +11,7 @@ mod lxmf;
 mod node;
 mod platform;
 mod status;
+mod strings;
 #[cfg(unix)]
 mod vpn;
 #[cfg(unix)]
@@ -24,6 +25,7 @@ pub use lxmf::*;
 pub use node::*;
 pub use platform::*;
 pub use status::*;
+pub use strings::*;
 #[cfg(unix)]
 pub use vpn::*;
 #[cfg(unix)]
@@ -52,8 +54,10 @@ pub(crate) fn set_error(msg: impl Into<Vec<u8>>) {
     LAST_ERROR.with(|slot| *slot.borrow_mut() = CString::new(msg).ok());
 }
 
-/// Run `body`; on panic, record its message for `resilum_last_error` and return
-/// `default` (unwinding into C is UB).
+pub(crate) fn clear_error() {
+    LAST_ERROR.with(|slot| *slot.borrow_mut() = None);
+}
+
 pub(crate) fn guard<T>(default: T, body: impl FnOnce() -> T) -> T {
     match catch_unwind(AssertUnwindSafe(body)) {
         Ok(value) => value,

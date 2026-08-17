@@ -1,6 +1,6 @@
 //! In-process covert attach: bridge the covert runner to leviculum through an
 //! in-memory byte channel, replacing the subprocess-behind-a-PipeInterface path
-//! (there is no `resilumd` on mobile). Carrier-agnostic — per-carrier
+//! (for embedders that run no separate process). Carrier-agnostic — per-carrier
 //! construction lives in the submodules.
 
 mod icmp;
@@ -87,8 +87,6 @@ where
         }
     });
 
-    // The runner blocks (its own threads + a drive loop), so it owns a dedicated
-    // OS thread. It exits when the duplex closes (uplink EOF).
     std::thread::spawn(move || {
         let _ = runner::run_client(carrier, server, session_id, uplink_rx, move |bytes| {
             let _ = out_tx.send(bytes.to_vec());

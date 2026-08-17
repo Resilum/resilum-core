@@ -42,7 +42,7 @@ pub fn start(tag: &str, dir: &Path, listen: Option<u16>, bootstrap: Vec<String>)
 }
 
 /// Build `request` as this node and hand it to the router, returning the
-/// message id the app would have got back.
+/// message id a caller would have got back.
 pub fn submit(node: &Node, request: &str) -> String {
     let identity = node.identity().expect("identity").clone();
     let source_hash = resilum_core::identity::lxmf_address(&identity);

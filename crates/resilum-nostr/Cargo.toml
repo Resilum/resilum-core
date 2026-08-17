@@ -1,0 +1,40 @@
+[package]
+name = "resilum-nostr"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+resilum-core = { path = "../resilum-core" }
+bech32 = "0.12"
+data-encoding = "2"
+k256 = { version = "0.14", default-features = false, features = [
+  "schnorr",
+  "alloc",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+humantime-serde = "1"
+tracing = "0.1"
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
+tokio-tungstenite = { version = "0.30", default-features = false, features = [
+  "connect",
+  "rustls-tls-webpki-roots",
+] }
+futures-util = { version = "0.3", default-features = false, features = [
+  "std",
+  "sink",
+] }
+# The crypto provider src/upstream/tls.rs installs.
+rustls = { version = "0.23", default-features = false, features = [
+  "ring",
+  "std",
+] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util"] }
+serde_yaml_ng = "0.10"
+
+[lints]
+workspace = true

@@ -1,5 +1,5 @@
 //! Latency monitor: probe the top-k eligible candidates and write their
-//! link_rtt/egress_side back to the registry, so the selector sees measured
+//! link_rtt/egress_rtt back to the registry, so the selector sees measured
 //! effective_latency.
 
 use std::collections::{HashMap, HashSet};
@@ -19,7 +19,7 @@ const PROBE_INTERVAL: f64 = 60.0;
 const TOP_K: usize = 3;
 
 /// Egress leg = full round-trip minus the mesh leg, floored at zero.
-pub fn egress_side_from_probe(e2e: f64, link_rtt: f64) -> f64 {
+pub fn egress_rtt_from_probe(e2e: f64, link_rtt: f64) -> f64 {
     (e2e - link_rtt).max(0.0)
 }
 
@@ -70,7 +70,7 @@ pub async fn run(
             }
             let result = e2e_probe(&engine, &router, &c, &strategy, &targets)
                 .await
-                .map(|p| (p.link_rtt, egress_side_from_probe(p.e2e, p.link_rtt)));
+                .map(|p| (p.link_rtt, egress_rtt_from_probe(p.e2e, p.link_rtt)));
             registry.record_probe(
                 &c.service,
                 &c.dest_hash,
@@ -87,18 +87,18 @@ mod tests {
 
     fn cand(hash: u8, latency: Option<(f64, f64)>, last_probe: Option<f64>) -> Candidate {
         let mut c = Candidate::new(vec![hash], "e2e");
-        if let Some((link_rtt, egress_side)) = latency {
+        if let Some((link_rtt, egress_rtt)) = latency {
             c.link_rtt = Some(link_rtt);
-            c.egress_side = Some(egress_side);
+            c.egress_rtt = Some(egress_rtt);
         }
         c.last_probe = last_probe;
         c
     }
 
     #[test]
-    fn egress_side_floors_at_zero() {
-        assert!((egress_side_from_probe(0.30, 0.10) - 0.20).abs() < 1e-9);
-        assert_eq!(egress_side_from_probe(0.05, 0.10), 0.0);
+    fn egress_rtt_floors_at_zero() {
+        assert!((egress_rtt_from_probe(0.30, 0.10) - 0.20).abs() < 1e-9);
+        assert_eq!(egress_rtt_from_probe(0.05, 0.10), 0.0);
     }
 
     #[test]

@@ -5,8 +5,8 @@ use leviculum_std::driver::StdNodeCore;
 
 use super::{LxmfProcessor, Ready};
 
-/// Bounds how stale mailbox delivery gets; a reachable peer is delivered to
-/// directly and does not wait for this.
+/// Bounds how stale store-and-forward delivery gets; a reachable peer is
+/// delivered to directly and does not wait for this.
 const SYNC_INTERVAL_MS: u64 = 300_000;
 
 const ALL_MESSAGES: Option<usize> = None;
@@ -40,7 +40,7 @@ impl LxmfProcessor {
             .request_messages_from_propagation_node(core, ALL_MESSAGES)
         {
             Ok(output) => self.absorb(ready, core, output, out),
-            Err(e) => tracing::debug!(error = ?e, "lxmf mailbox sync not started"),
+            Err(e) => tracing::debug!(error = ?e, "lxmf propagation sync not started"),
         }
     }
 }

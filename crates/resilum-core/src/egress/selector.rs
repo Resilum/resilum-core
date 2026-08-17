@@ -53,7 +53,7 @@ mod tests {
         let mut c = Candidate::new(vec![hash], "tor");
         if let Some(l) = latency {
             c.link_rtt = Some(l);
-            c.egress_side = Some(0.0);
+            c.egress_rtt = Some(0.0);
         }
         c
     }

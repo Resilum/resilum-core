@@ -2,18 +2,23 @@
 
 use std::sync::mpsc::TryRecvError;
 
+use data_encoding::HEXLOWER;
 use leviculum_core::DestinationHash;
 use leviculum_core::transport::TickOutput;
 use leviculum_lxmf::announce;
-use leviculum_lxmf::router::RouterOutput;
+use leviculum_lxmf::router::{RouterError, RouterOutput};
 use leviculum_std::driver::StdNodeCore;
 
 use super::{LxmfProcessor, Ready};
-use crate::lxmf::handle::Command;
-use crate::lxmf::stamp::Outcome;
+use crate::lxmf::handle::{Command, EventSink};
+
+mod requeue;
+mod stamp;
+#[cfg(test)]
+mod tests;
 
 impl LxmfProcessor {
-    /// Drain the command queue. Non-blocking by construction.
+    /// Non-blocking by construction: this runs with the core mutex held.
     pub(super) fn pump_commands(
         &mut self,
         ready: &mut Ready,
@@ -26,17 +31,14 @@ impl LxmfProcessor {
                     let message_id = message.message_id;
                     match ready.router.enqueue(core, *message) {
                         Ok(output) => self.absorb(ready, core, output, out),
-                        // `submit` returned long ago, so a refusal here can only
-                        // reach the app as a delivery update. Without one the
-                        // message would sit in the UI as "sending" forever.
-                        Err(e) => {
-                            tracing::warn!(error = ?e, "lxmf enqueue rejected");
-                            self.events.push(crate::lxmf::poll::failed(&message_id));
-                        }
+                        Err(e) => report_enqueue_error(&mut self.events, &message_id, e),
                     }
                 }
                 Ok(Command::Announce) => self.announce(ready, core, out),
                 Ok(Command::Stamp(outcome)) => self.apply_stamp(ready, core, outcome, out),
+                Ok(Command::Requeue { message_id, method }) => {
+                    self.requeue(ready, core, message_id, method, out);
+                }
                 // Disconnected means the node is shutting down; there is
                 // nothing left to drain either way.
                 Err(TryRecvError::Empty | TryRecvError::Disconnected) => return,
@@ -44,36 +46,7 @@ impl LxmfProcessor {
         }
     }
 
-    fn apply_stamp(
-        &mut self,
-        ready: &mut Ready,
-        core: &mut StdNodeCore,
-        outcome: Outcome,
-        out: &mut TickOutput,
-    ) {
-        match outcome {
-            Outcome::Ready { request, stamp } => {
-                match ready
-                    .router
-                    .set_outbound_stamp_result(core, &request, stamp.to_vec())
-                {
-                    Ok(output) => self.absorb(ready, core, output, out),
-                    Err(e) => tracing::warn!(error = ?e, "lxmf stamp result rejected"),
-                }
-            }
-            // The router has no way to be told a stamp will never arrive, so
-            // the message stays queued until it times out on its own. Naming
-            // the message is what makes that traceable.
-            Outcome::Failed { request, detail } => tracing::warn!(
-                message_id = %data_encoding::HEXLOWER.encode(&request.message_id),
-                error = %detail,
-                "lxmf stamp generation failed",
-            ),
-        }
-    }
-
-    /// Announce the delivery destination, which is what makes this node
-    /// addressable at all.
+    /// What makes this node addressable at all.
     pub(super) fn announce(
         &mut self,
         ready: &mut Ready,
@@ -87,7 +60,7 @@ impl LxmfProcessor {
         match core.announce_destination(&hash, Some(&app_data)) {
             Ok(core_output) => {
                 tracing::info!(
-                    address = %crate::hex::encode(ready.delivery_hash.iter()),
+                    address = %HEXLOWER.encode(&ready.delivery_hash),
                     "lxmf announce sent",
                 );
                 // Through `absorb` rather than merged straight into `out`: the
@@ -102,4 +75,26 @@ impl LxmfProcessor {
             Err(e) => tracing::warn!(error = ?e, "lxmf announce failed"),
         }
     }
+}
+
+/// Turn an enqueue refusal into what the caller is told, if anything.
+///
+/// `submit` returned `Ok` long before this runs — it only enqueued a channel
+/// command — so a refusal here is the only chance to reach the caller, and for
+/// most errors the answer is a synthetic `failed` event. Without one the
+/// message stays in the caller's model as "sending" forever.
+///
+/// `Duplicate` is the one exception: the router already holds this id in
+/// `outbound` and is retrying it on its own, so the verdict will come from
+/// that in-flight attempt. A second one from here would contradict it.
+fn report_enqueue_error(events: &mut EventSink, message_id: &[u8; 32], error: RouterError) {
+    if error == RouterError::Duplicate {
+        tracing::debug!(
+            message_id = %HEXLOWER.encode(message_id),
+            "lxmf enqueue duplicate, already in flight",
+        );
+        return;
+    }
+    tracing::warn!(error = ?error, "lxmf enqueue rejected");
+    events.push(crate::lxmf::poll::failed(message_id, &error));
 }

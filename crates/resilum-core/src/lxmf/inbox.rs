@@ -1,4 +1,4 @@
-//! Received messages, held until the app takes them.
+//! Received messages, held until the caller takes them.
 //!
 //! The router hands a message over once and keeps no copy, so the event queue
 //! dropping one loses it.

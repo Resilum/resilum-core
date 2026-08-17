@@ -1,8 +1,5 @@
-//! ICMP-echo covert carrier.
-//!
-//! Client is portable (`SOCK_DGRAM+IPPROTO_ICMP`, no root, mobile-friendly).
-//! Server side (raw sockets, AF_PACKET, BPF filter, netfilter suppression of
-//! the kernel's own echo-reply) is Linux-only and lands in a follow-up.
+//! ICMP-echo covert carrier. The server side needs raw sockets, AF_PACKET, a
+//! BPF filter, and netfilter suppression of the kernel's own echo-reply.
 
 pub mod client;
 pub mod id;

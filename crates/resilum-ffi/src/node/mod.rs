@@ -1,5 +1,3 @@
-//! Node lifecycle over the C ABI.
-
 mod lifecycle;
 mod runtime;
 
@@ -28,8 +26,6 @@ pub unsafe extern "C" fn resilum_node_new_from_yaml(yaml: *const c_char) -> *mut
 }
 
 /// Build a node from a JSON config; null on error (see `resilum_last_error`).
-/// The mobile app builds this from a typed settings model — no YAML string
-/// assembly on the Dart side.
 ///
 /// # Safety
 /// `json` must be a valid NUL-terminated string or null.
@@ -40,7 +36,6 @@ pub unsafe extern "C" fn resilum_node_new_from_json(json: *const c_char) -> *mut
     })
 }
 
-/// Shared body: decode the C string, parse it with `parse`, build the node.
 fn node_from(
     text: *const c_char,
     parse: impl FnOnce(&str) -> Result<Config, String>,

@@ -2,6 +2,7 @@
 
 use std::sync::atomic::Ordering;
 
+use leviculum_core::DestinationHash;
 use leviculum_lxmf::propagation_client::PropagationTransport;
 use leviculum_lxmf::router::{LxmfRouter, PropagationClientConfig, RouterConfig};
 use leviculum_lxmf::{LxmfNode, LxmfNodeConfig};
@@ -53,6 +54,24 @@ impl LxmfProcessor {
             }
         }
     }
+
+    /// The inverse of [`Self::take_ready`]. Publishing here, rather than after
+    /// each change, is what makes both a settled snapshot: a hook can enqueue,
+    /// re-queue or reselect the propagation node several times before it
+    /// returns.
+    pub(super) fn park(&mut self, ready: Box<Ready>) {
+        self.publish(&ready);
+        self.state = State::Ready(ready);
+    }
+
+    pub(super) fn publish(&self, ready: &Ready) {
+        let propagation_node = ready
+            .router
+            .outbound_propagation_node()
+            .map(DestinationHash::into_bytes);
+        self.router_state
+            .publish(ready.router.outbound().keys().copied(), propagation_node);
+    }
 }
 
 /// Built on the node's own identity, so the address peers message is the one
@@ -70,11 +89,11 @@ fn register(
         .map_err(|e| format!("register delivery destination: {e:?}"))?;
     let mut router = LxmfRouter::new(node, identity_hash, RouterConfig::default());
 
-    // Without the mailbox client a message only moves while both peers are
+    // Without the propagation client a message only moves while both peers are
     // online at once.
-    let mailbox = PropagationTransport::destination(clone_identity(&identity)?)
+    let propagation = PropagationTransport::destination(clone_identity(&identity)?)
         .map_err(|e| format!("propagation destination: {e:?}"))?;
-    let transport = PropagationTransport::register(core, mailbox)
+    let transport = PropagationTransport::register(core, propagation)
         .map_err(|e| format!("register propagation destination: {e:?}"))?;
     router
         .enable_propagation_client(transport, PropagationClientConfig::default())
@@ -97,8 +116,8 @@ fn register(
     })
 }
 
-/// `delivery_destination` and the mailbox both consume an identity, so each
-/// needs its own copy of the private key.
+/// `delivery_destination` and the propagation destination both consume an
+/// identity, so each needs its own copy of the private key.
 fn clone_identity(identity: &Identity) -> Result<Identity, String> {
     let bytes = identity
         .private_key_bytes()

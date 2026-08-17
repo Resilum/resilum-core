@@ -13,8 +13,7 @@ pub(crate) const ALPN: &[u8] = b"resilum/iroh/1";
 /// Bind an endpoint that accepts our ALPN. Resolves peers by `EndpointId`
 /// (`PkarrResolver` + DNS) but only publishes its own address when `publish` is
 /// set, so a leaf never beacons where it is. With `iroh-protect` and a socket
-/// hook present, the built-in UDP transport is swapped for a protected one
-/// (mobile), keeping relay so it stays a full participant — see
+/// hook present, the direct path is swapped for a protected UDP transport — see
 /// [`super::transport`].
 pub async fn build(
     secret: SecretKey,

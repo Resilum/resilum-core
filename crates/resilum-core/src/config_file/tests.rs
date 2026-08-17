@@ -1,13 +1,13 @@
 use super::{from_json, from_yaml};
 
 #[test]
-fn from_json_parses_the_mobile_config_shape() {
+fn from_json_parses_an_embedded_config_shape() {
     let cfg = from_json(
-        r#"{"instance_name":"resilum-mobile","default_anchors":true,"discover_interfaces":true,
+        r#"{"instance_name":"example-node","default_anchors":true,"discover_interfaces":true,
             "discovery":[{"service":"tor_embedded"}]}"#,
     )
     .unwrap();
-    assert_eq!(cfg.instance_name, "resilum-mobile");
+    assert_eq!(cfg.instance_name, "example-node");
     assert!(cfg.discover_interfaces);
     assert_eq!(cfg.discovery.len(), 1);
 }

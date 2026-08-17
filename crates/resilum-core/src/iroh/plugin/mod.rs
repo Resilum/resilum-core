@@ -28,7 +28,7 @@ pub struct IrohDiscovery {
 impl IrohDiscovery {
     /// Wire the live transport in, so announces start producing and consuming.
     pub fn activate(&self, endpoint: Endpoint, engine: Arc<ReticulumNode>, links: Links) {
-        *self.active.lock().expect("iroh discovery") = Some(Active {
+        *self.active.lock().unwrap_or_else(|e| e.into_inner()) = Some(Active {
             endpoint,
             engine,
             links,
@@ -36,18 +36,18 @@ impl IrohDiscovery {
     }
 
     pub fn deactivate(&self) {
-        *self.active.lock().expect("iroh discovery") = None;
+        *self.active.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }
 }
 
 impl DiscoveryPlugin for IrohDiscovery {
     fn produce_endpoint(&self) -> Option<Vec<u8>> {
-        let guard = self.active.lock().expect("iroh discovery");
+        let guard = self.active.lock().unwrap_or_else(|e| e.into_inner());
         Some(encode_addr(&guard.as_ref()?.endpoint.addr()))
     }
 
-    fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: &[u8]) {
-        let guard = self.active.lock().expect("iroh discovery");
+    fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: Option<&[u8]>) {
+        let guard = self.active.lock().unwrap_or_else(|e| e.into_inner());
         let Some(active) = guard.as_ref() else {
             return;
         };
@@ -57,7 +57,7 @@ impl DiscoveryPlugin for IrohDiscovery {
         if active
             .links
             .lock()
-            .expect("iroh links")
+            .unwrap_or_else(|e| e.into_inner())
             .contains_key(&addr.id)
         {
             return;

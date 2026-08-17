@@ -5,7 +5,7 @@ use super::payload::{Advert, pack, parse};
 fn roundtrip_advert() {
     let a = Advert::new(
         "0123456789abcdef0123456789abcdef".into(),
-        vec!["resilum-core".into(), "resilum-mobile".into()],
+        vec!["alpha".into(), "beta".into()],
     );
     let raw = pack(&a);
     let parsed = parse(&raw).unwrap();

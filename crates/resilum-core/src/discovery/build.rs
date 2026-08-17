@@ -6,7 +6,7 @@ use std::sync::Arc;
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::Notify;
 
-use super::{Discovery, OriginRegistry, TcpDiscovered, cache, covert};
+use super::{Discovery, OriginRegistry, Service, TcpDiscovered, cache, covert};
 use crate::announce_cap::CapController;
 use crate::config::{CovertDiscoveryService, DiscoveryService, EndpointFormat};
 
@@ -28,6 +28,9 @@ pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDisc
     let mut d = Discovery::default();
     let mut ygg = None;
     for cfg in p.tcp {
+        let Some(service) = named(&cfg.service) else {
+            continue;
+        };
         let cache_path = p.storage_root.map(|r| cache::path_for(r, &cfg.service));
         let plugin = Arc::new(TcpDiscovered::new(
             cfg.clone(),
@@ -41,10 +44,12 @@ pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDisc
         if matches!(cfg.endpoint_format, EndpointFormat::BracketedIpv6) {
             ygg = Some(plugin.clone());
         }
-        d.register(&cfg.service.clone(), plugin);
+        d.register(service, plugin);
     }
     for (cfg, addresses) in p.covert.iter().zip(p.covert_addresses) {
-        let name = cfg.service_name();
+        let Some(service) = named(&cfg.service_name()) else {
+            continue;
+        };
         let plugin = Arc::new(covert::CovertDiscovered::new(
             cfg.clone(),
             addresses.clone(),
@@ -52,9 +57,20 @@ pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDisc
             p.events.clone(),
             p.origin_registry.clone(),
         ));
-        d.register(&name, plugin);
+        d.register(service, plugin);
     }
     (d, ygg)
+}
+
+/// The one place a configured name becomes a service. A name outside the wire
+/// vocabulary could never be announced nor matched against a peer's announce,
+/// so the plugin is refused here instead of running dead.
+fn named(service: &str) -> Option<Service> {
+    let known = Service::from_name(service);
+    if known.is_none() {
+        tracing::error!(%service, "no such discovery service; plugin not registered");
+    }
+    known
 }
 
 /// One [`covert::AddressSource`] per configured covert carrier. Shared between

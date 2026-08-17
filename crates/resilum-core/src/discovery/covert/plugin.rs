@@ -52,13 +52,18 @@ impl DiscoveryPlugin for CovertDiscovered {
         (!self.inner.addresses.effective().is_empty()).then(Vec::new)
     }
 
-    fn consume_endpoint(&self, _payload: &[u8], announcer_pubkey: &[u8]) {
+    /// A covert session is sealed to the announcer, so an endpoint with no
+    /// signer to name — one restored from the cache — is unusable here.
+    fn consume_endpoint(&self, _payload: &[u8], announcer_pubkey: Option<&[u8]>) {
+        let Some(pubkey) = announcer_pubkey else {
+            return;
+        };
         let inner = Arc::clone(&self.inner);
-        let pubkey = announcer_pubkey.to_vec();
+        let pubkey = pubkey.to_vec();
         if inner
             .attached
             .lock()
-            .expect("attached")
+            .unwrap_or_else(|e| e.into_inner())
             .contains_key(&pubkey)
         {
             return;

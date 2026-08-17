@@ -15,7 +15,7 @@ use crate::egress::socks5::{
 use crate::link::LinkMsg;
 
 /// What to ask the egress to reach: a literal address, or a hostname the egress
-/// resolves itself (used when the app dialled a FakeDNS synthetic address).
+/// resolves itself (used when a FakeDNS synthetic address was dialled).
 #[non_exhaustive]
 pub enum Target {
     Addr(SocketAddr),

@@ -68,7 +68,6 @@ pub struct Config {
     pub discover_interfaces: bool,
     pub i2p: Option<I2pInterface>,
     pub iroh: Option<IrohConfig>,
-    /// Presence enables LXMF messaging on this node's own identity.
     pub lxmf: Option<LxmfConfig>,
     /// `0` disables auto-connect.
     pub autoconnect_max: usize,
@@ -85,10 +84,17 @@ pub struct Config {
     pub discovery: Vec<DiscoveryService>,
     /// Covert-carrier discovery plugins (parallel to `discovery`).
     pub covert_discovery: Vec<CovertDiscoveryService>,
-    /// How often the produce loop re-announces each discovery endpoint.
-    /// A mobile client should shorten this or use the trigger API on
-    /// network-change events.
+    /// How often the produce loop re-announces each discovery endpoint. A
+    /// caller whose connectivity changes often should shorten it, or announce
+    /// on demand with `Node::trigger_discovery_announce`.
     pub discovery_announce_interval: Duration,
+    /// Set when a bridge built on this node intends to publish itself as a
+    /// Nostr relay, so `discovery::bring_up` keeps the announce loop running
+    /// even with no transport discovery configured. Known and set before
+    /// `Node::start()` — unlike the actual advertised address, which the
+    /// bridge only learns and hands over via `advertise_nostr_relay` once
+    /// the node is running.
+    pub nostr_relay_publish: bool,
     pub specs: Specs,
 }
 
@@ -116,6 +122,7 @@ impl Config {
             discovery: Vec::new(),
             covert_discovery: Vec::new(),
             discovery_announce_interval: default_announce_interval(),
+            nostr_relay_publish: false,
             specs: Specs::default(),
         }
     }

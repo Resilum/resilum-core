@@ -1,5 +1,3 @@
-//! What the app can ask of a node while it runs.
-
 use std::os::raw::c_int;
 
 use super::ResilumNode;
@@ -8,9 +6,7 @@ use crate::{RESILUM_ERR_FAILED, RESILUM_ERR_NULL, RESILUM_OK, guard};
 /// Re-announce this node now, without waiting for the next interval: its
 /// discovery endpoints and, when messaging is on, its LXMF delivery address.
 ///
-/// Call it when the device's network changed. A peer cannot address a
-/// destination whose announce it has never seen, so a fresh interface is
-/// exactly when an announce is worth spending.
+/// Call it when the device's network changed.
 ///
 /// # Safety
 /// `node` must be a live pointer from `resilum_node_new_from_yaml`, or null.

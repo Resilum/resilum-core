@@ -1,4 +1,4 @@
-//! RNS-over-Yggdrasil transport. The app runs the gomobile Yggdrasil engine
+//! RNS-over-Yggdrasil transport. The caller runs the Yggdrasil engine
 //! (`IfName=none`) and hands us its packet fd; a userspace TCP/IP stack over that
 //! conduit both accepts RNS links arriving over ygg (→ a leviculum byte-channel)
 //! and, through a local SOCKS proxy, dials ygg peers on the node's behalf — the

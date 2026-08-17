@@ -1,4 +1,4 @@
-//! A protected UDP custom transport for iroh (mobile). iroh's built-in UDP
+//! A protected UDP custom transport for iroh. iroh's built-in UDP
 //! socket is out of reach of our socket-protect hook, so under a captured tun it
 //! would loop; here we bind the socket ourselves, run the hook on its fd (as
 //! tor/ygg do), and hand iroh a datagram transport over it. Relay is kept, so

@@ -7,8 +7,8 @@ use leviculum_std::DestinationHash;
 pub struct LxmfConfig {
     pub display_name: Option<String>,
     pub announce_interval: Duration,
-    /// Mailbox that holds messages while we are offline. `None` uses the
-    /// nearest node that announced one; set it to pin a node you run.
+    /// Propagation node that holds messages while we are offline. `None` uses
+    /// the nearest node that announced one; set it to pin a node you run.
     pub propagation_node: Option<DestinationHash>,
 }
 

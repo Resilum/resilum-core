@@ -23,10 +23,15 @@ impl LxmfProcessor {
         let mut queue = std::collections::VecDeque::from([first]);
         let mut rounds = 0usize;
         let mut checkpoint_due = false;
+        // One reading for the whole operation: every event below came out of
+        // the same core call, so they were all heard at the same moment.
+        let heard_at = crate::wall_clock::unix_now();
         while let Some(router_output) = queue.pop_front() {
             for event in router_output.events {
                 checkpoint_due |= matches!(event, RouterEvent::PersistenceRequested);
-                self.report(event);
+                if let Some(event) = self.order_stamp(event) {
+                    self.enqueue_for_caller(event, heard_at);
+                }
             }
             let mut core_output = router_output.core;
             let events = std::mem::take(&mut core_output.events);
@@ -70,24 +75,37 @@ impl LxmfProcessor {
         }
     }
 
-    /// Turn one router event into what the application sees.
-    fn report(&mut self, event: RouterEvent) {
-        if let RouterEvent::StampPending(request) = event {
-            // Off the lock: mining is unbounded work. The answer comes back as
-            // `Command::Stamp`; with no miner the message waits for one that
-            // never arrives.
-            if self.stamps.send(request).is_err() {
-                tracing::error!("lxmf stamp miner is gone; priced messages cannot be sent");
+    /// A stamp request goes to the mining thread and no further. Both answers
+    /// come back as `Command::Stamp`; with nobody grinding, the message waits
+    /// for a stamp that never arrives, and a propagated one waits without ever
+    /// spending a delivery attempt — so it reaches no verdict at all.
+    fn order_stamp(&mut self, event: RouterEvent) -> Option<RouterEvent> {
+        match event {
+            RouterEvent::StampPending(request) => {
+                self.stamps.delivery(request);
+                None
             }
-            return;
+            RouterEvent::PropagationStampPending(request) => {
+                self.stamps.propagation(request);
+                None
+            }
+            other => Some(other),
         }
-        let received = matches!(event, RouterEvent::MessageReceived(_));
-        match crate::lxmf::poll::event_to_json(&event) {
+    }
+
+    fn enqueue_for_caller(&mut self, event: RouterEvent, heard_at: f64) {
+        let Some(json) = crate::lxmf::poll::event_to_json(&event, heard_at) else {
+            tracing::debug!(event = ?event, "lxmf router event");
+            return;
+        };
+        match event {
             // A delivery update stays in the queue because the next one
             // supersedes it; a message has no such successor.
-            Some(json) if received => self.inbox.push(json),
-            Some(json) => self.events.push(json),
-            None => tracing::debug!(event = ?event, "lxmf router event"),
+            RouterEvent::MessageReceived(_) => self.inbox.push(json),
+            RouterEvent::PeerAnnounced { destination, .. } => {
+                self.events.push_announce(*destination.as_bytes(), json);
+            }
+            _ => self.events.push(json),
         }
     }
 }

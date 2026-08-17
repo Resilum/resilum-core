@@ -92,7 +92,7 @@ fn build_config(
         .state_dir(CfgPath::new(
             root.join("tor/state").to_string_lossy().into_owned(),
         ));
-    // Arti's default fs-permission checks reject a sandboxed app dir; trust ours.
+    // Arti's default fs-permission checks reject a sandboxed data dir; trust ours.
     builder.storage().permissions().dangerously_trust_everyone();
     builder.build()
 }

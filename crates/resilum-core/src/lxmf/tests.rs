@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use data_encoding::{BASE64, HEXLOWER};
-use leviculum_lxmf::DeliveryMethod;
 use leviculum_lxmf::router::{MessageState, RouterEvent};
+use leviculum_lxmf::{DeliveryMethod, Verification};
 use serde_json::{Value, json};
 
 use super::handle::{MAX_QUEUED_EVENTS, channel};
@@ -15,10 +15,10 @@ use super::send::build_message;
 fn send_roundtrips_body_and_structured_custom_data() {
     let id = crate::identity::generate();
     let source_hash = crate::identity::lxmf_address(&id);
-    let dest = "00112233445566778899aabbccddeeff";
+    let destination = "00112233445566778899aabbccddeeff";
     let content_b64 = BASE64.encode(b"hello");
     let req = json!({
-        "dest": dest,
+        "destination": destination,
         "method": "direct",
         "content_b64": content_b64,
         "fields": {
@@ -29,11 +29,11 @@ fn send_roundtrips_body_and_structured_custom_data() {
     .to_string();
 
     let msg = build_message(&req, &id, source_hash, 1.5).expect("build");
-    assert_eq!(HEXLOWER.encode(&msg.destination_hash), dest);
+    assert_eq!(HEXLOWER.encode(&msg.destination_hash), destination);
     assert_eq!(msg.content, b"hello");
     assert_eq!(msg.method, DeliveryMethod::Direct);
 
-    let out = event_to_json(&RouterEvent::MessageReceived(Box::new(msg))).expect("json");
+    let out = event_to_json(&RouterEvent::MessageReceived(Box::new(msg)), 0.0).expect("json");
     let v: Value = serde_json::from_str(&out).unwrap();
     assert_eq!(v["type"], "message");
     assert_eq!(v["source"], HEXLOWER.encode(&source_hash));
@@ -44,10 +44,10 @@ fn send_roundtrips_body_and_structured_custom_data() {
     assert_eq!(v["fields"]["custom_data"]["items"], json!([1, 2, 3]));
 }
 
-/// The state strings are the app's contract, not an internal name: a UI keys
-/// its delivery ticks off them, so a rename here is a silently broken client.
+/// The state strings are the caller's contract, not an internal name: a
+/// rename here is a silently broken consumer.
 #[test]
-fn every_message_state_has_its_app_facing_name() {
+fn every_message_state_has_its_public_name() {
     let mid = [7u8; 32];
     for (state, name) in [
         (MessageState::Generating, "generating"),
@@ -64,15 +64,39 @@ fn every_message_state_has_its_app_facing_name() {
             message_id: mid,
             state,
         };
-        let v: Value = serde_json::from_str(&event_to_json(&event).unwrap()).unwrap();
+        let v: Value = serde_json::from_str(&event_to_json(&event, 0.0).unwrap()).unwrap();
         assert_eq!(v["type"], "delivery");
         assert_eq!(v["state"], name);
         assert_eq!(v["message_id"], HEXLOWER.encode(&mid));
     }
 }
 
-/// The app warns "your messages are gone, ask for them again" on one of these
-/// and says nothing on the other, so an unlabelled overflow is a lie either way.
+/// The verification strings are the caller's and the Nostr bridge's contract:
+/// `unverified` is the difference between a proven sender and a claimed one,
+/// so a rename here silently turns that distinction back into a bare address.
+#[test]
+fn every_verification_state_has_its_public_name() {
+    let id = crate::identity::generate();
+    let source_hash = crate::identity::lxmf_address(&id);
+    let req =
+        json!({"destination": "00112233445566778899aabbccddeeff", "method": "direct"}).to_string();
+    let mut msg = build_message(&req, &id, source_hash, 0.0).expect("build");
+
+    for (verification, name) in [
+        (Verification::Valid, "valid"),
+        (Verification::Unverified, "unverified"),
+        (Verification::Invalid, "invalid"),
+    ] {
+        msg.verification = verification;
+        let out =
+            event_to_json(&RouterEvent::MessageReceived(Box::new(msg.clone())), 0.0).expect("json");
+        let v: Value = serde_json::from_str(&out).unwrap();
+        assert_eq!(v["verification"], name);
+    }
+}
+
+/// One of these means the sender has to repeat what it sent and the other
+/// does not, so an unlabelled overflow is a lie either way.
 #[test]
 fn a_full_inbox_and_a_full_event_queue_are_told_apart() {
     let inbox = Arc::new(Inbox::ephemeral());
@@ -93,21 +117,33 @@ fn a_full_inbox_and_a_full_event_queue_are_told_apart() {
 }
 
 fn drain_to_overflow(handle: &super::LxmfHandle) -> Value {
-    loop {
-        let json = handle.next_event().expect("an overflow is still queued");
-        let v: Value = serde_json::from_str(&json).unwrap();
-        if v["type"] == "overflow" {
-            return v;
-        }
-    }
+    std::iter::from_fn(|| handle.next_event())
+        .map(|json| serde_json::from_str::<Value>(&json).expect("an event is json"))
+        .find(|v| v["type"] == "overflow")
+        .expect("an overflow is still queued")
+}
+
+/// Same id despite a changed fallback proves the request pins the payload;
+/// the unpinned pair still diverging rules out coincidence.
+#[test]
+fn an_explicit_timestamp_pins_the_message_id_across_a_retry() {
+    let id = crate::identity::generate();
+    let sh = crate::identity::lxmf_address(&id);
+    let destination = "00112233445566778899aabbccddeeff";
+    let pinned =
+        json!({"destination": destination, "method": "direct", "timestamp": 1.7e9}).to_string();
+    let unpinned = json!({"destination": destination, "method": "direct"}).to_string();
+    let id_of = |j: &str, t: f64| build_message(j, &id, sh, t).unwrap().message_id;
+    assert_eq!(id_of(&pinned, 1.0), id_of(&pinned, 2.0));
+    assert_ne!(id_of(&unpinned, 1.0), id_of(&unpinned, 2.0));
 }
 
 #[test]
-fn rejects_bad_method_and_dest() {
+fn rejects_bad_method_and_destination() {
     let id = crate::identity::generate();
     let sh = crate::identity::lxmf_address(&id);
-    let bad_method = r#"{"dest":"00112233445566778899aabbccddeeff","method":"bogus"}"#;
-    let bad_dest = r#"{"dest":"xyz","method":"direct"}"#;
+    let bad_method = r#"{"destination":"00112233445566778899aabbccddeeff","method":"bogus"}"#;
+    let bad_destination = r#"{"destination":"xyz","method":"direct"}"#;
     assert!(build_message(bad_method, &id, sh, 0.0).is_err());
-    assert!(build_message(bad_dest, &id, sh, 0.0).is_err());
+    assert!(build_message(bad_destination, &id, sh, 0.0).is_err());
 }

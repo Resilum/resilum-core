@@ -58,7 +58,7 @@ impl Node {
     }
 
     /// Attach the Yggdrasil packet conduit `ygg_fd`, accepting RNS links over
-    /// ygg. `ygg_address` is the engine's own `200::/7` address (the app reads
+    /// ygg. `ygg_address` is the engine's own `200::/7` address (the caller reads
     /// it from `GetAddressString`); it is written to the yggdrasil discovery
     /// service's `hostname_path` so the node announces where peers should dial —
     /// the engine runs `IfName=none`, so there is no OS ygg interface to

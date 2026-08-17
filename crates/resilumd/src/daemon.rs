@@ -1,20 +1,25 @@
-//! The daemon proper: start a node, report on it, stop on a signal.
-
 use std::path::Path;
 use std::sync::mpsc;
 
 use resilum_core::Node;
 
-/// Returns rather than exiting, so `_iroh` and the node are dropped: the iroh
-/// handle's teardown sends CONNECTION_CLOSE, which a `process::exit` would skip.
+/// The shutdown path returns rather than exiting, so `_iroh` and the node are
+/// dropped: the iroh handle's teardown sends CONNECTION_CLOSE, which a
+/// `process::exit` would skip. The startup failures below do exit, having
+/// nothing yet to tear down.
 pub fn run(path: &Path) {
-    let cfg = match crate::config::load(path) {
+    let mut cfg = match crate::config::load(path) {
         Ok(cfg) => cfg,
         Err(e) => {
             tracing::error!(error = %e, "config load failed");
             std::process::exit(1);
         }
     };
+    // Read once, before the node exists: `discovery::bring_up` needs to know
+    // at `node.start()` time whether a bridge will publish, since the bridge
+    // itself only starts (and is advertised) afterwards.
+    let nostr_cfg = crate::nostr::load(path);
+    cfg.nostr_relay_publish = nostr_cfg.as_ref().is_some_and(|c| c.publish);
     let mut node = match Node::new(cfg) {
         Ok(node) => node,
         Err(e) => {
@@ -26,12 +31,19 @@ pub fn run(path: &Path) {
         tracing::error!(error = %e, "start failed");
         std::process::exit(1);
     }
-    // The server binds its own iroh socket, so it attaches itself — there is no
-    // app to drive the FFI. Held until stop; dropping detaches. No socket
-    // protection here: the server is not under a captured tun, so it uses
-    // iroh's stock transports.
+    // The daemon binds its own iroh socket, so it attaches itself rather than
+    // waiting to be driven over the FFI. No socket protection here: the daemon
+    // is not under a captured tun, so it uses iroh's stock transports.
     let _iroh = attach_iroh(&mut node);
-    announce_startup(&node);
+    let _nostr = nostr_cfg.and_then(|cfg| {
+        let publish = cfg.publish;
+        let handle = crate::nostr::start(&node, cfg)?;
+        if publish {
+            crate::nostr::advertise_relay(&node);
+        }
+        Some(handle)
+    });
+    log_startup(&node);
     spawn_stats(&node);
     spawn_health(&node);
 
@@ -39,9 +51,13 @@ pub fn run(path: &Path) {
     if let Err(e) = ctrlc::set_handler(move || {
         let _ = tx.send(());
     }) {
+        // `set_handler` consumed `tx` and dropped it, so `rx.recv()` would
+        // return immediately and the daemon would shut down looking clean
+        // seconds after start. There is no signal to wait for; fail loudly.
         tracing::error!(error = %e, "signal handler install failed");
+        std::process::exit(1);
     }
-    let _ = rx.recv(); // block until SIGINT/SIGTERM
+    let _ = rx.recv();
 
     tracing::info!("stopping");
     if let Err(e) = node.stop() {
@@ -63,17 +79,12 @@ fn attach_iroh(node: &mut Node) -> Option<resilum_core::IrohHandle> {
     }
 }
 
-fn announce_startup(node: &Node) {
+fn log_startup(node: &Node) {
     let id_hash = node
         .engine()
         .as_ref()
         .map(|e| e.identity_hash())
-        .map(|h| {
-            h.iter()
-                .take(8)
-                .map(|b| format!("{b:02x}"))
-                .collect::<String>()
-        })
+        .map(|h| resilum_core::hex::encode(h.iter().take(8)))
         .unwrap_or_default();
     tracing::info!(
         instance = node.config().instance_name.as_str(),

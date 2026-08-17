@@ -13,6 +13,8 @@ mod absorb;
 mod commands;
 mod propagation;
 mod register;
+#[cfg(test)]
+mod tests;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -20,15 +22,14 @@ use std::sync::mpsc::Receiver;
 
 use leviculum_core::node::NodeEvent;
 use leviculum_core::transport::TickOutput;
-use leviculum_lxmf::DeliveryStampRequest;
 use leviculum_lxmf::router::LxmfRouter;
 use leviculum_std::api::Identity;
 use leviculum_std::driver::{CoreProcessor, StdNodeCore};
-use tokio::sync::mpsc::UnboundedSender;
 
 use super::checkpoint::Checkpoint;
-use super::handle::{Command, EventSink};
+use super::handle::{Command, EventSink, RouterState};
 use super::inbox::Inbox;
+use super::stamp::Jobs;
 use crate::config::LxmfConfig;
 
 /// Bounds how long a submitted message waits to be picked up: an event tap
@@ -56,10 +57,9 @@ pub(super) struct LxmfProcessor {
     commands: Receiver<Command>,
     events: EventSink,
     inbox: Arc<Inbox>,
-    stamps: UnboundedSender<DeliveryStampRequest>,
+    stamps: Jobs,
     registered: Arc<AtomicBool>,
-    /// `None` when the node has no storage directory, i.e. nowhere durable to
-    /// put a queue — in-memory then, as before.
+    router_state: RouterState,
     checkpoint: Option<Checkpoint>,
     state: State,
 }
@@ -69,8 +69,9 @@ pub(super) struct Wiring {
     pub(super) commands: Receiver<Command>,
     pub(super) events: EventSink,
     pub(super) inbox: Arc<Inbox>,
-    pub(super) stamps: UnboundedSender<DeliveryStampRequest>,
+    pub(super) stamps: Jobs,
     pub(super) registered: Arc<AtomicBool>,
+    pub(super) router_state: RouterState,
     pub(super) checkpoint: Option<Checkpoint>,
 }
 
@@ -83,6 +84,7 @@ impl LxmfProcessor {
             inbox: wiring.inbox,
             stamps: wiring.stamps,
             registered: wiring.registered,
+            router_state: wiring.router_state,
             checkpoint: wiring.checkpoint,
             state: State::Unregistered(Box::new(identity)),
         }
@@ -102,7 +104,7 @@ impl CoreProcessor for LxmfProcessor {
         // Not only on the timer: a live node fires events far more often than
         // `POLL_INTERVAL_MS`, which is what keeps send latency low.
         self.pump_commands(&mut ready, core, &mut out);
-        self.state = State::Ready(ready);
+        self.park(ready);
         out
     }
 
@@ -124,7 +126,7 @@ impl CoreProcessor for LxmfProcessor {
             Err(e) => tracing::warn!(error = ?e, "lxmf tick"),
         }
 
-        self.state = State::Ready(ready);
+        self.park(ready);
         // A future instant, never a stale one: a deadline in the past pins the
         // driver to its 1 ms floor.
         let poll = now_ms.saturating_add(POLL_INTERVAL_MS);
