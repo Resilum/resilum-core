@@ -3064,8 +3064,8 @@ dependencies = [
 
 [[package]]
 name = "leviculum-core"
-version = "0.8.0"
-source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=f43184bc0780c2cac9c0e7e8456ef3a7a971e01d#f43184bc0780c2cac9c0e7e8456ef3a7a971e01d"
+version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "aes",
  "cbc",
@@ -3082,8 +3082,8 @@ dependencies = [
 
 [[package]]
 name = "leviculum-lxmf"
-version = "0.8.0"
-source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=f43184bc0780c2cac9c0e7e8456ef3a7a971e01d#f43184bc0780c2cac9c0e7e8456ef3a7a971e01d"
+version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "leviculum-core",
  "rand_core 0.6.4",
@@ -3093,10 +3093,11 @@ dependencies = [
 
 [[package]]
 name = "leviculum-std"
-version = "0.8.0"
-source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=f43184bc0780c2cac9c0e7e8456ef3a7a971e01d#f43184bc0780c2cac9c0e7e8456ef3a7a971e01d"
+version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "clap",
+ "futures",
  "hmac",
  "if-addrs",
  "leviculum-core",
@@ -8437,15 +8438,3 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
-
-[[patch.unused]]
-name = "leviculum-core"
-version = "0.8.1"
-
-[[patch.unused]]
-name = "leviculum-lxmf"
-version = "0.8.1"
-
-[[patch.unused]]
-name = "leviculum-std"
-version = "0.8.1"

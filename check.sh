@@ -64,6 +64,24 @@ cargo test --workspace
 step "doc (deny broken links)"
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --quiet
 
+step "the local [patch], if any, is in effect"
+# An ignored override means a run that reads as testing the integration
+# worktree tested the pinned revision. `-D warnings` does not catch it: this is
+# a cargo diagnostic, not a lint.
+if [ -f .cargo/config.toml ]; then
+    # Not `cargo metadata` — it resolves the same graph without reporting this.
+    ignored=$(cargo check --workspace --all-targets 2>&1 >/dev/null |
+        grep 'was not used in the crate graph' || true)
+    if [ -n "$ignored" ]; then
+        printf '%s\n' "$ignored"
+        printf '  ✗ the override is ignored; this build used the pinned revision\n'
+        exit 1
+    fi
+    printf '  in effect\n'
+else
+    printf '  none\n'
+fi
+
 step "Cargo.lock matches the pins"
 # With the local [patch] active the lock loses the pinned revisions, so it is
 # moved aside: the committed lock is the one a fresh clone resolves.
