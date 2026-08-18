@@ -6,6 +6,7 @@ use std::pin::Pin;
 use std::time::Duration;
 
 use tokio::task::JoinHandle;
+use tokio::time::Instant;
 
 /// Restart delays after consecutive failures.
 const BACKOFF_SECS: [u64; 6] = [1, 2, 5, 15, 30, 60];
@@ -35,20 +36,40 @@ impl Task {
     }
 }
 
+const HEALTHY_AFTER: Duration = Duration::from_secs(30);
+
 async fn supervise(task: Task) {
     let mut fails = 0;
     loop {
-        // A panic in one run is isolated here; cancellation stops supervision.
-        if let Err(join) = tokio::spawn((task.run)()).await
-            && join.is_cancelled()
-        {
-            return;
+        let started = Instant::now();
+        match tokio::spawn((task.run)()).await {
+            Ok(()) => tracing::info!(task = %task.name, "run ended"),
+            Err(join) if join.is_cancelled() => return,
+            Err(join) => {
+                let reason = panic_reason(join.into_panic());
+                tracing::error!(task = %task.name, reason, "run panicked");
+            }
+        }
+        if started.elapsed() >= HEALTHY_AFTER {
+            fails = 0;
         }
         let delay = backoff(fails);
         fails += 1;
         tracing::warn!(task = %task.name, ?delay, "restarting");
         tokio::time::sleep(delay).await;
     }
+}
+
+/// The default panic hook writes to stderr under a worker thread's name, which
+/// says nothing about which component died.
+fn panic_reason(payload: Box<dyn std::any::Any + Send>) -> String {
+    if let Some(text) = payload.downcast_ref::<&str>() {
+        return (*text).to_owned();
+    }
+    if let Some(text) = payload.downcast_ref::<String>() {
+        return text.clone();
+    }
+    "a panic payload that is neither &str nor String".to_owned()
 }
 
 /// Spawn every task under supervision.
@@ -60,13 +81,4 @@ pub fn spawn_all(tasks: Vec<Task>) -> Vec<JoinHandle<()>> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{BACKOFF_SECS, backoff};
-
-    #[test]
-    fn backoff_follows_schedule_and_saturates() {
-        assert_eq!(backoff(0).as_secs(), 1);
-        assert_eq!(backoff(3).as_secs(), 15);
-        assert_eq!(backoff(99).as_secs(), *BACKOFF_SECS.last().unwrap());
-    }
-}
+mod tests;

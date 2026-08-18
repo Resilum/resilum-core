@@ -79,6 +79,7 @@ iroh-protect = [
 
 [dev-dependencies]
 proptest = "1.11"
+tokio = { version = "1", features = ["test-util"] }
 
 [lints]
 workspace = true

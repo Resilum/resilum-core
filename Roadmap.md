@@ -51,7 +51,6 @@ that closes them.
   neither logged nor visible to the healthcheck
 - A failed SOCKS ingress bind is not logged and the task dies for good
 - Concurrent sessions are logged without a correlation id
-- Panics in background tasks are swallowed by the supervisor
 - The daemon config is not validated at startup: unknown keys and unknown values
   pass silently, and a malformed `socks:` value disables proxying fail-open
 - Ten environment variables with no summary and no example
