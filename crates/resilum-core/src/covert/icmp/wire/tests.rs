@@ -44,3 +44,25 @@ fn extract_reply_matches_only_ours() {
     pkt2.extend_from_slice(&build_echo_request(ident, b"hi", false));
     assert!(extract_reply(ETH_P_IP, &pkt2, ident).is_none());
 }
+
+#[test]
+fn a_header_longer_than_the_packet_is_refused_rather_than_read() {
+    let ident = 7;
+    let mut pkt = vec![
+        0x4F, 0, 0, 0, 0, 0, 0, 0, 64, PROTO_ICMP, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8,
+    ];
+    pkt.extend_from_slice(&build_echo_reply(ident, b"hi", false));
+
+    assert!(extract_reply(ETH_P_IP, &pkt, ident).is_none());
+}
+
+#[test]
+fn a_header_length_of_zero_does_not_read_the_ip_header_as_a_payload() {
+    let ident: u16 = 7;
+    let mut pkt = vec![0u8; 20];
+    pkt[4..6].copy_from_slice(&ident.to_be_bytes());
+    pkt[9] = PROTO_ICMP;
+    pkt.extend_from_slice(b"payload from inside the header");
+
+    assert!(extract_reply(ETH_P_IP, &pkt, ident).is_none());
+}

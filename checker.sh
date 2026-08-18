@@ -2,7 +2,7 @@
 # Format (autofix), lint, typecheck, test, doc, supply-chain and config lint.
 # A missing tool fails the run: a skipped step reads like a passed one.
 #
-# Run: ./check.sh [--docker]
+# Run: ./checker.sh [--docker]
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -108,7 +108,7 @@ trap - EXIT
 step "scripts stay shell"
 # A `python3 -c '...'` argument is just a string to the shell linter, so an
 # embedded language passes every gate here while being linted by none.
-foreign=$(grep -nE "(^|[|&;( ])(python3?|perl|ruby|node|deno)( |$)" check.sh \
+foreign=$(grep -nE "(^|[|&;( ])(python3?|perl|ruby|node|deno)( |$)" checker.sh \
     | grep -v '^[0-9]*: *#' || true)
 if [ -n "$foreign" ]; then
     printf '%s\n' "$foreign"

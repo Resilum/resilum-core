@@ -12,7 +12,6 @@ that closes them.
 - Covert handshake overwrites the key and reply address of an established session
 - Covert discovery dials any IP a peer sends
 - Yggdrasil discovery accepts any IPv6, including `::1`, ULA and link-local
-- ICMP IPv4 parser indexes past the buffer on a crafted IHL
 - Yggdrasil private key is written without restricting permissions
 
 ## Correctness
@@ -24,7 +23,6 @@ that closes them.
 - FakeDNS name map grows without eviction; the pool exhausts permanently
 - FakeDNS decodes DNS labels lossily, so non-UTF-8 names lose bytes
 - `.onion` and `.i2p` suffix checks are case-sensitive, DNS names are not
-- `announce_payload::pack` breaks the endpoint byte round-trip via `from_utf8_lossy`
 
 ## Concurrency
 
@@ -51,8 +49,6 @@ that closes them.
 
 - Overlay daemons are started with `&` from the entrypoint; their death is
   neither logged nor visible to the healthcheck
-- `resilumd` logs only errors unless `RUST_LOG` is set; the FFI path defaults to
-  info
 - A failed SOCKS ingress bind is not logged and the task dies for good
 - Concurrent sessions are logged without a correlation id
 - Panics in background tasks are swallowed by the supervisor

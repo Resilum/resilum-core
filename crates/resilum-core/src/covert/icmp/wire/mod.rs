@@ -98,7 +98,10 @@ pub fn extract_echo(
                 return None;
             }
             let ihl = (pkt[0] & 0x0F) as usize * 4;
-            let payload = echo_payload(&pkt[ihl..], v4_type, ident)?;
+            if ihl < 20 {
+                return None;
+            }
+            let payload = echo_payload(pkt.get(ihl..)?, v4_type, ident)?;
             let src =
                 std::net::IpAddr::V4(std::net::Ipv4Addr::new(pkt[12], pkt[13], pkt[14], pkt[15]));
             Some(Peeled { src, payload })

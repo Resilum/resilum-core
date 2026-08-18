@@ -1,5 +1,5 @@
 //! Checks that need more than a shell one-liner, kept in the project's own
-//! language rather than embedded in check.sh.
+//! language rather than embedded in checker.sh.
 
 mod density;
 
