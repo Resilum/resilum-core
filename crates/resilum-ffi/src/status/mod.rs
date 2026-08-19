@@ -38,13 +38,19 @@ use crate::set_error;
 ///   "nostr_relays": ["<32-hex>"],
 ///   "lxmf": { "ready": true, "address": "<32-hex>", "queued_count": 0,
 ///             "queued_ids": ["<64-hex>"],
-///             "propagation_node": "<32-hex>" | null } | null
+///             "propagation_node": "<32-hex>" | null } | null,
+///   "tor": { "bootstrapped": true } | null
 /// }
 /// ```
 /// `identity_hash` and `transport` are `null` before start. `added_by` is
 /// inferred from `name`; `kind` and `discovered_via` come from the engine and
 /// are orthogonal to each other — a peer found over I2P is still dialed as
 /// `tcp`. `nostr_relays` are Nostr bridge LXMF addresses heard on the mesh.
+///
+/// `tor` is `null` when this node runs no embedded Tor. A network that blocks
+/// Tor leaves `bootstrapped` false for as long as the node runs: the directory
+/// fetch retries rather than failing, so nothing else reports it and a start
+/// over a blocked network succeeds like any other.
 ///
 /// `lxmf` is `null` when this node has no messaging configured — never an
 /// absent key, so the caller can tell "messaging is off" from "this build

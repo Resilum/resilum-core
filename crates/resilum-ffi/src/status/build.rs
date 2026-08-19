@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::lxmf;
-use super::model::{Interface, NodeStatus, Transport, added_by, hex};
+use super::model::{Interface, NodeStatus, TorStatus, Transport, added_by, hex};
 use crate::node::ResilumNode;
 
 /// Filled under `PathTableEntry::interface_index`, read back under
@@ -20,6 +20,10 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
         transport: None,
         nostr_relays: node.0.nostr_relays(),
         lxmf: lxmf::snapshot(node),
+        tor: node
+            .0
+            .tor_bootstrapped()
+            .map(|bootstrapped| TorStatus { bootstrapped }),
     };
     let Some(engine) = node.0.engine() else {
         return status;

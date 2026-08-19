@@ -55,6 +55,13 @@ impl Node {
         self.lxmf.as_ref()
     }
 
+    #[must_use]
+    pub fn tor_bootstrapped(&self) -> Option<bool> {
+        self.embedded_tor
+            .as_ref()
+            .map(crate::tor::EmbeddedTor::is_bootstrapped)
+    }
+
     /// The discovery overlay an interface was attached over (`tor` / `i2p` /
     /// `yggdrasil` / `covert`), or `None` when resilum-core did not attach it
     /// (bootstrap, LAN, or a leviculum-managed peer). Keyed by the interface id

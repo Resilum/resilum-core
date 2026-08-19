@@ -66,6 +66,11 @@ impl EmbeddedTor {
         self.port
     }
 
+    #[must_use]
+    pub fn is_bootstrapped(&self) -> bool {
+        self.client.bootstrap_status().ready_for_traffic()
+    }
+
     pub fn client(&self) -> ArtiClient {
         Arc::clone(&self.client)
     }

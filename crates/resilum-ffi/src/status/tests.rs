@@ -13,6 +13,7 @@ fn bare_status() -> NodeStatus {
         transport: None,
         nostr_relays: Vec::new(),
         lxmf: None,
+        tor: None,
     }
 }
 
@@ -26,6 +27,26 @@ fn empty_nostr_relays_serializes_as_array() {
 fn lxmf_off_serializes_as_null_key_not_absent() {
     let json = serde_json::to_string(&bare_status()).expect("serialization");
     assert!(json.contains("\"lxmf\":null"), "JSON: {}", json);
+}
+
+#[test]
+fn tor_off_serializes_as_null_key_not_absent() {
+    let json = serde_json::to_string(&bare_status()).expect("serialization");
+    assert!(json.contains("\"tor\":null"), "JSON: {}", json);
+}
+
+#[test]
+fn a_bootstrapped_tor_serializes_as_an_object() {
+    let mut status = bare_status();
+    status.tor = Some(super::model::TorStatus { bootstrapped: true });
+
+    let json = serde_json::to_string(&status).expect("serialization");
+
+    assert!(
+        json.contains("\"tor\":{\"bootstrapped\":true}"),
+        "JSON: {}",
+        json
+    );
 }
 
 #[test]

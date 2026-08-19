@@ -13,6 +13,12 @@ pub(super) struct NodeStatus {
     pub transport: Option<Transport>,
     pub nostr_relays: Vec<String>,
     pub lxmf: Option<LxmfStatus>,
+    pub tor: Option<TorStatus>,
+}
+
+#[derive(Serialize)]
+pub(super) struct TorStatus {
+    pub bootstrapped: bool,
 }
 
 #[derive(Serialize)]
