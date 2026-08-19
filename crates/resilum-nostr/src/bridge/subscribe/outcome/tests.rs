@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn every_refusal_names_a_cause_and_an_action_the_device_can_branch_on() {
-    let seen: Vec<String> = [
+    let seen: Vec<Value> = [
         Refusal::Malformed,
         Refusal::ClockSkew,
         Refusal::NotCarried,
@@ -11,25 +11,25 @@ fn every_refusal_names_a_cause_and_an_action_the_device_can_branch_on() {
         Refusal::Full,
     ]
     .into_iter()
-    .map(|refusal| Outcome::Refused(refusal).json())
+    .map(|refusal| Outcome::Refused(refusal).body())
     .collect();
 
     assert_eq!(
         seen,
         vec![
-            r#"{"reason":"malformed","result":"refused","retry":"never"}"#,
-            r#"{"reason":"clock_skew","result":"refused","retry":"fix"}"#,
-            r#"{"reason":"not_carried","result":"refused","retry":"elsewhere"}"#,
-            r#"{"reason":"replayed","result":"refused","retry":"later"}"#,
-            r#"{"reason":"stale","result":"refused","retry":"fix"}"#,
-            r#"{"reason":"full","result":"refused","retry":"elsewhere"}"#,
+            json!({"result": "refused", "reason": "malformed", "retry": "never"}),
+            json!({"result": "refused", "reason": "clock_skew", "retry": "fix"}),
+            json!({"result": "refused", "reason": "not_carried", "retry": "elsewhere"}),
+            json!({"result": "refused", "reason": "replayed", "retry": "later"}),
+            json!({"result": "refused", "reason": "stale", "retry": "fix"}),
+            json!({"result": "refused", "reason": "full", "retry": "elsewhere"}),
         ]
     );
 }
 
 #[test]
 fn an_accepted_subscription_says_so_and_names_nothing_to_retry() {
-    assert_eq!(Outcome::Accepted.json(), r#"{"result":"accepted"}"#);
+    assert_eq!(Outcome::Accepted.body(), json!({"result": "accepted"}));
 }
 
 #[test]

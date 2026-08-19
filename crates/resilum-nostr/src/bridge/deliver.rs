@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use data_encoding::HEXLOWER;
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::from_mesh::{Verdicts, ack_json};
 use super::schema::{SCHEMA_ACK, SCHEMA_SUBSCRIBE_ACK};
@@ -88,29 +88,25 @@ fn send(state: &Arc<State>, entry: &Entry, method: Method) {
 }
 
 pub(super) fn ack(state: &Arc<State>, dest: [u8; 16], event_id: &str, verdicts: &Verdicts) {
-    let json = json!({
-        "destination": HEXLOWER.encode(&dest),
-        "method": "direct",
-        "fields": {
-            "custom_type": SCHEMA_ACK,
-            "custom_data": ack_json(event_id, verdicts),
-        }
-    })
-    .to_string();
+    let json = acknowledgement(dest, SCHEMA_ACK, ack_json(event_id, verdicts));
     submit(state, json, None, Carrying::Acknowledgement);
 }
 
 pub(super) fn subscription_answered(state: &Arc<State>, dest: [u8; 16], outcome: Outcome) {
-    let json = json!({
+    let json = acknowledgement(dest, SCHEMA_SUBSCRIBE_ACK, outcome.body());
+    submit(state, json, None, Carrying::Acknowledgement);
+}
+
+fn acknowledgement(dest: [u8; 16], schema: &str, body: Value) -> String {
+    json!({
         "destination": HEXLOWER.encode(&dest),
         "method": "direct",
         "fields": {
-            "custom_type": SCHEMA_SUBSCRIBE_ACK,
-            "custom_data": outcome.json(),
+            "custom_type": schema,
+            "custom_data": body,
         }
     })
-    .to_string();
-    submit(state, json, None, Carrying::Acknowledgement);
+    .to_string()
 }
 
 fn submit(state: &Arc<State>, json: String, tie: Option<Tie>, carrying: Carrying) {

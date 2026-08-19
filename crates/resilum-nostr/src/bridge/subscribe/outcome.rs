@@ -1,4 +1,4 @@
-use serde_json::json;
+use serde_json::{Value, json};
 
 use crate::registry::AcceptError;
 use crate::subscription::Refused;
@@ -51,15 +51,14 @@ pub(in crate::bridge) enum Outcome {
 }
 
 impl Outcome {
-    pub(in crate::bridge) fn json(self) -> String {
+    pub(in crate::bridge) fn body(self) -> Value {
         match self {
-            Self::Accepted => json!({ "result": "accepted" }).to_string(),
+            Self::Accepted => json!({ "result": "accepted" }),
             Self::Refused(refusal) => json!({
                 "result": "refused",
                 "reason": refusal.reason(),
                 "retry": refusal.retry().token(),
-            })
-            .to_string(),
+            }),
         }
     }
 }
