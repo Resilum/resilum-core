@@ -22,7 +22,7 @@ fn send_roundtrips_body_and_structured_custom_data() {
         "method": "direct",
         "content_b64": content_b64,
         "fields": {
-            "custom_type": "rcb/1",
+            "custom_type": "rsl.rcb/1",
             "custom_data": { "n": 42, "ok": true, "items": [1, 2, 3] },
         },
     })
@@ -38,7 +38,7 @@ fn send_roundtrips_body_and_structured_custom_data() {
     assert_eq!(v["type"], "message");
     assert_eq!(v["source"], HEXLOWER.encode(&source_hash));
     assert_eq!(v["content_b64"], content_b64);
-    assert_eq!(v["fields"]["custom_type"], "rcb/1");
+    assert_eq!(v["fields"]["custom_type"], "rsl.rcb/1");
     assert_eq!(v["fields"]["custom_data"]["n"], 42);
     assert_eq!(v["fields"]["custom_data"]["ok"], true);
     assert_eq!(v["fields"]["custom_data"]["items"], json!([1, 2, 3]));

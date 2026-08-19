@@ -14,7 +14,7 @@ use crate::set_error;
 ///   "title_b64": "<base64, optional>",
 ///   "content_b64": "<base64 human-readable body, optional>",
 ///   "fields": {
-///     "custom_type": "<sender-chosen schema id, e.g. rcb/1>",
+///     "custom_type": "<sender-chosen schema id, e.g. rsl.rcb/1>",
 ///     "custom_data": <any structured value>
 ///   },
 ///   "timestamp": <seconds since the epoch, optional>
