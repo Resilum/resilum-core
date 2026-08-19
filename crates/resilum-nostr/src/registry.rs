@@ -52,6 +52,12 @@ impl Registry {
     /// refresh reuses the one it already holds, and reissuing a `REQ` no
     /// subscriber was added to or dropped from would tell the relay nothing
     /// it does not already know.
+    pub(crate) fn ensure_fresh(&self, sub: &Subscription, now: i64) -> Result<(), AcceptError> {
+        let held = self.lock();
+        admit::ensure_within_retention(sub, now, self.retention)?;
+        admit::ensure_not_replayed(&held, sub)
+    }
+
     pub(crate) fn accept(
         &self,
         sub: Subscription,

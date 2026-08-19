@@ -6,12 +6,17 @@ use serde_json::Value;
 
 use super::deliver;
 use super::state::{self, State};
+use crate::config::NostrConfig;
 use crate::event::{self, Event};
-use crate::subscription;
+use crate::registry::Registry;
+use crate::subscription::{self, Subscription};
 
 pub(in crate::bridge) use refusal::Refusal;
 
 mod refusal;
+
+#[cfg(test)]
+mod tests;
 
 pub(super) fn accept(state: &Arc<State>, data: &Value, source: [u8; 16]) {
     let event = match decode(data) {
@@ -25,15 +30,8 @@ pub(super) fn accept(state: &Arc<State>, data: &Value, source: [u8; 16]) {
             return refused(state, source, Refusal::from(&error), &error.to_string());
         }
     };
-    // Between validating the request and writing it down: a bridge with an
-    // allow list is a personal one, and this is the only thing that says so.
-    if !state.cfg.may_use(&sub.pubkey) {
-        return refused(
-            state,
-            source,
-            Refusal::NotCarried,
-            "this bridge does not carry that npub",
-        );
+    if let Some((refusal, detail)) = refusal_for(&state.registry, &state.cfg, &sub, now) {
+        return refused(state, source, refusal, &detail);
     }
     // No verification gate here: the signed `lxmf` tag already binds this
     // address to `sub.pubkey`, and a first subscription is the likeliest
@@ -51,6 +49,24 @@ pub(super) fn accept(state: &Arc<State>, data: &Value, source: [u8; 16]) {
     };
     let relays = state.broadcast_batch(batch);
     tracing::info!(relays, %batch, "the bridge took a subscription");
+}
+
+fn refusal_for(
+    registry: &Registry,
+    cfg: &NostrConfig,
+    sub: &Subscription,
+    now: i64,
+) -> Option<(Refusal, String)> {
+    if let Err(error) = registry.ensure_fresh(sub, now) {
+        return Some((Refusal::from(&error), error.to_string()));
+    }
+    if cfg.may_use(&sub.pubkey) {
+        return None;
+    }
+    Some((
+        Refusal::NotCarried,
+        "this bridge does not carry that npub".to_owned(),
+    ))
 }
 
 fn decode(data: &Value) -> Result<Event, String> {
