@@ -107,14 +107,15 @@ impl Queue {
         });
     }
 
-    pub fn resolve(&self, event_id: &[u8; 32], subscriber: &[u8; 32]) {
+    pub fn resolve(&self, event_id: &[u8; 32], subscriber: &[u8; 32]) -> Option<Entry> {
         let mut held = self.lock();
-        let before = held.len();
-        held.retain(|e| e.event_id != *event_id || e.subscriber != *subscriber);
-        if held.len() != before {
-            let key = (*event_id, *subscriber);
-            self.writer.send(store::Change::Remove(vec![key]));
-        }
+        let at = held
+            .iter()
+            .position(|e| e.event_id == *event_id && e.subscriber == *subscriber)?;
+        let entry = held.remove(at);
+        self.writer
+            .send(store::Change::Remove(vec![(*event_id, *subscriber)]));
+        Some(entry)
     }
 
     pub fn expire(&self, now: i64) -> usize {

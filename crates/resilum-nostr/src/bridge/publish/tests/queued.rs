@@ -36,6 +36,23 @@ fn an_event_already_held_is_not_queued_again_by_a_later_peer() {
 /// answering it again would tell a device the same failure at every retry for
 /// the whole of the retention window.
 #[test]
+fn a_retry_that_lands_corrects_the_answer_the_first_round_gave() {
+    let bridge = held(1);
+    let mut pending = Pending::default();
+    let (event, _) = published("taken on the second attempt");
+    assert_eq!(bridge.queue.push(held_entry(&event)), Queued::Held);
+
+    let sent = pending.republish(&bridge.publishing(), &held_entry(&event), Instant::now());
+
+    assert!(sent, "a relay was offered it");
+    every_relay_answers(&bridge, &mut pending, &event, &[true]);
+
+    let acks = bridge.acked_at(PEER_B);
+    assert_eq!(acks.len(), 1, "the address it was held for hears once");
+    assert_eq!(acks[0]["accepted"], 1);
+}
+
+#[test]
 fn a_retry_opening_its_own_round_answers_nobody() {
     let bridge = held(1);
     let mut pending = Pending::default();

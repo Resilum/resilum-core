@@ -10,19 +10,17 @@ use crate::queue::{Direction, Entry, Handoff, Queued};
 
 /// Runs once for the event: the queue is keyed by it and its subscriber, and
 /// every peer that forwarded it named the same pair.
-pub(super) fn record(bridge: &Publishing<'_>, round: &Publication) {
+pub(super) fn record(bridge: &Publishing<'_>, round: &Publication) -> Option<[u8; 16]> {
     if round.accepted > 0 {
-        bridge
+        let held = bridge
             .queue
             .resolve(&round.tie.event_id, &round.tie.subscriber);
-        return;
+        return held.map(|entry| entry.lxmf);
     }
     // The address it first arrived at, whose sender has been waiting longest
     // and whose retry is therefore the one owed. Nothing on the list means
     // nothing is owed: a queued event offered again is already held.
-    let Some(&lxmf) = round.reply_to.first() else {
-        return;
-    };
+    let &lxmf = round.reply_to.first()?;
     let entry = Entry {
         direction: Direction::Outbound,
         subscriber: round.tie.subscriber,
@@ -40,4 +38,5 @@ pub(super) fn record(bridge: &Publishing<'_>, round: &Publication) {
             tracing::warn!("an event no relay took could not be held for retry");
         }
     }
+    None
 }

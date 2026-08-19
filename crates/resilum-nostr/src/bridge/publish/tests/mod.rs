@@ -17,7 +17,7 @@ use crate::bridge::retry::Schedule;
 use crate::bridge::state;
 use crate::config::NostrConfig;
 use crate::event::Event;
-use crate::queue::{Direction, Entry, Handoff, Queue};
+use crate::queue::{Direction, Entry, Handoff, Queue, Queued};
 use crate::registry::Registry;
 
 const RETENTION: Duration = Duration::from_secs(600);
