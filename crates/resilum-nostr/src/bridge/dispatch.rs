@@ -7,7 +7,10 @@ use super::schema::{SCHEMA_EVENT, SCHEMA_SUBSCRIBE};
 use crate::event::decode_hex;
 
 pub(super) enum Polled {
-    Subscribe(Value),
+    Subscribe {
+        data: Value,
+        source: [u8; 16],
+    },
     Publish {
         data: Value,
         source: Source,
@@ -45,7 +48,16 @@ pub(super) fn classify(json: &str) -> Polled {
 
 fn message(event: &Value) -> Polled {
     match event["fields"]["custom_type"].as_str() {
-        Some(SCHEMA_SUBSCRIBE) => Polled::Subscribe(event["fields"]["custom_data"].clone()),
+        Some(SCHEMA_SUBSCRIBE) => match address(event["source"].as_str()) {
+            Some(source) => Polled::Subscribe {
+                data: event["fields"]["custom_data"].clone(),
+                source,
+            },
+            None => {
+                tracing::warn!("a subscription named no sender, so nothing can be sent back");
+                Polled::Ignored
+            }
+        },
         Some(SCHEMA_EVENT) => match address(event["source"].as_str()) {
             // A gift wrap runs to tens of kilobytes of base64, so it is
             // cloned only where something will read it.
@@ -85,65 +97,5 @@ fn delivery(event: &Value) -> Polled {
 fn address(hex: Option<&str>) -> Option<[u8; 16]> {
     decode_hex::<16>(hex?).ok()
 }
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn message(custom_type: &str) -> String {
-        serde_json::json!({
-            "type": "message",
-            "source": "00112233445566778899aabbccddeeff",
-            "message_id": "ab",
-            "fields": { "custom_type": custom_type, "custom_data": "Zm9v" }
-        })
-        .to_string()
-    }
-
-    /// The two schemas differ only by a string; routing a subscription into
-    /// the publish path would offer someone's subscription to every relay.
-    #[test]
-    fn each_schema_classifies_as_its_own_variant() {
-        assert!(matches!(
-            classify(&message(SCHEMA_SUBSCRIBE)),
-            Polled::Subscribe(_)
-        ));
-        assert!(matches!(
-            classify(&message(SCHEMA_EVENT)),
-            Polled::Publish { .. }
-        ));
-        assert!(matches!(classify(&message("rcb/1")), Polled::Ignored));
-    }
-
-    /// Reading any state but `delivered` as proof would discard an event that
-    /// never reached the device.
-    #[test]
-    fn only_a_delivered_state_classifies_as_polled_delivered() {
-        for state in ["sent", "queued", "awaiting_collection", "failed"] {
-            let json = serde_json::json!({"type": "delivery", "message_id": "ab", "state": state})
-                .to_string();
-            assert!(!matches!(classify(&json), Polled::Delivered(_)), "{state}");
-        }
-        let json =
-            serde_json::json!({"type": "delivery", "message_id": "ab", "state": "delivered"})
-                .to_string();
-        assert!(matches!(classify(&json), Polled::Delivered(_)));
-    }
-
-    /// A publish claiming an address this node has not recalled must not read
-    /// as a recalled one: on a bridge with an allow list that is the whole of
-    /// the gate.
-    #[test]
-    fn only_a_valid_verification_recalls_the_sender() {
-        for claim in [Some("unknown"), Some("invalid"), None] {
-            assert!(
-                matches!(sender([1u8; 16], claim), Source::Claimed(_)),
-                "{claim:?}"
-            );
-        }
-        assert!(matches!(
-            sender([1u8; 16], Some("valid")),
-            Source::Recalled(_)
-        ));
-    }
-}
+mod tests;

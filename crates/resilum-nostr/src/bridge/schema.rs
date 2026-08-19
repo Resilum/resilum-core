@@ -5,3 +5,4 @@
 pub(super) const SCHEMA_EVENT: &str = "rsl.nostr/1";
 pub(super) const SCHEMA_SUBSCRIBE: &str = "rsl.relay/1";
 pub(super) const SCHEMA_ACK: &str = "rsl.nostr.ack/1";
+pub(super) const SCHEMA_SUBSCRIBE_ACK: &str = "rsl.relay.ack/1";

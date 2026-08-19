@@ -2,6 +2,7 @@ mod accessors;
 mod attach;
 mod interface;
 mod lifecycle;
+mod nostr_relay;
 
 use std::collections::VecDeque;
 use std::sync::atomic::AtomicU16;

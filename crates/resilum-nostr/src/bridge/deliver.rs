@@ -9,8 +9,9 @@ use data_encoding::HEXLOWER;
 use serde_json::json;
 
 use super::from_mesh::{Verdicts, ack_json};
-use super::schema::SCHEMA_ACK;
+use super::schema::{SCHEMA_ACK, SCHEMA_SUBSCRIBE_ACK};
 use super::state::{self, State};
+use super::subscribe::Refusal;
 use super::tie::Tie;
 use super::to_mesh::{Method, send_request};
 use crate::queue::{Entry, Handoff};
@@ -99,6 +100,19 @@ pub(super) fn ack(state: &Arc<State>, dest: [u8; 16], event_id: &str, verdicts: 
     submit(state, json, None, Carrying::Acknowledgement);
 }
 
+pub(super) fn subscription_refused(state: &Arc<State>, dest: [u8; 16], refusal: Refusal) {
+    let json = json!({
+        "destination": HEXLOWER.encode(&dest),
+        "method": "direct",
+        "fields": {
+            "custom_type": SCHEMA_SUBSCRIBE_ACK,
+            "custom_data": refusal.json(),
+        }
+    })
+    .to_string();
+    submit(state, json, None, Carrying::Acknowledgement);
+}
+
 fn submit(state: &Arc<State>, json: String, tie: Option<Tie>, carrying: Carrying) {
     let state = Arc::clone(state);
     tokio::task::spawn_blocking(move || {
@@ -110,30 +124,4 @@ fn submit(state: &Arc<State>, json: String, tie: Option<Tie>, carrying: Carrying
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn ladder(rungs: usize) -> Vec<Option<(&'static str, Handoff)>> {
-        let mut handoff = Handoff::default();
-        (0..rungs)
-            .map(|_| {
-                let (method, next) = on_schedule(handoff)?;
-                handoff = next;
-                Some((method.token(), handoff))
-            })
-            .collect()
-    }
-
-    #[test]
-    fn two_direct_tries_are_followed_by_the_mailbox_and_then_the_schedule_stops() {
-        assert_eq!(
-            ladder(4),
-            vec![
-                Some(("direct", Handoff::Direct { tries: 1 })),
-                Some(("direct", Handoff::Direct { tries: 2 })),
-                Some(("propagated", Handoff::LeftWithPropagationNode)),
-                None,
-            ]
-        );
-    }
-}
+mod tests;

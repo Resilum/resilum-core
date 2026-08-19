@@ -55,7 +55,7 @@ fn drain(state: &Arc<State>, pending: &mut Pending) {
     std::iter::from_fn(|| state.lxmf.next_event())
         .take(MAX_PER_TICK)
         .for_each(|json| match dispatch::classify(&json) {
-            Polled::Subscribe(data) => subscribe::accept(state, &data),
+            Polled::Subscribe { data, source } => subscribe::accept(state, &data, source),
             Polled::Publish { data, source } => {
                 pending.offer(&Publishing::of(state), &data, source, now);
             }

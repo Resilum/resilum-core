@@ -3,7 +3,6 @@
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
-use data_encoding::HEXLOWER;
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 
@@ -55,11 +54,19 @@ impl Node {
         self.lxmf.as_ref()
     }
 
+    #[cfg(feature = "arti")]
     #[must_use]
     pub fn tor_bootstrapped(&self) -> Option<bool> {
         self.embedded_tor
             .as_ref()
             .map(crate::tor::EmbeddedTor::is_bootstrapped)
+    }
+
+    /// A build without Arti cannot run Tor, so there is no state to report.
+    #[cfg(not(feature = "arti"))]
+    #[must_use]
+    pub fn tor_bootstrapped(&self) -> Option<bool> {
+        None
     }
 
     /// The discovery overlay an interface was attached over (`tor` / `i2p` /
@@ -118,26 +125,5 @@ impl Node {
     /// Mesh-discovered rngit mirror advertisements from peers; `None` before start.
     pub fn mirror_registry(&self) -> Option<&Arc<mirrors::Registry>> {
         self.mirror_registry.as_ref()
-    }
-
-    /// Nostr bridges heard on the mesh (hex LXMF addresses), so a caller can
-    /// offer one as an upstream without the user typing it in by hand. Empty
-    /// until at least one bridge announces itself.
-    #[must_use]
-    pub fn nostr_relays(&self) -> Vec<String> {
-        self.nostr_relay
-            .discovered()
-            .iter()
-            .map(|addr| HEXLOWER.encode(addr))
-            .collect()
-    }
-
-    /// Start or stop announcing this node as a Nostr bridge. A bridge crate
-    /// calls this once the node is running and it knows both its own LXMF
-    /// address and whether its configuration says to publish; `address:
-    /// None` withdraws the announce on the next tick without forgetting what
-    /// this node has discovered of other bridges.
-    pub fn advertise_nostr_relay(&self, address: Option<[u8; 16]>) {
-        self.nostr_relay.set_advertise(address);
     }
 }
