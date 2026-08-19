@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 
 use data_encoding::HEXLOWER;
 
+use crate::event::{GIFT_WRAP_KIND, NIP59_BACKDATE};
 use crate::registry::{BatchId, LiveMark};
 use crate::upstream::proto::{self, Filter};
 
@@ -42,12 +43,19 @@ fn id(batch: BatchId) -> String {
 fn filters(kinds: &[u32], chunk: &[Mark]) -> Vec<Filter> {
     chunk
         .iter()
-        .map(|(pubkey, since)| Filter {
+        .map(|(pubkey, last_seen)| Filter {
             kinds: kinds.to_vec(),
             subscriber_pubkey_hex: HEXLOWER.encode(pubkey),
-            since: Some(*since),
+            since: Some(resume_from(kinds, *last_seen)),
         })
         .collect()
+}
+
+fn resume_from(kinds: &[u32], last_seen: i64) -> i64 {
+    if kinds.contains(&GIFT_WRAP_KIND) {
+        return last_seen.saturating_sub(NIP59_BACKDATE).max(0);
+    }
+    last_seen
 }
 
 #[cfg(test)]

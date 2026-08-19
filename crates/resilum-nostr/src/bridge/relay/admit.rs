@@ -75,7 +75,9 @@ pub(super) fn admit(
         }
         Queued::AlreadyHeld => return None,
     }
-    stores.recent.remember(&subscriber, event_id);
+    stores
+        .recent
+        .remember(&subscriber, event_id, event.created_at);
     mark(stores.registry, &subscriber, event.created_at, now);
     Some(entry)
 }

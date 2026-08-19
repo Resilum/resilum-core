@@ -8,7 +8,8 @@ use crate::subscription::Subscription;
 
 use super::*;
 
-const KINDS: [u32; 2] = [1059, 4];
+const KINDS: [u32; 2] = [GIFT_WRAP_KIND, 4];
+const NOW: i64 = 1_787_164_439;
 
 fn nth(byte: u8) -> [u8; 32] {
     [byte; 32]
@@ -40,7 +41,11 @@ fn mark(batch: usize, byte: u8, last_seen: i64) -> LiveMark {
 /// it resumes from its own mark rather than a mark merged across the group.
 #[test]
 fn one_batch_becomes_one_frame_carrying_every_subscribers_own_resume_point() {
-    let marks = [mark(0, 1, 500), mark(0, 2, 700), mark(0, 3, 900)];
+    let marks = [
+        mark(0, 1, NOW + 500),
+        mark(0, 2, NOW + 700),
+        mark(0, 3, NOW + 900),
+    ];
 
     let frames = requests(&KINDS, &marks);
 
@@ -48,9 +53,18 @@ fn one_batch_becomes_one_frame_carrying_every_subscribers_own_resume_point() {
     let parts = parts(&frames[0]);
     assert_eq!(parts[0], json!("REQ"));
     assert_eq!(parts[2]["#p"], json!([HEXLOWER.encode(&nth(1))]));
-    assert_eq!(parts[2]["since"], json!(500));
-    assert_eq!(parts[3]["since"], json!(700));
-    assert_eq!(parts[4]["since"], json!(900));
+    assert_eq!(parts[2]["since"], json!(NOW + 500 - NIP59_BACKDATE));
+    assert_eq!(parts[3]["since"], json!(NOW + 700 - NIP59_BACKDATE));
+    assert_eq!(parts[4]["since"], json!(NOW + 900 - NIP59_BACKDATE));
+}
+
+#[test]
+fn a_filter_asking_for_gift_wraps_resumes_from_before_the_backdate() {
+    let plain = requests(&[4], &[mark(0, 1, NOW)]);
+    let wrapped = requests(&KINDS, &[mark(0, 1, NOW)]);
+
+    assert_eq!(parts(&plain[0])[2]["since"], json!(NOW));
+    assert_eq!(parts(&wrapped[0])[2]["since"], json!(NOW - NIP59_BACKDATE));
 }
 
 /// A mark's batch says which `REQ` it rides in; two different batches must

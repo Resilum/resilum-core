@@ -6,6 +6,10 @@ use k256::schnorr::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+pub(crate) const GIFT_WRAP_KIND: u32 = 1059;
+
+pub(crate) const NIP59_BACKDATE: i64 = 2 * 24 * 3600;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct Event {
     pub(crate) id: String,
