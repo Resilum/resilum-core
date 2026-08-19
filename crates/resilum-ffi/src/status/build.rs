@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use super::lxmf;
 use super::model::{Interface, NodeStatus, TorStatus, Transport, added_by, hex};
 use crate::node::ResilumNode;
+use resilum_core::discovery::Service;
 
 /// Filled under `PathTableEntry::interface_index`, read back under
 /// `InterfaceStats::interface_id.0` — two engine APIs naming the same
@@ -18,7 +19,12 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
         reachable_destinations: 0,
         interfaces: Vec::new(),
         transport: None,
-        nostr_relays: node.0.nostr_relays(),
+        nostr_relays: node
+            .0
+            .discovered(Service::NOSTR_RELAY)
+            .iter()
+            .map(hex)
+            .collect(),
         lxmf: lxmf::snapshot(node),
         tor: node
             .0

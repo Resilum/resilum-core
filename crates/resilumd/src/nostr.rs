@@ -8,6 +8,7 @@ use std::path::Path;
 use std::sync::OnceLock;
 
 use resilum_core::Node;
+use resilum_core::discovery::Service;
 use resilum_nostr::{BridgeHandle, NostrConfig, spawn};
 use serde::Deserialize;
 
@@ -54,7 +55,10 @@ pub fn start(node: &Node, cfg: NostrConfig) -> Option<BridgeHandle> {
 /// bridge that `start` just brought up.
 pub fn advertise_relay(node: &Node) {
     if let Some(identity) = node.identity() {
-        node.advertise_nostr_relay(Some(resilum_core::identity::lxmf_address(identity)));
+        node.advertise(
+            Service::NOSTR_RELAY,
+            resilum_core::identity::lxmf_address(identity),
+        );
     }
 }
 

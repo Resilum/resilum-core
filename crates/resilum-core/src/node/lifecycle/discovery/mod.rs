@@ -13,15 +13,11 @@ use crate::node::Node;
 use crate::{announce_cap, announce_trigger, discovery};
 use resolve::resolve_discovery;
 
-/// Whether there is anything for an announce loop to do: a configured
-/// transport, or a bridge that intends to publish itself even with none.
-/// A node with none of these has nothing to announce and nothing to hear
-/// about, so it must not spin the loop up at all.
 fn wants_discovery(config: &Config) -> bool {
     !config.discovery.is_empty()
         || !config.covert_discovery.is_empty()
         || (cfg!(feature = "iroh") && config.iroh.is_some())
-        || config.nostr_relay_publish
+        || !config.advertised_services.is_empty()
 }
 
 pub(super) fn bring_up(
@@ -76,8 +72,9 @@ pub(super) fn bring_up(
     }
     #[cfg(not(all(unix, feature = "ygg")))]
     let _ = ygg_discovery;
-    // Every node listens for bridge announces, whether or not it runs one.
-    discovery.register(discovery::Service::NOSTR_RELAY, node.nostr_relay.clone());
+    for (service, directory) in &node.directories {
+        discovery.register(*service, directory.clone());
+    }
     #[cfg(feature = "iroh")]
     if node.config.iroh.is_some() {
         let plugin = Arc::new(crate::iroh::IrohDiscovery::default());
@@ -134,13 +131,10 @@ mod tests {
         assert!(!wants_discovery(&Config::minimal("t")));
     }
 
-    /// The gap this module closes: a bridge-only node, with no transport
-    /// discovery configured, must still get an announce loop or `publish:
-    /// true` is silently inert forever.
     #[test]
-    fn a_bridge_that_will_publish_wants_discovery_on_its_own() {
+    fn a_node_that_will_advertise_wants_discovery_on_its_own() {
         let cfg = Config {
-            nostr_relay_publish: true,
+            advertised_services: vec![crate::discovery::Service::NOSTR_RELAY],
             ..Config::minimal("t")
         };
         assert!(wants_discovery(&cfg));

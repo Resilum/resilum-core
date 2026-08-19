@@ -5,16 +5,20 @@
 //! changing one silently points peers at the wrong transport, so a new service
 //! takes a new number instead of a free-looking gap.
 
-const SERVICES: [(&str, u8); 6] = [
-    ("tor", 0x01),
-    ("i2p", 0x02),
-    ("yggdrasil", 0x03),
-    ("iroh", 0x04),
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum Reach {
+    Transport,
+    MeshAddress,
+}
+
+const SERVICES: [(&str, u8, Reach); 6] = [
+    ("tor", 0x01, Reach::Transport),
+    ("i2p", 0x02, Reach::Transport),
+    ("yggdrasil", 0x03, Reach::Transport),
+    ("iroh", 0x04, Reach::Transport),
     // Covert carriers sit above the transports that carry themselves.
-    ("covert_icmp", 0x10),
-    // Bridges to another protocol reuse the mesh's own announce rather than
-    // a directory of their own.
-    ("nostr_relay", 0x20),
+    ("covert_icmp", 0x10, Reach::Transport),
+    ("nostr_relay", 0x20, Reach::MeshAddress),
 ];
 
 /// A service this node can speak for. Only constructible by looking a name or
@@ -24,6 +28,7 @@ const SERVICES: [(&str, u8); 6] = [
 pub struct Service {
     name: &'static str,
     id: u8,
+    reach: Reach,
 }
 
 impl Service {
@@ -40,7 +45,7 @@ impl Service {
     pub fn from_name(name: &str) -> Option<Self> {
         SERVICES
             .iter()
-            .position(|(known, _)| *known == name)
+            .position(|(known, _, _)| *known == name)
             .map(Self::at)
     }
 
@@ -48,8 +53,14 @@ impl Service {
     pub fn from_id(id: u8) -> Option<Self> {
         SERVICES
             .iter()
-            .position(|(_, known)| *known == id)
+            .position(|(_, known, _)| *known == id)
             .map(Self::at)
+    }
+
+    pub fn at_mesh_addresses() -> impl Iterator<Item = Self> {
+        (0..SERVICES.len())
+            .map(Self::at)
+            .filter(|service| service.reach == Reach::MeshAddress)
     }
 
     #[must_use]
@@ -63,8 +74,8 @@ impl Service {
     }
 
     const fn at(index: usize) -> Self {
-        let (name, id) = SERVICES[index];
-        Self { name, id }
+        let (name, id, reach) = SERVICES[index];
+        Self { name, id, reach }
     }
 }
 
@@ -82,7 +93,7 @@ mod tests {
 
     #[test]
     fn every_service_round_trips_through_its_id() {
-        for (name, _) in SERVICES {
+        for (name, _, _) in SERVICES {
             let id = id_of(name).expect("service has an id");
             assert_eq!(name_of(id), Some(name));
         }

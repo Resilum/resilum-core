@@ -13,6 +13,7 @@ pub use lxmf::LxmfConfig;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crate::discovery::Service;
 use crate::spec::Specs;
 
 /// Default announce interval (600s), overridable by the
@@ -88,13 +89,7 @@ pub struct Config {
     /// caller whose connectivity changes often should shorten it, or announce
     /// on demand with `Node::trigger_discovery_announce`.
     pub discovery_announce_interval: Duration,
-    /// Set when a bridge built on this node intends to publish itself as a
-    /// Nostr relay, so `discovery::bring_up` keeps the announce loop running
-    /// even with no transport discovery configured. Known and set before
-    /// `Node::start()` — unlike the actual advertised address, which the
-    /// bridge only learns and hands over via `advertise_nostr_relay` once
-    /// the node is running.
-    pub nostr_relay_publish: bool,
+    pub advertised_services: Vec<Service>,
     pub specs: Specs,
 }
 
@@ -122,7 +117,7 @@ impl Config {
             discovery: Vec::new(),
             covert_discovery: Vec::new(),
             discovery_announce_interval: default_announce_interval(),
-            nostr_relay_publish: false,
+            advertised_services: Vec::new(),
             specs: Specs::default(),
         }
     }

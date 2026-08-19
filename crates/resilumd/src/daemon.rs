@@ -2,6 +2,7 @@ use std::path::Path;
 use std::sync::mpsc;
 
 use resilum_core::Node;
+use resilum_core::discovery::Service;
 
 /// The shutdown path returns rather than exiting, so `_iroh` and the node are
 /// dropped: the iroh handle's teardown sends CONNECTION_CLOSE, which a
@@ -19,7 +20,9 @@ pub fn run(path: &Path) {
     // at `node.start()` time whether a bridge will publish, since the bridge
     // itself only starts (and is advertised) afterwards.
     let nostr_cfg = crate::nostr::load(path);
-    cfg.nostr_relay_publish = nostr_cfg.as_ref().is_some_and(|c| c.publish);
+    if nostr_cfg.as_ref().is_some_and(|c| c.publish) {
+        cfg.advertised_services.push(Service::NOSTR_RELAY);
+    }
     let mut node = match Node::new(cfg) {
         Ok(node) => node,
         Err(e) => {
