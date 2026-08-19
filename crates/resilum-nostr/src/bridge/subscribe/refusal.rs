@@ -18,6 +18,7 @@ pub(in crate::bridge) enum Refusal {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Retry {
     Fix,
+    Later,
     Elsewhere,
     Never,
 }
@@ -37,7 +38,8 @@ impl Refusal {
     fn retry(self) -> Retry {
         match self {
             Self::Malformed => Retry::Never,
-            Self::ClockSkew | Self::Replayed | Self::Stale => Retry::Fix,
+            Self::ClockSkew | Self::Stale => Retry::Fix,
+            Self::Replayed => Retry::Later,
             Self::NotCarried | Self::Full => Retry::Elsewhere,
         }
     }
@@ -51,6 +53,7 @@ impl Retry {
     fn token(self) -> &'static str {
         match self {
             Self::Fix => "fix",
+            Self::Later => "later",
             Self::Elsewhere => "elsewhere",
             Self::Never => "never",
         }
