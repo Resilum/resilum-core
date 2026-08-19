@@ -15,6 +15,15 @@ pub(in crate::bridge) enum Verdict {
     Rejected(String),
 }
 
+impl Verdict {
+    pub(in crate::bridge) fn of_ok(accepted: bool, message: String) -> Self {
+        if accepted || message.starts_with("duplicate:") {
+            return Self::Accepted;
+        }
+        Self::Rejected(message)
+    }
+}
+
 /// An event offered to the relays and not yet answered for.
 ///
 /// The round belongs to the event, not to whoever carried it here: a relay

@@ -52,6 +52,26 @@ fn a_relay_refusing_beside_one_that_takes_it_still_tells_both_peers_it_went_out(
 }
 
 #[test]
+fn a_relay_that_calls_a_duplicate_a_failure_still_leaves_the_event_on_the_network() {
+    let bridge = held(1);
+    let mut pending = Pending::default();
+    let (event, request) = published("already there");
+
+    offer(&bridge, &mut pending, &request, PEER_A);
+    pending.verdict(
+        &bridge.publishing(),
+        &event.id,
+        Verdict::of_ok(false, "duplicate: have this event".to_owned()),
+    );
+
+    assert_eq!(bridge.acked_at(PEER_A)[0]["accepted"], 1);
+    assert!(
+        bridge.queue.due(state::now()).is_empty(),
+        "a relay holds it, so nothing is owed a retry"
+    );
+}
+
+#[test]
 fn an_event_no_relay_took_is_held_once_and_for_the_peer_that_offered_it_first() {
     let bridge = held(1);
     let mut pending = Pending::default();

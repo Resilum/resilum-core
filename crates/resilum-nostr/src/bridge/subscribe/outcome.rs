@@ -43,9 +43,24 @@ impl Refusal {
             Self::NotCarried | Self::Full => Retry::Elsewhere,
         }
     }
+}
 
+pub(in crate::bridge) enum Outcome {
+    Accepted,
+    Refused(Refusal),
+}
+
+impl Outcome {
     pub(in crate::bridge) fn json(self) -> String {
-        json!({ "reason": self.reason(), "retry": self.retry().token() }).to_string()
+        match self {
+            Self::Accepted => json!({ "result": "accepted" }).to_string(),
+            Self::Refused(refusal) => json!({
+                "result": "refused",
+                "reason": refusal.reason(),
+                "retry": refusal.retry().token(),
+            })
+            .to_string(),
+        }
     }
 }
 

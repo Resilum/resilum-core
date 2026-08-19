@@ -23,11 +23,7 @@ pub(super) fn handle(state: &Arc<State>, pending: &mut Pending, frame: Incoming)
             accepted,
             message,
         } => {
-            let verdict = if accepted {
-                Verdict::Accepted
-            } else {
-                Verdict::Rejected(message)
-            };
+            let verdict = Verdict::of_ok(accepted, message);
             pending.verdict(&Publishing::of(state), &event_id, verdict);
         }
         Incoming::EndOfStored { subscription } => {

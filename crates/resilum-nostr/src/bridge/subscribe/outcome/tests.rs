@@ -11,20 +11,25 @@ fn every_refusal_names_a_cause_and_an_action_the_device_can_branch_on() {
         Refusal::Full,
     ]
     .into_iter()
-    .map(Refusal::json)
+    .map(|refusal| Outcome::Refused(refusal).json())
     .collect();
 
     assert_eq!(
         seen,
         vec![
-            r#"{"reason":"malformed","retry":"never"}"#,
-            r#"{"reason":"clock_skew","retry":"fix"}"#,
-            r#"{"reason":"not_carried","retry":"elsewhere"}"#,
-            r#"{"reason":"replayed","retry":"later"}"#,
-            r#"{"reason":"stale","retry":"fix"}"#,
-            r#"{"reason":"full","retry":"elsewhere"}"#,
+            r#"{"reason":"malformed","result":"refused","retry":"never"}"#,
+            r#"{"reason":"clock_skew","result":"refused","retry":"fix"}"#,
+            r#"{"reason":"not_carried","result":"refused","retry":"elsewhere"}"#,
+            r#"{"reason":"replayed","result":"refused","retry":"later"}"#,
+            r#"{"reason":"stale","result":"refused","retry":"fix"}"#,
+            r#"{"reason":"full","result":"refused","retry":"elsewhere"}"#,
         ]
     );
+}
+
+#[test]
+fn an_accepted_subscription_says_so_and_names_nothing_to_retry() {
+    assert_eq!(Outcome::Accepted.json(), r#"{"result":"accepted"}"#);
 }
 
 #[test]

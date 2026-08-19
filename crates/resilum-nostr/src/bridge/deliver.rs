@@ -11,7 +11,7 @@ use serde_json::json;
 use super::from_mesh::{Verdicts, ack_json};
 use super::schema::{SCHEMA_ACK, SCHEMA_SUBSCRIBE_ACK};
 use super::state::{self, State};
-use super::subscribe::Refusal;
+use super::subscribe::Outcome;
 use super::tie::Tie;
 use super::to_mesh::{Method, send_request};
 use crate::queue::{Entry, Handoff};
@@ -100,13 +100,13 @@ pub(super) fn ack(state: &Arc<State>, dest: [u8; 16], event_id: &str, verdicts: 
     submit(state, json, None, Carrying::Acknowledgement);
 }
 
-pub(super) fn subscription_refused(state: &Arc<State>, dest: [u8; 16], refusal: Refusal) {
+pub(super) fn subscription_answered(state: &Arc<State>, dest: [u8; 16], outcome: Outcome) {
     let json = json!({
         "destination": HEXLOWER.encode(&dest),
         "method": "direct",
         "fields": {
             "custom_type": SCHEMA_SUBSCRIBE_ACK,
-            "custom_data": refusal.json(),
+            "custom_data": outcome.json(),
         }
     })
     .to_string();
