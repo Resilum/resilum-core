@@ -17,7 +17,7 @@ use crate::bridge::retry::Schedule;
 use crate::bridge::state;
 use crate::config::NostrConfig;
 use crate::event::Event;
-use crate::queue::{Direction, Entry, Queue};
+use crate::queue::{Direction, Entry, Handoff, Queue};
 use crate::registry::Registry;
 
 const RETENTION: Duration = Duration::from_secs(600);
@@ -109,6 +109,7 @@ fn held_entry(event: &Event) -> Entry {
         event_id: event.id_bytes().expect("a signed event's id"),
         event_json: serde_json::to_string(event).expect("re-encodes").into(),
         queued_at: state::now(),
+        handoff: Handoff::default(),
     }
 }
 

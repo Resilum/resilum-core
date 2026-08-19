@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use crate::bridge::publish::{Publication, Publishing};
 use crate::bridge::state;
-use crate::queue::{Direction, Entry, Queued};
+use crate::queue::{Direction, Entry, Handoff, Queued};
 
 /// Runs once for the event: the queue is keyed by it and its subscriber, and
 /// every peer that forwarded it named the same pair.
@@ -30,6 +30,7 @@ pub(super) fn record(bridge: &Publishing<'_>, round: &Publication) {
         event_id: round.tie.event_id,
         event_json: Arc::clone(&round.event_json),
         queued_at: state::now(),
+        handoff: Handoff::default(),
     };
     match bridge.queue.push(entry) {
         // It has just been offered, so the next tick is not its next attempt.

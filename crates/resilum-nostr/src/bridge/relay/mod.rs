@@ -50,6 +50,6 @@ fn route(state: &Arc<State>, event: Event) {
         // packed on another thread: until then this is the only thing
         // keeping the next maintenance tick from offering the entry again.
         state.retry.attempted(Tie::from(&entry), Instant::now());
-        deliver::event(state, entry);
+        deliver::inbound(state, entry);
     }
 }

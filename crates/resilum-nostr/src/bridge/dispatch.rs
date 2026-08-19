@@ -15,6 +15,7 @@ pub(super) enum Polled {
     Delivered(String),
     /// Terminal, but not proof of anything: the entry stays owed.
     NotDelivered(String),
+    Reachable([u8; 16]),
     Ignored,
 }
 
@@ -26,6 +27,10 @@ pub(super) fn classify(json: &str) -> Polled {
     match event["type"].as_str() {
         Some("message") => message(&event),
         Some("delivery") => delivery(&event),
+        Some("announce") => match address(event["source"].as_str()) {
+            Some(source) => Polled::Reachable(source),
+            None => Polled::Ignored,
+        },
         Some("overflow") => {
             tracing::warn!(
                 kind = event["kind"].as_str().unwrap_or("?"),

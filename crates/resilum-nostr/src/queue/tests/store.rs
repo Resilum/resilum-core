@@ -51,6 +51,46 @@ fn a_queued_event_outlives_the_process_that_queued_it_field_for_field() {
     std::fs::remove_dir_all(&dir).ok();
 }
 
+#[test]
+fn how_far_the_ladder_got_outlives_the_process() {
+    let dir = scratch("handoff");
+    let path = dir.join("queue");
+    let deposited = entry(1);
+    let trying = entry(2);
+
+    let queue = Queue::open(path.clone(), Duration::from_secs(600), 10).expect("opens");
+    hold(&queue, deposited.clone());
+    hold(&queue, trying.clone());
+    queue.set_handoff(
+        &deposited.event_id,
+        &deposited.subscriber,
+        Handoff::LeftWithPropagationNode,
+    );
+    queue.set_handoff(
+        &trying.event_id,
+        &trying.subscriber,
+        Handoff::Direct { tries: 1 },
+    );
+    drop(queue);
+
+    let due = Queue::open(path, Duration::from_secs(600), 10)
+        .expect("reopens")
+        .due(200);
+    let handoff = |id: [u8; 32]| {
+        due.iter()
+            .find(|e| e.event_id == id)
+            .expect("the entry came back")
+            .handoff
+    };
+    assert_eq!(
+        handoff(deposited.event_id),
+        Handoff::LeftWithPropagationNode
+    );
+    assert_eq!(handoff(trying.event_id), Handoff::Direct { tries: 1 });
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
 /// Without the removal surviving the restart, the resolved entry comes back
 /// and is delivered to a subscriber already told it landed.
 #[test]

@@ -3,42 +3,17 @@
 //! Inbound waits on an offline mesh device; outbound waits on a relay that refused it.
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 use std::time::Duration;
 
 use crate::writer::Writer;
 
+mod entry;
 mod store;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Direction {
-    Inbound,
-    Outbound,
-}
-
-/// A caller that cannot tell the two refusals apart logs a flood as a
-/// duplicate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[must_use = "an entry the queue did not take is not owed to anyone"]
-pub enum Queued {
-    Held,
-    AlreadyHeld,
-    AtCeiling,
-}
-
-#[derive(Debug, Clone)]
-pub struct Entry {
-    pub direction: Direction,
-    pub subscriber: [u8; 32],
-    /// Copied from the registry when queued: a retry lands where the event arrived, not wherever the subscriber has moved since.
-    pub lxmf: [u8; 16],
-    pub event_id: [u8; 32],
-    /// Shared, not owned: `due` clones every held entry each tick, and a body can run tens of KiB.
-    pub event_json: Arc<str>,
-    pub queued_at: i64,
-}
+pub use entry::{Direction, Entry, Handoff, Queued};
 
 pub struct Queue {
     held: Mutex<store::Held>,
@@ -107,6 +82,29 @@ impl Queue {
             .filter(|e| self.within_retention(e.queued_at, now))
             .cloned()
             .collect()
+    }
+
+    pub fn owed_to(&self, lxmf: &[u8; 16], now: i64) -> Vec<Entry> {
+        self.lock()
+            .iter()
+            .filter(|e| e.lxmf == *lxmf && self.within_retention(e.queued_at, now))
+            .cloned()
+            .collect()
+    }
+
+    pub fn set_handoff(&self, event_id: &[u8; 32], subscriber: &[u8; 32], handoff: Handoff) {
+        let mut held = self.lock();
+        let Some(entry) = held
+            .iter_mut()
+            .find(|e| e.event_id == *event_id && e.subscriber == *subscriber)
+        else {
+            return;
+        };
+        entry.handoff = handoff;
+        self.writer.send(store::Change::Handoff {
+            key: (*event_id, *subscriber),
+            handoff,
+        });
     }
 
     pub fn resolve(&self, event_id: &[u8; 32], subscriber: &[u8; 32]) {

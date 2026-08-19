@@ -4,7 +4,7 @@ mod filter;
 
 use crate::config::NostrConfig;
 use crate::event::Event;
-use crate::queue::{Direction, Entry, Queued};
+use crate::queue::{Direction, Entry, Handoff, Queued};
 use crate::registry::Registry;
 
 use super::super::recent::Recent;
@@ -63,6 +63,7 @@ pub(super) fn admit(
         event_id,
         event_json: event_json.into(),
         queued_at: now,
+        handoff: Handoff::default(),
     };
     match stores.queue.push(entry.clone()) {
         Queued::Held => {}

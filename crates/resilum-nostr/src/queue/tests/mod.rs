@@ -14,7 +14,27 @@ fn entry(n: u8) -> Entry {
         event_id: [n; 32],
         event_json: "{}".into(),
         queued_at: 100,
+        handoff: Handoff::default(),
     }
+}
+
+#[test]
+fn only_what_is_owed_to_the_address_that_announced_comes_back() {
+    let queue = Queue::ephemeral(Duration::from_secs(600), 10);
+    let mut elsewhere = entry(2);
+    elsewhere.lxmf = [9u8; 16];
+    let mut lapsed = entry(3);
+    lapsed.queued_at = 0;
+    hold(&queue, entry(1));
+    hold(&queue, elsewhere);
+    hold(&queue, lapsed);
+
+    let owed = queue.owed_to(&[2u8; 16], 650);
+
+    assert_eq!(
+        owed.iter().map(|e| e.event_id).collect::<Vec<_>>(),
+        vec![[1u8; 32]]
+    );
 }
 
 #[test]

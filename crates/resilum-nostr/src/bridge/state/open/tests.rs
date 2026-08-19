@@ -2,7 +2,7 @@
 //! there, and when there was never meant to be one.
 
 use super::*;
-use crate::queue::{Direction, Entry, Queued};
+use crate::queue::{Direction, Entry, Handoff, Queued};
 use crate::subscription::Subscription;
 
 const RETENTION: Duration = Duration::from_secs(600);
@@ -46,6 +46,7 @@ fn a_node_with_no_storage_path_gets_stores_that_work_in_memory() {
             event_id: [1u8; 32],
             event_json: "{}".into(),
             queued_at: 100,
+            handoff: Handoff::default(),
         }),
         Queued::Held
     );

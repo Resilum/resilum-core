@@ -38,10 +38,7 @@ pub(super) fn tick(state: &Arc<State>, pending: &mut Pending) {
             // subscriber pays for in airtime. Only an inbound entry is ever
             // handed to LXMF.
             Direction::Inbound if on_the_mesh.contains(&tie) => continue,
-            Direction::Inbound => {
-                deliver::event(state, entry);
-                true
-            }
+            Direction::Inbound => deliver::inbound(state, entry),
             Direction::Outbound => pending.republish(&bridge, &entry, moment),
         };
         if sent {

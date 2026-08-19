@@ -6,23 +6,35 @@ use serde_json::json;
 use super::schema::SCHEMA_EVENT;
 use crate::queue::Entry;
 
+#[derive(Clone, Copy)]
+pub(super) enum Method {
+    Direct,
+    Propagated,
+}
+
+impl Method {
+    pub(super) fn token(self) -> &'static str {
+        match self {
+            Self::Direct => "direct",
+            Self::Propagated => "propagated",
+        }
+    }
+}
+
 /// `content_b64` is omitted so a foreign LXMF client sees an empty message,
 /// not ciphertext.
 ///
 /// `destination` comes from `entry.lxmf`, not a registry lookup: a retry must
 /// land where the event was addressed when it arrived.
 ///
-/// `direct` is the only delivery method that yields the `delivered` state the
-/// queue uses to drop an entry.
-///
 /// `timestamp` is pinned to `entry.queued_at` so every retry re-packs
 /// byte-identically and a receiver collapses the repeat.
-pub(super) fn send_request(entry: &Entry) -> String {
+pub(super) fn send_request(entry: &Entry, method: Method) -> String {
     let event_b64 = data_encoding::BASE64.encode(entry.event_json.as_bytes());
 
     let request = json!({
         "destination": HEXLOWER.encode(&entry.lxmf),
-        "method": "direct",
+        "method": method.token(),
         "timestamp": entry.queued_at as f64,
         "fields": {
             "custom_type": SCHEMA_EVENT,
@@ -36,7 +48,7 @@ pub(super) fn send_request(entry: &Entry) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::queue::Direction;
+    use crate::queue::{Direction, Handoff};
 
     /// Feeds `send_request`'s output to `resilum_core::lxmf::send::build_message`,
     /// the actual consumer, instead of restating its field names: a rename on
@@ -53,13 +65,14 @@ mod tests {
             lxmf: [0x33; 16],
             event_id: [1u8; 32],
             event_json: r#"{"kind":1059}"#.into(),
+            handoff: Handoff::default(),
             queued_at: 0,
         };
 
         let identity = resilum_core::identity::generate();
         let source_hash = resilum_core::identity::lxmf_address(&identity);
         let msg = resilum_core::lxmf::send::build_message(
-            &send_request(&entry),
+            &send_request(&entry, Method::Direct),
             &identity,
             source_hash,
             0.0,
@@ -103,11 +116,12 @@ mod tests {
             lxmf: [0x33; 16],
             event_id: [1u8; 32],
             event_json: r#"{"kind":1059}"#.into(),
+            handoff: Handoff::default(),
             queued_at: 1_723_000_000,
         };
 
-        let first = send_request(&entry);
-        let second = send_request(&entry);
+        let first = send_request(&entry, Method::Direct);
+        let second = send_request(&entry, Method::Direct);
         assert_eq!(first, second);
 
         let request: serde_json::Value = serde_json::from_str(&first).expect("valid json");

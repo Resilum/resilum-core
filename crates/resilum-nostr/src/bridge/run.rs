@@ -9,7 +9,7 @@ use tokio::time::MissedTickBehavior;
 use super::dispatch::{self, Polled};
 use super::publish::{Pending, Publishing};
 use super::state::State;
-use super::{maintain, relay, subscribe};
+use super::{deliver, maintain, relay, subscribe};
 use crate::upstream::proto::Incoming;
 
 /// The LXMF queue has no readiness signal, so it is asked on a timer. Short
@@ -61,6 +61,9 @@ fn drain(state: &Arc<State>, pending: &mut Pending) {
             }
             Polled::Delivered(message_id) => state.delivered(&message_id),
             Polled::NotDelivered(message_id) => state.not_delivered(&message_id),
+            Polled::Reachable(address) => {
+                deliver::to_a_device_back_on_the_mesh(state, &address, now);
+            }
             Polled::Ignored => {}
         });
 }
