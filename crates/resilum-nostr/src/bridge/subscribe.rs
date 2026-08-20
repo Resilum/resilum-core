@@ -50,7 +50,9 @@ fn decide(state: &Arc<State>, data: &Value) -> Outcome {
             tracing::info!(relays, %batch, "the bridge took a subscription");
         }
     }
-    Outcome::Accepted
+    Outcome::Accepted {
+        read_on: state.cfg.upstreams.clone(),
+    }
 }
 
 fn refusal_for(

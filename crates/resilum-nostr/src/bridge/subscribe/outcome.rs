@@ -46,14 +46,17 @@ impl Refusal {
 }
 
 pub(in crate::bridge) enum Outcome {
-    Accepted,
+    Accepted { read_on: Vec<String> },
     Refused(Refusal),
 }
 
 impl Outcome {
     pub(in crate::bridge) fn body(self) -> Value {
         match self {
-            Self::Accepted => json!({ "result": "accepted" }),
+            Self::Accepted { read_on } => json!({
+                "result": "accepted",
+                "relays": read_on,
+            }),
             Self::Refused(refusal) => json!({
                 "result": "refused",
                 "reason": refusal.reason(),

@@ -7,6 +7,8 @@
 use serde::Deserialize;
 use std::time::Duration;
 
+use crate::event::{DM_INBOX_RELAYS_KIND, GIFT_WRAP_KIND, LEGACY_DM_KIND};
+
 /// Unknown keys are refused rather than ignored: a misspelled `allow_npubs`
 /// would otherwise leave the list empty, and an empty list admits everyone.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -47,7 +49,7 @@ fn default_legacy_dm() -> bool {
 }
 
 fn default_publish_kinds() -> Vec<u32> {
-    vec![1059, 4]
+    vec![GIFT_WRAP_KIND, LEGACY_DM_KIND, DM_INBOX_RELAYS_KIND]
 }
 
 fn default_retention() -> Duration {
@@ -69,9 +71,9 @@ impl Default for NostrConfig {
 
 impl NostrConfig {
     pub(crate) fn inbound_kinds(&self) -> Vec<u32> {
-        let mut kinds = vec![1059];
+        let mut kinds = vec![GIFT_WRAP_KIND];
         if self.legacy_dm {
-            kinds.push(4);
+            kinds.push(LEGACY_DM_KIND);
         }
         kinds
     }

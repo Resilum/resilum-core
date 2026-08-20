@@ -35,7 +35,7 @@ fn legacy_delivery_widens_only_the_inbound_side() {
         ..NostrConfig::default()
     };
     assert_eq!(strict.inbound_kinds(), vec![1059]);
-    assert_eq!(strict.publish_kinds, vec![1059, 4]);
+    assert_eq!(strict.publish_kinds, vec![1059, 4, 10050]);
 }
 
 #[test]

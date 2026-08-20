@@ -28,8 +28,21 @@ fn every_refusal_names_a_cause_and_an_action_the_device_can_branch_on() {
 }
 
 #[test]
-fn an_accepted_subscription_says_so_and_names_nothing_to_retry() {
-    assert_eq!(Outcome::Accepted.body(), json!({"result": "accepted"}));
+fn an_accepted_subscription_names_the_relays_it_will_be_read_on() {
+    let accepted = Outcome::Accepted {
+        read_on: vec![
+            "wss://one.example".to_owned(),
+            "wss://two.example".to_owned(),
+        ],
+    };
+
+    assert_eq!(
+        accepted.body(),
+        json!({
+            "result": "accepted",
+            "relays": ["wss://one.example", "wss://two.example"],
+        })
+    );
 }
 
 #[test]

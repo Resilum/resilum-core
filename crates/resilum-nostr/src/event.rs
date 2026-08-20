@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub(crate) const GIFT_WRAP_KIND: u32 = 1059;
+pub(crate) const LEGACY_DM_KIND: u32 = 4;
+pub(crate) const DM_INBOX_RELAYS_KIND: u32 = 10050;
 
 pub(crate) const NIP59_BACKDATE: i64 = 2 * 24 * 3600;
 

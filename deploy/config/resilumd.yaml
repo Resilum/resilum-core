@@ -99,9 +99,12 @@ nostr:
                                # publishing requires having subscribed first.
   legacy_dm: true              # also accept inbound kind 4, which names its
                                # sender in the clear and invites spam
-  publish_kinds: [1059, 4]     # kinds this bridge will send OUT to the relays.
-                               # Independent of `legacy_dm`, which only decides
-                               # what is asked for inbound: leaving 4 here with
-                               # `legacy_dm: false` still publishes kind 4.
+  publish_kinds:               # kinds this bridge will send OUT to the relays.
+    - 1059                     # Independent of `legacy_dm`, which only decides
+    - 4                        # what is asked for inbound: leaving 4 here with
+    - 10050                    # `legacy_dm: false` still publishes kind 4.
+                               # 10050 is the DM inbox relay list, which a
+                               # device signs itself so senders outside the
+                               # mesh learn where to write to it.
   retention: 7d                # how long an undelivered event and an
                                # unrefreshed subscription are kept
