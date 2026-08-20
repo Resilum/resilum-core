@@ -66,7 +66,7 @@ pub(super) fn to_a_device_back_on_the_mesh(
     let on_the_mesh = state.awaiting_report();
     for entry in state.queue.owed_to(address, state::now()) {
         let tie = Tie::from(&entry);
-        if on_the_mesh.contains(&tie) || !state.retry.due(tie, moment) {
+        if on_the_mesh.contains(&tie) || !state.retry.reachable_now(tie, moment) {
             continue;
         }
         state.retry.attempted(tie, moment);

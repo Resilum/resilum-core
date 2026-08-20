@@ -25,6 +25,7 @@ pub(super) struct Schedule {
 struct Attempt {
     count: u32,
     next: Instant,
+    made_at: Instant,
 }
 
 impl Schedule {
@@ -40,9 +41,24 @@ impl Schedule {
         let attempt = held.entry(tie).or_insert(Attempt {
             count: 0,
             next: now,
+            made_at: now,
         });
         attempt.count = attempt.count.saturating_add(1);
         attempt.next = now + backoff(attempt.count);
+        attempt.made_at = now;
+    }
+
+    pub(super) fn reachable_now(&self, tie: Tie, now: Instant) -> bool {
+        let mut held = self.lock();
+        let Some(attempt) = held.get_mut(&tie) else {
+            return true;
+        };
+        if now.duration_since(attempt.made_at) < FIRST {
+            return false;
+        }
+        attempt.count = 0;
+        attempt.next = now;
+        true
     }
 
     pub(super) fn keep_only(&self, owed: &[Tie]) {
@@ -61,45 +77,4 @@ fn backoff(count: u32) -> Duration {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn tie() -> Tie {
-        Tie {
-            event_id: [1u8; 32],
-            subscriber: [7u8; 32],
-        }
-    }
-
-    #[test]
-    fn every_attempt_waits_longer_than_the_one_before() {
-        let schedule = Schedule::default();
-        let start = Instant::now();
-
-        assert!(schedule.due(tie(), start));
-        schedule.attempted(tie(), start);
-        assert!(!schedule.due(tie(), start + Duration::from_secs(59)));
-
-        let second = start + Duration::from_secs(61);
-        assert!(schedule.due(tie(), second));
-        schedule.attempted(tie(), second);
-        assert!(!schedule.due(tie(), second + Duration::from_secs(119)));
-        assert!(schedule.due(tie(), second + Duration::from_secs(121)));
-    }
-
-    #[test]
-    fn the_wait_stops_growing_at_an_hour() {
-        assert_eq!(backoff(20), CAP);
-    }
-
-    #[test]
-    fn an_entry_that_left_the_queue_is_forgotten() {
-        let schedule = Schedule::default();
-        let start = Instant::now();
-        schedule.attempted(tie(), start);
-
-        schedule.keep_only(&[]);
-
-        assert!(schedule.due(tie(), start));
-    }
-}
+mod tests;
