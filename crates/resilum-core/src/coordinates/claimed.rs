@@ -5,7 +5,7 @@ use super::Space;
 
 const FURTHEST: f64 = 600.0;
 const LEAST_ERROR: f64 = 0.01;
-const MOST_ERROR: f64 = 1.5;
+pub(super) const MOST_ERROR: f64 = 1.5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Claimed {
@@ -31,12 +31,12 @@ impl Claimed {
         if !(0.0..=FURTHEST).contains(&self.height) {
             return None;
         }
-        if !(LEAST_ERROR..=MOST_ERROR).contains(&self.error) {
+        if !self.error.is_finite() {
             return None;
         }
         let mut coord = Coord::<Space>::from(self.position);
         coord.set_height(self.height);
-        coord.set_error_estimate(self.error);
+        coord.set_error_estimate(self.error.clamp(LEAST_ERROR, MOST_ERROR));
         Some(coord)
     }
 }

@@ -13,10 +13,8 @@ fn a_plausible_coordinate_is_believed() {
     assert!(plausible().believable().is_some());
 }
 
-/// `violin` decides a coordinate is invalid only after moving ours with it,
-/// and its distance is a `Duration`, which panics on a value like this.
 #[test]
-fn a_coordinate_carrying_nan_is_refused() {
+fn a_coordinate_carrying_nan_is_refused_before_violin_can_panic_on_it() {
     for poisoned in [
         Claimed {
             position: [f64::NAN, 0.0, 0.0],
@@ -47,21 +45,30 @@ fn an_infinite_coordinate_is_refused() {
     );
 }
 
-/// Error weights how far one sample may move us, so a peer claiming to be
-/// certain beyond what any node reaches would move us all the way.
 #[test]
-fn a_peer_claiming_impossible_certainty_is_refused() {
+fn a_peer_claiming_impossible_certainty_is_believed_no_further_than_the_floor() {
     for lie in [0.0, -1.0, 0.0001] {
-        assert!(
-            Claimed {
-                error: lie,
-                ..plausible()
-            }
-            .believable()
-            .is_none(),
-            "error {lie}"
-        );
+        let believed = Claimed {
+            error: lie,
+            ..plausible()
+        }
+        .believable()
+        .expect("a coordinate is not refused over its error alone");
+
+        assert_eq!(believed.error_estimate(), LEAST_ERROR, "error {lie}");
     }
+}
+
+#[test]
+fn a_peer_claiming_to_know_nothing_is_believed_no_further_than_the_ceiling() {
+    let believed = Claimed {
+        error: 900.0,
+        ..plausible()
+    }
+    .believable()
+    .expect("a coordinate is not refused over its error alone");
+
+    assert_eq!(believed.error_estimate(), MOST_ERROR);
 }
 
 #[test]

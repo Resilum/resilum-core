@@ -23,6 +23,11 @@ fn somewhere(position: [f64; 3]) -> Claimed {
 }
 
 #[test]
+fn a_fresh_node_admits_it_does_not_know_where_it_is() {
+    assert_eq!(Coordinates::default().ours().error, claimed::MOST_ERROR);
+}
+
+#[test]
 fn a_node_that_has_measured_nobody_places_nobody() {
     let coordinates = Coordinates::default();
 

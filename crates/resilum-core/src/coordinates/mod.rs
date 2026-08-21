@@ -32,10 +32,16 @@ pub struct Coordinates {
 impl Default for Coordinates {
     fn default() -> Self {
         Self {
-            ours: Mutex::new(Node::new()),
+            ours: Mutex::new(knowing_nothing_of_where_we_are()),
             peers: Mutex::new(BTreeMap::new()),
         }
     }
+}
+
+fn knowing_nothing_of_where_we_are() -> Node<Space, Adjustments> {
+    let mut ours = Node::new();
+    ours.set_error_estimate(claimed::MOST_ERROR);
+    ours
 }
 
 impl Coordinates {
