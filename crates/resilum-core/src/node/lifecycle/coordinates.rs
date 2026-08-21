@@ -63,9 +63,19 @@ async fn ask_around(
         tokio::time::sleep(ASK_EVERY).await;
         let now = wall_clock::unix_now();
         coordinates.forget_before(now - FORGET_AFTER);
-        for (peer, at) in reachable_peers(&engine, &aspect) {
-            exchange::place(&engine, &router, &coordinates, peer, at, now).await;
+        let asking = reachable_peers(&engine, &aspect);
+        let mut placed = 0;
+        for (peer, at) in &asking {
+            if exchange::place(&engine, &router, &coordinates, *peer, *at, now).await {
+                placed += 1;
+            }
         }
+        tracing::debug!(
+            asked = asking.len(),
+            placed,
+            ours = %format_args!("{:?}", coordinates.ours()),
+            "asked the peers this node can reach where they sit"
+        );
     }
 }
 
