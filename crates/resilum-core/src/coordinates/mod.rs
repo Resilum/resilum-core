@@ -39,7 +39,7 @@ impl Default for Coordinates {
 }
 
 fn knowing_nothing_of_where_we_are() -> Node<Space, Adjustments> {
-    let mut ours = Node::new();
+    let mut ours = Node::rand();
     ours.set_error_estimate(claimed::MOST_ERROR);
     ours
 }

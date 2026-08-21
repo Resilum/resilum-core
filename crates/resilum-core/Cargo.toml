@@ -62,7 +62,7 @@ n0-watcher = { version = "1.0", optional = true }
 hickory-resolver = { version = "0.26", optional = true, default-features = false, features = [
   "system-config",
 ] }
-violin = "0.3.0"
+violin = { version = "0.3.0", features = ["rand"] }
 
 [features]
 default = []

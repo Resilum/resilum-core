@@ -27,6 +27,18 @@ fn a_fresh_node_admits_it_does_not_know_where_it_is() {
     assert_eq!(Coordinates::default().ours().error, claimed::MOST_ERROR);
 }
 
+/// Coordinates on the same spot have no direction between them, and `violin`
+/// answers that with the first axis: a mesh that all began at the origin lays
+/// itself out along a line, whatever the latencies say.
+#[test]
+fn two_fresh_nodes_do_not_begin_on_the_same_spot() {
+    let ours = Coordinates::default().ours();
+    let theirs = Coordinates::default().ours();
+
+    assert_ne!(ours.position, theirs.position);
+    assert_ne!(ours.position, [0.0, 0.0, 0.0]);
+}
+
 #[test]
 fn a_node_that_has_measured_nobody_places_nobody() {
     let coordinates = Coordinates::default();
