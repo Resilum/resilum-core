@@ -82,7 +82,15 @@ pub async fn place(
     router.detach(&link_id);
     let _ = handle.close().await;
     match theirs {
-        Some(theirs) => coordinates.believe(peer, WHICHEVER_ROUTE_RNS_RACED_TO, rtt, theirs, now),
+        Some(theirs) => {
+            tracing::debug!(
+                peer = %data_encoding::HEXLOWER.encode(&peer),
+                rtt_ms = rtt.as_millis(),
+                theirs = %format_args!("{theirs:?}"),
+                "a peer said where it sits"
+            );
+            coordinates.believe(peer, WHICHEVER_ROUTE_RNS_RACED_TO, rtt, theirs, now)
+        }
         None => false,
     }
 }

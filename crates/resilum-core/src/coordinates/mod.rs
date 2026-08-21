@@ -1,5 +1,6 @@
 //! Where this node and its peers sit in latency space.
 
+mod beginning;
 mod claimed;
 pub mod exchange;
 mod peer;
@@ -16,6 +17,8 @@ use std::time::Duration;
 use violin::heapless::VecD;
 use violin::{Coord, Node};
 
+use beginning::{knowing_nothing_of_where_we_are, without_a_runaway_last_mile};
+
 use peer::Peer;
 
 pub type PeerId = [u8; 16];
@@ -23,8 +26,6 @@ pub type LinkId = usize;
 
 type Space = VecD<3>;
 type Adjustments = VecD<8>;
-
-const SCATTERED_WITHIN: f64 = 0.01;
 
 pub struct Coordinates {
     ours: Mutex<Node<Space, Adjustments>>,
@@ -38,19 +39,6 @@ impl Default for Coordinates {
             peers: Mutex::new(BTreeMap::new()),
         }
     }
-}
-
-fn knowing_nothing_of_where_we_are() -> Node<Space, Adjustments> {
-    let scattered: Node<Space, Adjustments> = Node::rand();
-    let raw = scattered.coordinate().raw_coord().as_ref();
-    let nearby = Coord::<Space>::from([
-        raw[0] * SCATTERED_WITHIN,
-        raw[1] * SCATTERED_WITHIN,
-        raw[2] * SCATTERED_WITHIN,
-    ]);
-    let mut ours = Node::with_coord(nearby);
-    ours.set_error_estimate(claimed::MOST_ERROR);
-    ours
 }
 
 impl Coordinates {
@@ -111,10 +99,13 @@ impl Coordinates {
     fn pull_towards(&self, remote: &Coord<Space>, rtt: Duration) {
         let mut node = self.node();
         let before = Claimed::of(node.coordinate());
-        let moved = node.try_update(rtt, remote).is_ok();
-        if moved && Claimed::of(node.coordinate()).believable().is_some() {
+        if node.try_update(rtt, remote).is_ok() {
             node.update_gravity(&Coord::default());
-            return;
+            if Claimed::of(node.coordinate()).believable().is_some() {
+                let trimmed = without_a_runaway_last_mile(&node);
+                node.set_coordinate(trimmed);
+                return;
+            }
         }
         node.set_coordinate(before.believable().unwrap_or_default());
     }

@@ -1,3 +1,6 @@
+mod placing;
+
+use super::beginning::SCATTERED_WITHIN;
 use super::*;
 
 const NEAR: PeerId = [1; 16];
@@ -49,6 +52,46 @@ fn a_fresh_node_begins_a_plausible_round_trip_from_the_origin_not_a_whole_second
 }
 
 #[test]
+fn a_last_mile_that_ran_away_is_trimmed_to_what_a_way_into_a_mesh_can_cost() {
+    let mut node: Node<Space, Adjustments> = Node::new();
+    let mut towering = Coord::<Space>::from([0.01, 0.0, 0.0]);
+    towering.set_height(5.0);
+    node.set_coordinate(towering);
+
+    let trimmed = without_a_runaway_last_mile(&node);
+
+    assert_eq!(trimmed.height(), claimed::MOST_LAST_MILE);
+}
+
+#[test]
+fn only_reaching_a_peer_slowly_grows_a_leg_rather_than_moving_us_away_from_everyone() {
+    let coordinates = Coordinates::default();
+
+    for round in 0..40 {
+        coordinates.believe(
+            NEAR,
+            ONE_LINK,
+            ms(20),
+            somewhere([0.02, 0.0, 0.0]),
+            f64::from(round),
+        );
+        coordinates.believe(
+            FAR,
+            ONE_LINK,
+            ms(900),
+            somewhere([0.03, 0.0, 0.0]),
+            f64::from(round),
+        );
+    }
+
+    assert!(
+        coordinates.ours().height() > 0.0,
+        "{:?}",
+        coordinates.ours()
+    );
+}
+
+#[test]
 fn the_error_a_peer_is_told_is_bounded_where_our_own_is_not() {
     let coordinates = Coordinates::default();
 
@@ -64,30 +107,6 @@ fn the_error_a_peer_is_told_is_bounded_where_our_own_is_not() {
 
     assert!(coordinates.how_wrong_we_are() > claimed::MOST_ERROR);
     assert_eq!(coordinates.ours().error(), claimed::MOST_ERROR);
-}
-
-#[test]
-fn a_node_that_has_measured_nobody_places_nobody() {
-    let coordinates = Coordinates::default();
-
-    assert_eq!(coordinates.estimated_rtt(&NEAR), None);
-    assert!(coordinates.nearest(10).is_empty());
-}
-
-#[test]
-fn the_peer_measured_closer_is_estimated_closer() {
-    let coordinates = Coordinates::default();
-
-    settle(&coordinates, NEAR, ms(20), somewhere([0.02, 0.0, 0.0]));
-    settle(&coordinates, FAR, ms(400), somewhere([0.0, 0.4, 0.0]));
-
-    let near = coordinates.estimated_rtt(&NEAR).expect("placed");
-    let far = coordinates.estimated_rtt(&FAR).expect("placed");
-    assert!(near < far, "near {near:?} is not closer than far {far:?}");
-    let nearest = coordinates.nearest(1);
-    assert_eq!(nearest.len(), 1);
-    assert_eq!(nearest[0].peer, NEAR);
-    assert_eq!(nearest[0].estimated_rtt, near);
 }
 
 #[test]
@@ -123,14 +142,4 @@ fn our_own_coordinate_stays_finite_whatever_arrives() {
 
     let ours = coordinates.ours();
     assert!(ours.believable().is_some(), "{ours:?}");
-}
-
-#[test]
-fn a_peer_not_heard_from_since_the_cutoff_is_forgotten() {
-    let coordinates = Coordinates::default();
-    settle(&coordinates, NEAR, ms(20), somewhere([0.02, 0.0, 0.0]));
-
-    coordinates.forget_before(41.0);
-
-    assert_eq!(coordinates.estimated_rtt(&NEAR), None);
 }

@@ -84,13 +84,20 @@ fn a_coordinate_further_out_than_the_space_allows_is_refused() {
 }
 
 #[test]
-fn a_negative_height_is_refused() {
-    assert!(
-        Claimed {
-            height: -0.001,
-            ..plausible()
-        }
-        .believable()
-        .is_none()
-    );
+fn a_height_outside_what_a_way_into_a_mesh_costs_is_believed_no_further_than_the_bound() {
+    let dug_in = Claimed {
+        height: -0.001,
+        ..plausible()
+    }
+    .believable()
+    .expect("a coordinate is not refused over its height alone");
+    let towering = Claimed {
+        height: 90.0,
+        ..plausible()
+    }
+    .believable()
+    .expect("a coordinate is not refused over its height alone");
+
+    assert_eq!(dug_in.height(), 0.0);
+    assert_eq!(towering.height(), MOST_LAST_MILE);
 }
