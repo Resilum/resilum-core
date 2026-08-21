@@ -77,6 +77,7 @@ async fn ask_around(
         tracing::debug!(
             asked = asking.len(),
             placed,
+            how_wrong_we_are = coordinates.how_wrong_we_are(),
             ours = %format_args!("{:?}", coordinates.ours()),
             "asked the peers this node can reach where they sit"
         );
