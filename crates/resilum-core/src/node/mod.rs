@@ -1,5 +1,6 @@
 mod accessors;
 mod attach;
+mod coordinates;
 mod directory;
 mod interface;
 mod lifecycle;

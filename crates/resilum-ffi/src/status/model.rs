@@ -1,6 +1,7 @@
 //! The shape the consumer decodes. `resilum_node_status`'s doc comment is the
 //! published copy of it — it is what reaches a caller holding only the header.
 
+use resilum_core::coordinates::Claimed;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -14,6 +15,20 @@ pub(super) struct NodeStatus {
     pub nostr_relays: Vec<String>,
     pub lxmf: Option<LxmfStatus>,
     pub tor: Option<TorStatus>,
+    pub coordinates: CoordinatesStatus,
+}
+
+#[derive(Serialize)]
+pub(super) struct CoordinatesStatus {
+    pub ours: Claimed,
+    pub peers: Vec<PlacedPeer>,
+}
+
+#[derive(Serialize)]
+pub(super) struct PlacedPeer {
+    pub identity_hash: String,
+    pub at: Claimed,
+    pub estimated_rtt_ms: u128,
 }
 
 #[derive(Serialize)]

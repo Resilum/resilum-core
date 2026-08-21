@@ -3,9 +3,11 @@
 mod claimed;
 pub mod exchange;
 mod peer;
+mod placed;
 mod window;
 
 pub use claimed::Claimed;
+pub use placed::Placed;
 
 use std::collections::BTreeMap;
 use std::sync::Mutex;
@@ -74,29 +76,6 @@ impl Coordinates {
         drop(peers);
         self.pull_towards(&remote, fastest);
         true
-    }
-
-    #[must_use]
-    pub fn estimated_rtt(&self, peer: &PeerId) -> Option<Duration> {
-        let theirs = self.peers().get(peer)?.claimed?.believable()?;
-        Some(self.node().distance_to(&theirs))
-    }
-
-    #[must_use]
-    pub fn nearest(&self, count: usize) -> Vec<(PeerId, Duration)> {
-        let claimed: Vec<(PeerId, Claimed)> = self
-            .peers()
-            .iter()
-            .filter_map(|(peer, held)| Some((*peer, held.claimed?)))
-            .collect();
-        let node = self.node();
-        let mut placed: Vec<(PeerId, Duration)> = claimed
-            .into_iter()
-            .filter_map(|(peer, claim)| Some((peer, node.distance_to(&claim.believable()?))))
-            .collect();
-        placed.sort_by_key(|(_, estimate)| *estimate);
-        placed.truncate(count);
-        placed
     }
 
     pub fn forget_link(&self, over: LinkId) {

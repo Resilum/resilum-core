@@ -1,7 +1,9 @@
 //! Serialization contract for the JSON snapshot — the consumer decodes this
 //! shape, so a field renamed or dropped here is a silent breakage for it.
 
-use super::model::{LxmfStatus, NodeStatus};
+use resilum_core::coordinates::Coordinates;
+
+use super::model::{CoordinatesStatus, LxmfStatus, NodeStatus};
 
 fn bare_status() -> NodeStatus {
     NodeStatus {
@@ -14,6 +16,10 @@ fn bare_status() -> NodeStatus {
         nostr_relays: Vec::new(),
         lxmf: None,
         tor: None,
+        coordinates: CoordinatesStatus {
+            ours: Coordinates::default().ours(),
+            peers: Vec::new(),
+        },
     }
 }
 
@@ -21,6 +27,15 @@ fn bare_status() -> NodeStatus {
 fn empty_nostr_relays_serializes_as_array() {
     let json = serde_json::to_string(&bare_status()).expect("serialization");
     assert!(json.contains("\"nostr_relays\":[]"), "JSON: {}", json);
+}
+
+#[test]
+fn a_node_that_has_placed_nobody_still_carries_its_own_coordinate() {
+    let json = serde_json::to_string(&bare_status()).expect("serialization");
+
+    assert!(json.contains("\"coordinates\":{\"ours\":{"), "JSON: {json}");
+    assert!(json.contains("\"position\":["), "JSON: {json}");
+    assert!(json.contains("\"peers\":[]"), "JSON: {json}");
 }
 
 #[test]

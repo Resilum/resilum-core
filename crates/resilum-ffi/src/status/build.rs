@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use super::lxmf;
-use super::model::{Interface, NodeStatus, TorStatus, Transport, added_by, hex};
+use super::model::{
+    CoordinatesStatus, Interface, NodeStatus, PlacedPeer, TorStatus, Transport, added_by, hex,
+};
 use crate::node::ResilumNode;
 use resilum_core::discovery::Service;
 
@@ -30,6 +32,19 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
             .0
             .tor_bootstrapped()
             .map(|bootstrapped| TorStatus { bootstrapped }),
+        coordinates: CoordinatesStatus {
+            ours: node.0.own_coordinate(),
+            peers: node
+                .0
+                .placed_peers()
+                .into_iter()
+                .map(|placed| PlacedPeer {
+                    identity_hash: hex(&placed.peer),
+                    at: placed.at,
+                    estimated_rtt_ms: placed.estimated_rtt.as_millis(),
+                })
+                .collect(),
+        },
     };
     let Some(engine) = node.0.engine() else {
         return status;

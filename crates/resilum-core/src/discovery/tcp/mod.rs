@@ -1,15 +1,18 @@
 //! TCP discovery plugin (Tor / I2P / Yggdrasil).
 
+mod attachments;
 mod endpoint;
 mod plugin;
+mod quota;
 
-use std::collections::HashMap;
+use attachments::Attached;
+pub use attachments::Attachments;
+
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 
 use leviculum_std::driver::ReticulumNode;
-use leviculum_std::interfaces::TcpClientHandle;
 use tokio::sync::Notify;
 
 use crate::announce_cap::CapController;
@@ -19,8 +22,7 @@ use crate::discovery::OriginRegistry;
 pub struct TcpDiscovered {
     cfg: DiscoveryService,
     engine: Arc<ReticulumNode>,
-    // Dropping a TcpClientHandle detaches its interface; hold them here.
-    handles: Mutex<HashMap<String, TcpClientHandle>>,
+    attachments: Arc<Attachments>,
     // Fires on every successful attach so the produce loop re-announces at once.
     trigger: Arc<Notify>,
     // Persistent peer cache; None disables persistence (attach still works).
@@ -37,6 +39,7 @@ impl TcpDiscovered {
     pub fn new(
         cfg: DiscoveryService,
         engine: Arc<ReticulumNode>,
+        attachments: Arc<Attachments>,
         trigger: Arc<Notify>,
         cache_path: Option<PathBuf>,
         cap_controller: Arc<CapController>,
@@ -53,7 +56,7 @@ impl TcpDiscovered {
         Self {
             cfg,
             engine,
-            handles: Mutex::new(HashMap::new()),
+            attachments,
             trigger,
             cache_path,
             cap_controller,
@@ -73,7 +76,7 @@ impl TcpDiscovered {
     /// stop announcing, and clear the advertised endpoint so none lingers.
     pub fn deactivate(&self) {
         self.active.store(false, Ordering::Relaxed);
-        self.handles.lock().expect("handles").clear();
+        self.attachments.release_service(&self.cfg.service);
         if let Some(path) = &self.cfg.hostname_path {
             let _ = std::fs::remove_file(path);
         }

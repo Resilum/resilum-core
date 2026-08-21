@@ -60,6 +60,7 @@ pub(super) fn bring_up(
         covert: &node.config.covert_discovery,
         covert_addresses: &covert_addresses,
         engine: engine.clone(),
+        coordinates: node.coordinates.clone(),
         trigger: node.discovery_trigger.clone(),
         storage_root,
         cap_controller,

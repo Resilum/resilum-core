@@ -39,13 +39,28 @@ use crate::set_error;
 ///   "lxmf": { "ready": true, "address": "<32-hex>", "queued_count": 0,
 ///             "queued_ids": ["<64-hex>"],
 ///             "propagation_node": "<32-hex>" | null } | null,
-///   "tor": { "bootstrapped": true } | null
+///   "tor": { "bootstrapped": true } | null,
+///   "coordinates": {
+///     "ours": { "position": [0.0, 0.0, 0.0], "height": 0.0, "error": 0.0 },
+///     "peers": [ { "identity_hash": "<32-hex>",
+///                  "at": { "position": [0.0, 0.0, 0.0],
+///                          "height": 0.0, "error": 0.0 },
+///                  "estimated_rtt_ms": 0 } ]
+///   }
 /// }
 /// ```
 /// `identity_hash` and `transport` are `null` before start. `added_by` is
 /// inferred from `name`; `kind` and `discovered_via` come from the engine and
 /// are orthogonal to each other — a peer found over I2P is still dialed as
 /// `tcp`. `nostr_relays` are Nostr bridge LXMF addresses heard on the mesh.
+///
+/// `coordinates` place peers in latency space rather than on the ground:
+/// distance is round-trip time, in seconds, and `error` is how much the node
+/// holding that coordinate trusts it — near 1.5 while it is still settling,
+/// small once it has. `peers` is sorted nearest first and holds only those
+/// this node has both measured and heard a coordinate from. The space has no
+/// fixed orientation, so a map drawn from it should be aligned to the previous
+/// frame rather than to the axes.
 ///
 /// `tor` is `null` when this node runs no embedded Tor. A network that blocks
 /// Tor leaves `bootstrapped` false for as long as the node runs: the directory

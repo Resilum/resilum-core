@@ -40,7 +40,10 @@ fn the_peer_measured_closer_is_estimated_closer() {
     let near = coordinates.estimated_rtt(&NEAR).expect("placed");
     let far = coordinates.estimated_rtt(&FAR).expect("placed");
     assert!(near < far, "near {near:?} is not closer than far {far:?}");
-    assert_eq!(coordinates.nearest(1), vec![(NEAR, near)]);
+    let nearest = coordinates.nearest(1);
+    assert_eq!(nearest.len(), 1);
+    assert_eq!(nearest[0].peer, NEAR);
+    assert_eq!(nearest[0].estimated_rtt, near);
 }
 
 #[test]
