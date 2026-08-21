@@ -1,3 +1,4 @@
+mod coordinates;
 mod discovery;
 mod egress;
 mod mirrors;
@@ -48,8 +49,19 @@ impl Node {
                 inbound_tx,
             )));
 
+            let inbox = Arc::new(link::Inbox::default());
+            let (unclaimed_tx, unclaimed_rx) = mpsc::unbounded_channel();
             discovery::bring_up(self, &leviculum, &identity)?;
-            egress::bring_up(self, &leviculum, &identity, &router, inbound_rx);
+            coordinates::bring_up(
+                self,
+                &leviculum,
+                &identity,
+                &router,
+                &inbox,
+                inbound_rx,
+                unclaimed_tx,
+            );
+            egress::bring_up(self, &leviculum, &identity, &router, unclaimed_rx);
             mirrors::bring_up(self, &leviculum, &identity);
 
             if let Some(rx) = event_rx {

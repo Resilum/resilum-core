@@ -2,6 +2,8 @@
 //! `LinkId`. Responder-side links this node did not open are surfaced so the
 //! listen side can accept and service them.
 
+mod dial;
+mod inbox;
 mod route;
 
 use std::collections::HashMap;
@@ -10,6 +12,8 @@ use std::sync::Mutex;
 use leviculum_std::api::{DestinationHash, LinkId};
 use tokio::sync::mpsc;
 
+pub use dial::{dial, established};
+pub use inbox::Inbox;
 pub use route::run;
 
 /// A message routed to one link session, in arrival order.

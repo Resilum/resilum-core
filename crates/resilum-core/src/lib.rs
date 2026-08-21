@@ -7,6 +7,7 @@ pub mod announce_trigger;
 mod bridge;
 mod config;
 mod config_file;
+pub mod coordinates;
 pub mod covert;
 mod defaults;
 pub mod discovery;

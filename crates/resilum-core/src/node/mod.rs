@@ -42,6 +42,7 @@ pub struct Node {
     pub(crate) mirror_registry: Option<Arc<mirrors::Registry>>,
     pub(crate) origin_registry: Arc<crate::discovery::OriginRegistry>,
     pub(crate) directories: BTreeMap<Service, Arc<crate::discovery::ServiceDirectory>>,
+    pub(crate) coordinates: Arc<crate::coordinates::Coordinates>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
     #[cfg(feature = "iroh")]
@@ -75,6 +76,7 @@ impl Node {
             directories: Service::at_mesh_addresses()
                 .map(|service| (service, Arc::default()))
                 .collect(),
+            coordinates: Arc::default(),
             #[cfg(all(unix, feature = "ygg"))]
             ygg_discovery: None,
             #[cfg(feature = "iroh")]

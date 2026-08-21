@@ -4,21 +4,15 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU16, Ordering};
-use std::time::Duration;
 
 use leviculum_std::api::{DestinationHash, LinkHandle, LinkId};
 use leviculum_std::driver::ReticulumNode;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::time::{Instant, timeout_at};
 
 use crate::config::IngressConfig;
 use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, choose_best, eligible};
 use crate::link::{LinkMsg, LinkRouter};
-
-const ESTABLISH_TIMEOUT: Duration = Duration::from_secs(30);
-const PATH_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
-const PATH_RETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 pub async fn run(
     engine: Arc<ReticulumNode>,
@@ -87,44 +81,11 @@ async fn session(
     let _ = handle.close().await;
 }
 
-/// Open an established link to `candidate`, returning its handle, id and the
-/// attached inbound receiver. The engine recalls the peer's identity from its
-/// announce; the Ed25519 key is the second half of the public key.
 pub(super) async fn dial(
     engine: &Arc<ReticulumNode>,
     router: &Arc<LinkRouter>,
     candidate: &Candidate,
 ) -> Option<(LinkHandle, LinkId, UnboundedReceiver<LinkMsg>)> {
     let bytes = <[u8; 16]>::try_from(candidate.dest_hash.as_slice()).ok()?;
-    let dest_hash = DestinationHash::new(bytes);
-    if !engine.has_path(&dest_hash)
-        && !engine
-            .wait_for_path(&dest_hash, PATH_REQUEST_TIMEOUT, PATH_RETRY_INTERVAL)
-            .await
-            .unwrap_or(false)
-    {
-        return None;
-    }
-    let identity = engine.get_identity(&dest_hash)?;
-    let signing_key = <[u8; 32]>::try_from(&identity.public_key_bytes()[32..64]).ok()?;
-    let mut handle = engine.connect(&dest_hash, &signing_key).await.ok()?;
-    let link_id = *handle.link_id();
-    let mut from_link = router.attach(link_id);
-    if !wait_established(&mut from_link).await {
-        router.detach(&link_id);
-        let _ = handle.close().await;
-        return None;
-    }
-    Some((handle, link_id, from_link))
-}
-
-pub(super) async fn wait_established(from_link: &mut UnboundedReceiver<LinkMsg>) -> bool {
-    let deadline = Instant::now() + ESTABLISH_TIMEOUT;
-    loop {
-        match timeout_at(deadline, from_link.recv()).await {
-            Ok(Some(LinkMsg::Established)) => return true,
-            Ok(Some(LinkMsg::Data(_))) => continue,
-            _ => return false,
-        }
-    }
+    crate::link::dial(engine, router, &DestinationHash::new(bytes)).await
 }
