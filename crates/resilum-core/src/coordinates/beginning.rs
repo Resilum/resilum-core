@@ -4,6 +4,7 @@ use super::{Adjustments, Space, claimed};
 
 pub(super) const SCATTERED_WITHIN: f64 = 0.01;
 const JUST_ENOUGH_LAST_MILE_TO_GROW_FROM: f64 = 10e-6;
+const GRAVITY_MATCHES_A_MEASUREMENT_AT: f64 = 3.0;
 
 pub(super) fn knowing_nothing_of_where_we_are() -> Node<Space, Adjustments> {
     let scattered: Node<Space, Adjustments> = Node::rand();
@@ -30,7 +31,8 @@ pub(super) fn without_a_runaway_last_mile(node: &Node<Space, Adjustments>) -> Co
 fn with_a_last_mile() -> Config {
     Config {
         height_min: JUST_ENOUGH_LAST_MILE_TO_GROW_FROM,
-        error_max: f64::MAX,
+        gravity_rho: GRAVITY_MATCHES_A_MEASUREMENT_AT,
+        error_max: claimed::MOST_ERROR,
         ..Config::default()
     }
 }

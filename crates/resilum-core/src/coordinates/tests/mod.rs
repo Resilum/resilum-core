@@ -92,7 +92,7 @@ fn only_reaching_a_peer_slowly_grows_a_leg_rather_than_moving_us_away_from_every
 }
 
 #[test]
-fn the_error_a_peer_is_told_is_bounded_where_our_own_is_not() {
+fn the_error_this_node_holds_is_the_one_a_peer_weighs_it_by() {
     let coordinates = Coordinates::default();
 
     for round in 0..10 {
@@ -105,7 +105,7 @@ fn the_error_a_peer_is_told_is_bounded_where_our_own_is_not() {
         );
     }
 
-    assert!(coordinates.how_wrong_we_are() > claimed::MOST_ERROR);
+    assert_eq!(coordinates.how_wrong_we_are(), claimed::MOST_ERROR);
     assert_eq!(coordinates.ours().error(), claimed::MOST_ERROR);
 }
 
