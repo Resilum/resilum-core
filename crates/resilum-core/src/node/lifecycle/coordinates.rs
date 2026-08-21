@@ -63,7 +63,7 @@ async fn ask_around(
 ) {
     let aspect = Destination::compute_name_hash(exchange::APP_NAME, &[exchange::ASPECT]);
     loop {
-        let between_asks = between_asks(coordinates.ours().error());
+        let between_asks = between_asks(coordinates.how_wrong_we_are());
         tokio::time::sleep(between_asks).await;
         let now = wall_clock::unix_now();
         coordinates.forget_before(now - forgotten_after(between_asks).as_secs_f64());
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn a_node_that_has_just_started_asks_often_enough_to_settle_within_minutes() {
-        let fresh = Coordinates::default().ours().error();
+        let fresh = Coordinates::default().how_wrong_we_are();
 
         let rounds_to_settle = 40;
         let settling = between_asks(fresh) * rounds_to_settle;

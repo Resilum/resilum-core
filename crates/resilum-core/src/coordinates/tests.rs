@@ -40,6 +40,33 @@ fn two_fresh_nodes_do_not_begin_on_the_same_spot() {
 }
 
 #[test]
+fn a_fresh_node_begins_a_plausible_round_trip_from_the_origin_not_a_whole_second() {
+    let ours = Coordinates::default().ours();
+
+    for axis in ours.position {
+        assert!(axis.abs() <= SCATTERED_WITHIN, "{axis} is a whole second");
+    }
+}
+
+#[test]
+fn the_error_a_peer_is_told_is_bounded_where_our_own_is_not() {
+    let coordinates = Coordinates::default();
+
+    for round in 0..10 {
+        coordinates.believe(
+            NEAR,
+            ONE_LINK,
+            ms(1),
+            somewhere([5.0, 0.0, 0.0]),
+            f64::from(round),
+        );
+    }
+
+    assert!(coordinates.how_wrong_we_are() > claimed::MOST_ERROR);
+    assert_eq!(coordinates.ours().error(), claimed::MOST_ERROR);
+}
+
+#[test]
 fn a_node_that_has_measured_nobody_places_nobody() {
     let coordinates = Coordinates::default();
 

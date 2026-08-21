@@ -25,7 +25,7 @@ impl Claimed {
         Self {
             position: [raw[0], raw[1], raw[2]],
             height: coord.height(),
-            error: coord.error_estimate(),
+            error: coord.error_estimate().clamp(LEAST_ERROR, MOST_ERROR),
         }
     }
 

@@ -24,6 +24,8 @@ pub type LinkId = usize;
 type Space = VecD<3>;
 type Adjustments = VecD<8>;
 
+const SCATTERED_WITHIN: f64 = 0.01;
+
 pub struct Coordinates {
     ours: Mutex<Node<Space, Adjustments>>,
     peers: Mutex<BTreeMap<PeerId, Peer>>,
@@ -39,7 +41,14 @@ impl Default for Coordinates {
 }
 
 fn knowing_nothing_of_where_we_are() -> Node<Space, Adjustments> {
-    let mut ours = Node::rand();
+    let scattered: Node<Space, Adjustments> = Node::rand();
+    let raw = scattered.coordinate().raw_coord().as_ref();
+    let nearby = Coord::<Space>::from([
+        raw[0] * SCATTERED_WITHIN,
+        raw[1] * SCATTERED_WITHIN,
+        raw[2] * SCATTERED_WITHIN,
+    ]);
+    let mut ours = Node::with_coord(nearby);
     ours.set_error_estimate(claimed::MOST_ERROR);
     ours
 }
@@ -48,6 +57,11 @@ impl Coordinates {
     #[must_use]
     pub fn ours(&self) -> Claimed {
         Claimed::of(self.node().coordinate())
+    }
+
+    #[must_use]
+    pub fn how_wrong_we_are(&self) -> f64 {
+        self.node().error_estimate()
     }
 
     pub fn heard(&self, peer: PeerId, theirs: Claimed, now: f64) -> bool {
