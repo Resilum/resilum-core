@@ -13,9 +13,9 @@ fn a_window_nobody_has_measured_has_nothing_to_say() {
 fn a_queue_on_a_busy_link_does_not_become_its_distance() {
     let mut window = Window::default();
 
-    window.measured(ms(8));
-    window.measured(ms(242));
-    window.measured(ms(98));
+    window.measured(ms(8), 100.0);
+    window.measured(ms(242), 120.0);
+    window.measured(ms(98), 140.0);
 
     assert_eq!(window.least(), Some(ms(8)));
 }
@@ -23,13 +23,21 @@ fn a_queue_on_a_busy_link_does_not_become_its_distance() {
 #[test]
 fn a_link_that_has_slowed_is_believed_once_the_fast_samples_have_aged_out() {
     let mut window = Window::default();
-    for _ in 0..SAMPLES {
-        window.measured(ms(20));
-    }
+    window.measured(ms(20), 100.0);
 
-    for _ in 0..SAMPLES {
-        window.measured(ms(300));
-    }
+    window.measured(ms(300), 100.0 + SEEN_WITHIN + 1.0);
 
+    assert_eq!(window.least(), Some(ms(300)));
+}
+
+#[test]
+fn a_sample_from_before_the_window_is_forgotten_however_slowly_this_node_asks() {
+    let mut window = Window::default();
+    window.measured(ms(20), 100.0);
+
+    window.measured(ms(300), 100.0 + SEEN_WITHIN / 2.0);
+    assert_eq!(window.least(), Some(ms(20)), "still inside the window");
+
+    window.measured(ms(300), 100.0 + SEEN_WITHIN + 1.0);
     assert_eq!(window.least(), Some(ms(300)));
 }

@@ -13,8 +13,8 @@ pub(super) struct Peer {
 }
 
 impl Peer {
-    pub(super) fn measured(&mut self, over: LinkId, rtt: Duration) {
-        self.over.entry(over).or_default().measured(rtt);
+    pub(super) fn measured(&mut self, over: LinkId, rtt: Duration, now: f64) {
+        self.over.entry(over).or_default().measured(rtt, now);
     }
 
     pub(super) fn forget_link(&mut self, over: LinkId) {

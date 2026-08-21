@@ -77,7 +77,7 @@ impl Coordinates {
         self.heard(peer, theirs, now);
         let mut peers = self.peers();
         let entry = peers.entry(peer).or_default();
-        entry.measured(over, rtt);
+        entry.measured(over, rtt, now);
         let Some(fastest) = entry.fastest_link() else {
             return true;
         };
