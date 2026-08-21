@@ -22,7 +22,7 @@ impl Peer {
     }
 
     pub(super) fn fastest_link(&self) -> Option<Duration> {
-        self.over.values().filter_map(Window::typical).min()
+        self.over.values().filter_map(Window::least).min()
     }
 }
 

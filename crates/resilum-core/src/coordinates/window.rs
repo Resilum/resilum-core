@@ -16,13 +16,8 @@ impl Window {
         }
     }
 
-    pub(super) fn typical(&self) -> Option<Duration> {
-        if self.seen.is_empty() {
-            return None;
-        }
-        let mut sorted: Vec<Duration> = self.seen.iter().copied().collect();
-        sorted.sort_unstable();
-        sorted.get(sorted.len() / 2).copied()
+    pub(super) fn least(&self) -> Option<Duration> {
+        self.seen.iter().copied().min()
     }
 }
 

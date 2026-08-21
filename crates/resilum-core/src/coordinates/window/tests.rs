@@ -5,24 +5,23 @@ fn ms(millis: u64) -> Duration {
 }
 
 #[test]
-fn a_window_nobody_has_measured_has_no_typical_value() {
-    assert_eq!(Window::default().typical(), None);
+fn a_window_nobody_has_measured_has_nothing_to_say() {
+    assert_eq!(Window::default().least(), None);
 }
 
 #[test]
-fn one_queued_packet_does_not_become_the_typical_value() {
+fn a_queue_on_a_busy_link_does_not_become_its_distance() {
     let mut window = Window::default();
-    for _ in 0..5 {
-        window.measured(ms(20));
-    }
 
-    window.measured(ms(4000));
+    window.measured(ms(8));
+    window.measured(ms(242));
+    window.measured(ms(98));
 
-    assert_eq!(window.typical(), Some(ms(20)));
+    assert_eq!(window.least(), Some(ms(8)));
 }
 
 #[test]
-fn a_link_that_has_slowed_is_believed_once_the_window_agrees() {
+fn a_link_that_has_slowed_is_believed_once_the_fast_samples_have_aged_out() {
     let mut window = Window::default();
     for _ in 0..SAMPLES {
         window.measured(ms(20));
@@ -32,5 +31,5 @@ fn a_link_that_has_slowed_is_believed_once_the_window_agrees() {
         window.measured(ms(300));
     }
 
-    assert_eq!(window.typical(), Some(ms(300)));
+    assert_eq!(window.least(), Some(ms(300)));
 }

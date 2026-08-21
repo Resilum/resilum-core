@@ -68,31 +68,37 @@ pub async fn place(
     at: DestinationHash,
     now: f64,
 ) -> bool {
+    let asking = data_encoding::HEXLOWER.encode(&peer);
     let Some((mut handle, link_id, mut from_link)) = crate::link::dial(engine, router, &at).await
     else {
+        tracing::debug!(peer = %asking, "no link to ask a peer over");
         return false;
     };
     let ours = serde_json::to_vec(&coordinates.ours()).unwrap_or_default();
     let asked_at = Instant::now();
     let theirs = match handle.send(&ours).await {
         Ok(()) => read(&mut from_link).await,
-        Err(_) => None,
+        Err(error) => {
+            tracing::debug!(peer = %asking, %error, "the ask never went out");
+            None
+        }
     };
     let rtt = least_round_trip_of(engine, &link_id).unwrap_or_else(|| asked_at.elapsed());
     router.detach(&link_id);
     let _ = handle.close().await;
-    match theirs {
-        Some(theirs) => {
-            tracing::debug!(
-                peer = %data_encoding::HEXLOWER.encode(&peer),
-                rtt_ms = rtt.as_millis(),
-                theirs = %format_args!("{theirs:?}"),
-                "a peer said where it sits"
-            );
-            coordinates.believe(peer, WHICHEVER_ROUTE_RNS_RACED_TO, rtt, theirs, now)
-        }
-        None => false,
-    }
+    let Some(theirs) = theirs else {
+        tracing::debug!(peer = %asking, "a peer was asked and said nothing");
+        return false;
+    };
+    let believed = coordinates.believe(peer, WHICHEVER_ROUTE_RNS_RACED_TO, rtt, theirs, now);
+    tracing::debug!(
+        peer = %asking,
+        rtt_ms = rtt.as_millis(),
+        believed,
+        theirs = %format_args!("{theirs:?}"),
+        "a peer said where it sits"
+    );
+    believed
 }
 
 fn least_round_trip_of(engine: &Arc<ReticulumNode>, link_id: &LinkId) -> Option<Duration> {
