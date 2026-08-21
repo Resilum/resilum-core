@@ -10,9 +10,12 @@ use crate::link::{self, Inbound, LinkRouter};
 use crate::node::Node;
 use crate::wall_clock;
 
-const ASK_EVERY: Duration = Duration::from_secs(300);
+const WHILE_SETTLING: Duration = Duration::from_secs(20);
+const ONCE_SETTLED: Duration = Duration::from_secs(900);
+const SETTLED_BELOW: f64 = 0.25;
+const ROUNDS_MISSED_BEFORE_FORGOTTEN: u32 = 3;
+const NEVER_FORGET_SOONER_THAN: Duration = Duration::from_secs(600);
 const ANNOUNCE_EVERY: Duration = Duration::from_secs(600);
-const FORGET_AFTER: f64 = 24.0 * 60.0 * 60.0;
 
 pub(super) fn bring_up(
     node: &mut Node,
@@ -60,9 +63,10 @@ async fn ask_around(
 ) {
     let aspect = Destination::compute_name_hash(exchange::APP_NAME, &[exchange::ASPECT]);
     loop {
-        tokio::time::sleep(ASK_EVERY).await;
+        let between_asks = between_asks(coordinates.ours().error());
+        tokio::time::sleep(between_asks).await;
         let now = wall_clock::unix_now();
-        coordinates.forget_before(now - FORGET_AFTER);
+        coordinates.forget_before(now - forgotten_after(between_asks).as_secs_f64());
         let asking = reachable_peers(&engine, &aspect);
         let mut placed = 0;
         for (peer, at) in &asking {
@@ -77,6 +81,18 @@ async fn ask_around(
             "asked the peers this node can reach where they sit"
         );
     }
+}
+
+fn between_asks(our_error: f64) -> Duration {
+    if our_error > SETTLED_BELOW {
+        WHILE_SETTLING
+    } else {
+        ONCE_SETTLED
+    }
+}
+
+fn forgotten_after(between_asks: Duration) -> Duration {
+    (between_asks * ROUNDS_MISSED_BEFORE_FORGOTTEN).max(NEVER_FORGET_SOONER_THAN)
 }
 
 fn reachable_peers(
@@ -96,4 +112,34 @@ fn reachable_peers(
     asking.sort_unstable();
     asking.dedup();
     asking
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::coordinates::Coordinates;
+
+    #[test]
+    fn a_node_that_has_just_started_asks_often_enough_to_settle_within_minutes() {
+        let fresh = Coordinates::default().ours().error();
+
+        let rounds_to_settle = 40;
+        let settling = between_asks(fresh) * rounds_to_settle;
+
+        assert!(
+            settling < Duration::from_secs(20 * 60),
+            "settling would take {settling:?}"
+        );
+    }
+
+    #[test]
+    fn a_settled_node_leaves_the_mesh_alone() {
+        assert_eq!(between_asks(SETTLED_BELOW / 2.0), ONCE_SETTLED);
+    }
+
+    #[test]
+    fn a_peer_is_forgotten_after_the_rounds_it_missed_but_never_after_just_one() {
+        assert_eq!(forgotten_after(ONCE_SETTLED), ONCE_SETTLED * 3);
+        assert_eq!(forgotten_after(WHILE_SETTLING), NEVER_FORGET_SOONER_THAN);
+    }
 }

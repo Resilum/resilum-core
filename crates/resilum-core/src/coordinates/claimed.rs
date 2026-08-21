@@ -15,6 +15,11 @@ pub struct Claimed {
 }
 
 impl Claimed {
+    #[must_use]
+    pub fn error(self) -> f64 {
+        self.error
+    }
+
     pub(super) fn of(coord: &Coord<Space>) -> Self {
         let raw = coord.raw_coord().as_ref();
         Self {
