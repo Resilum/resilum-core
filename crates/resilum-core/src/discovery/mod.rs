@@ -17,7 +17,7 @@ pub use consume::run_consume;
 pub use directory::ServiceDirectory;
 pub use origin::OriginRegistry;
 pub use produce::{build_destination, run_produce};
-pub use tcp::TcpDiscovered;
+pub use tcp::{Attachments, TcpDiscovered};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

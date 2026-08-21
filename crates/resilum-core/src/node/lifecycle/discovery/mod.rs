@@ -61,6 +61,7 @@ pub(super) fn bring_up(
         covert_addresses: &covert_addresses,
         engine: engine.clone(),
         coordinates: node.coordinates.clone(),
+        attachments: node.attachments.clone(),
         trigger: node.discovery_trigger.clone(),
         storage_root,
         cap_controller,

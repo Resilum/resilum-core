@@ -1,20 +1,20 @@
+mod pace;
+
 use std::sync::Arc;
 use std::time::Duration;
+
+use pace::{between_asks, forgotten_after};
 
 use leviculum_std::api::{Destination, DestinationHash, Identity};
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc;
 
 use crate::coordinates::{Coordinates, PeerId, exchange};
+use crate::discovery::Attachments;
 use crate::link::{self, Inbound, LinkRouter};
 use crate::node::Node;
 use crate::wall_clock;
 
-const WHILE_SETTLING: Duration = Duration::from_secs(20);
-const ONCE_SETTLED: Duration = Duration::from_secs(900);
-const SETTLED_BELOW: f64 = 0.25;
-const ROUNDS_MISSED_BEFORE_FORGOTTEN: u32 = 3;
-const NEVER_FORGET_SOONER_THAN: Duration = Duration::from_secs(600);
 const ANNOUNCE_EVERY: Duration = Duration::from_secs(600);
 
 pub(super) fn bring_up(
@@ -46,6 +46,7 @@ pub(super) fn bring_up(
         engine.clone(),
         router.clone(),
         node.coordinates.clone(),
+        node.attachments.clone(),
     )));
 }
 
@@ -60,14 +61,17 @@ async fn ask_around(
     engine: Arc<ReticulumNode>,
     router: Arc<LinkRouter>,
     coordinates: Arc<Coordinates>,
+    attachments: Arc<Attachments>,
 ) {
     let aspect = Destination::compute_name_hash(exchange::APP_NAME, &[exchange::ASPECT]);
+    let mut round = 0usize;
     loop {
         let between_asks = between_asks(coordinates.how_wrong_we_are());
         tokio::time::sleep(between_asks).await;
         let now = wall_clock::unix_now();
         coordinates.forget_before(now - forgotten_after(between_asks).as_secs_f64());
-        let asking = reachable_peers(&engine, &aspect);
+        let asking = whom_to_ask(&engine, &aspect, &attachments, round);
+        round = round.wrapping_add(1);
         let mut placed = 0;
         for (peer, at) in &asking {
             if exchange::place(&engine, &router, &coordinates, *peer, *at, now).await {
@@ -84,16 +88,28 @@ async fn ask_around(
     }
 }
 
-fn between_asks(our_error: f64) -> Duration {
-    if our_error > SETTLED_BELOW {
-        WHILE_SETTLING
-    } else {
-        ONCE_SETTLED
+fn whom_to_ask(
+    engine: &Arc<ReticulumNode>,
+    aspect: &[u8; 10],
+    attachments: &Attachments,
+    round: usize,
+) -> Vec<(PeerId, DestinationHash)> {
+    let kept = attachments.whose_links_we_keep();
+    let (mut whose_links_we_keep, rest): (Vec<_>, Vec<_>) = reachable_peers(engine, aspect)
+        .into_iter()
+        .partition(|(peer, _)| kept.contains(peer));
+    if whose_links_we_keep.is_empty() {
+        return rest;
     }
+    whose_links_we_keep.extend(one_of_the_rest_in_turn(&rest, round));
+    whose_links_we_keep
 }
 
-fn forgotten_after(between_asks: Duration) -> Duration {
-    (between_asks * ROUNDS_MISSED_BEFORE_FORGOTTEN).max(NEVER_FORGET_SOONER_THAN)
+fn one_of_the_rest_in_turn(
+    rest: &[(PeerId, DestinationHash)],
+    round: usize,
+) -> Option<(PeerId, DestinationHash)> {
+    rest.get(round % rest.len().max(1)).copied()
 }
 
 fn reachable_peers(
@@ -113,34 +129,4 @@ fn reachable_peers(
     asking.sort_unstable();
     asking.dedup();
     asking
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::coordinates::Coordinates;
-
-    #[test]
-    fn a_node_that_has_just_started_asks_often_enough_to_settle_within_minutes() {
-        let fresh = Coordinates::default().how_wrong_we_are();
-
-        let rounds_to_settle = 40;
-        let settling = between_asks(fresh) * rounds_to_settle;
-
-        assert!(
-            settling < Duration::from_secs(20 * 60),
-            "settling would take {settling:?}"
-        );
-    }
-
-    #[test]
-    fn a_settled_node_leaves_the_mesh_alone() {
-        assert_eq!(between_asks(SETTLED_BELOW / 2.0), ONCE_SETTLED);
-    }
-
-    #[test]
-    fn a_peer_is_forgotten_after_the_rounds_it_missed_but_never_after_just_one() {
-        assert_eq!(forgotten_after(ONCE_SETTLED), ONCE_SETTLED * 3);
-        assert_eq!(forgotten_after(WHILE_SETTLING), NEVER_FORGET_SOONER_THAN);
-    }
 }

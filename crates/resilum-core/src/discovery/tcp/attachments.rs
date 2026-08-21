@@ -47,6 +47,18 @@ impl Attachments {
         self.lock().retain(|_, held| held.service != service);
     }
 
+    #[must_use]
+    pub fn whose_links_we_keep(&self) -> Vec<PeerId> {
+        let mut kept: Vec<PeerId> = self
+            .lock()
+            .values()
+            .filter_map(|held| held.announced_by)
+            .collect();
+        kept.sort_unstable();
+        kept.dedup();
+        kept
+    }
+
     pub(super) fn kept(&self) -> Vec<quota::Peer> {
         self.lock()
             .iter()

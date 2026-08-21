@@ -44,6 +44,7 @@ pub struct Node {
     pub(crate) origin_registry: Arc<crate::discovery::OriginRegistry>,
     pub(crate) directories: BTreeMap<Service, Arc<crate::discovery::ServiceDirectory>>,
     pub(crate) coordinates: Arc<crate::coordinates::Coordinates>,
+    pub(crate) attachments: Arc<crate::discovery::Attachments>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
     #[cfg(feature = "iroh")]
@@ -58,6 +59,7 @@ impl Node {
             .enable_all()
             .build()
             .map_err(|e| Error::Engine(format!("tokio runtime: {e}")))?;
+        let coordinates: Arc<crate::coordinates::Coordinates> = Arc::default();
         Ok(Self {
             config,
             runtime,
@@ -77,7 +79,8 @@ impl Node {
             directories: Service::at_mesh_addresses()
                 .map(|service| (service, Arc::default()))
                 .collect(),
-            coordinates: Arc::default(),
+            attachments: Arc::new(crate::discovery::Attachments::new(Arc::clone(&coordinates))),
+            coordinates,
             #[cfg(all(unix, feature = "ygg"))]
             ygg_discovery: None,
             #[cfg(feature = "iroh")]

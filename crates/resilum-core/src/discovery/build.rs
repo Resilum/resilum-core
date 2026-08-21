@@ -16,6 +16,7 @@ pub struct BuildParams<'a> {
     pub covert_addresses: &'a [Arc<covert::AddressSource>],
     pub engine: Arc<ReticulumNode>,
     pub coordinates: Arc<crate::coordinates::Coordinates>,
+    pub attachments: Arc<super::Attachments>,
     pub trigger: Arc<Notify>,
     pub storage_root: Option<&'a std::path::Path>,
     pub cap_controller: Arc<CapController>,
@@ -28,7 +29,7 @@ pub struct BuildParams<'a> {
 pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDiscovered>>) {
     let mut d = Discovery::default();
     let mut ygg = None;
-    let attachments = Arc::new(super::tcp::Attachments::new(p.coordinates.clone()));
+    let attachments = p.attachments.clone();
     for cfg in p.tcp {
         let Some(service) = named(&cfg.service) else {
             continue;
