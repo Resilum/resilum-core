@@ -3,6 +3,7 @@
 //! so link_rtt is taken from the SOCKS greeting round-trip (mesh only) and e2e
 //! from the full reply; the caller derives the egress leg as their difference.
 
+mod local;
 mod socks;
 mod targets;
 
@@ -13,7 +14,15 @@ use leviculum_std::api::LinkHandle;
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::UnboundedReceiver;
 
+pub use local::over_a_local_socket;
 pub use targets::resolve_targets;
+
+fn greeting_and_connect(host: Ipv4Addr, port: u16) -> Vec<u8> {
+    let mut req = vec![5, 1, 0, 5, 1, 0, 1];
+    req.extend_from_slice(&host.octets());
+    req.extend_from_slice(&port.to_be_bytes());
+    req
+}
 
 use crate::egress::Candidate;
 use crate::egress::ingress::dial;

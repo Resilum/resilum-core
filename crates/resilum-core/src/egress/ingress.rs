@@ -1,7 +1,6 @@
 //! Connect side: accept local TCP and forward each connection through the
 //! fastest eligible egress candidate, chosen per connection and kept sticky.
 
-use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU16, Ordering};
 
@@ -11,6 +10,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::config::IngressConfig;
+use crate::egress::own::{self, OwnExits};
 use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, choose_best, eligible};
 use crate::link::{LinkMsg, LinkRouter};
 use crate::socks5_tcp::{
@@ -24,7 +24,7 @@ pub async fn run(
     active: Arc<ActiveLinks>,
     socks_port: Arc<AtomicU16>,
     cfg: IngressConfig,
-    skip: HashMap<String, HashSet<Vec<u8>>>,
+    own: OwnExits,
 ) {
     let Ok(listener) = TcpListener::bind(&cfg.listen_tcp).await else {
         return;
@@ -40,7 +40,7 @@ pub async fn run(
             &cfg.use_own,
             &cfg.allow_country,
             &cfg.deny_country,
-            &skip,
+            &own,
         );
         let incumbent = current
             .as_ref()
@@ -48,13 +48,16 @@ pub async fn run(
         match choose_best(&elig, incumbent) {
             Some(chosen) => {
                 current = Some(chosen.dest_hash.clone());
-                tokio::spawn(session(
-                    engine.clone(),
-                    router.clone(),
-                    active.clone(),
-                    chosen.clone(),
-                    tcp,
-                ));
+                match own.target_of(chosen) {
+                    Some(target) => tokio::spawn(own_session(target.to_owned(), tcp)),
+                    None => tokio::spawn(session(
+                        engine.clone(),
+                        router.clone(),
+                        active.clone(),
+                        chosen.clone(),
+                        tcp,
+                    )),
+                };
             }
             None => {
                 tracing::warn!(
@@ -65,6 +68,12 @@ pub async fn run(
                 tokio::spawn(turn_away(tcp, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH));
             }
         }
+    }
+}
+
+async fn own_session(target: String, tcp: TcpStream) {
+    if let Err(e) = own::session(&target, tcp).await {
+        tracing::warn!(%target, error = %e, "this node's own exit did not carry the connection");
     }
 }
 

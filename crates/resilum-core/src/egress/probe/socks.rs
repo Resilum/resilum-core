@@ -18,10 +18,7 @@ pub(super) async fn socks_probe(
     host: Ipv4Addr,
     port: u16,
 ) -> Option<Probe> {
-    let mut req = vec![5, 1, 0]; // greeting: VER, NMETHODS=1, no-auth
-    req.extend_from_slice(&[5, 1, 0, 1]); // CONNECT, RSV, ATYP=IPv4
-    req.extend_from_slice(&host.octets());
-    req.extend_from_slice(&port.to_be_bytes());
+    let req = super::greeting_and_connect(host, port);
 
     let t0 = Instant::now();
     handle.send(&req).await.ok()?;

@@ -1,4 +1,3 @@
-use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use leviculum_std::api::Identity;
@@ -17,10 +16,12 @@ pub(super) fn bring_up(
     inbound_rx: mpsc::UnboundedReceiver<link::Inbound>,
 ) {
     if let Some(ingress) = node.config.ingress.clone() {
-        let mut skip: HashMap<String, HashSet<Vec<u8>>> = HashMap::new();
-        for own in &node.config.egress {
-            let hash = egress::listen::dest_hash(identity.clone(), &own.service);
-            skip.entry(own.service.clone()).or_default().insert(hash);
+        let ours = egress::own::OwnExits::of(&node.config.egress, |service| {
+            egress::listen::dest_hash(identity.clone(), service)
+        });
+        for exit in ours.with_a_socket_this_node_can_dial(&ingress.services) {
+            node.registry
+                .upsert(&exit.service, exit.dest_hash.clone(), &exit.exit_country);
         }
         let active = Arc::new(egress::ActiveLinks::default());
         if let Some(target) = ingress.target {
@@ -36,7 +37,7 @@ pub(super) fn bring_up(
                     active.clone(),
                     node.event_queue.clone(),
                     service.clone(),
-                    skip.get(service).cloned().unwrap_or_default(),
+                    ours.hashes_serving(service),
                     bus,
                 )));
             }
@@ -48,14 +49,14 @@ pub(super) fn bring_up(
             active,
             node.socks_port.clone(),
             ingress.clone(),
-            skip.clone(),
+            ours.clone(),
         )));
         node.tasks.push(tokio::spawn(egress::monitor::run(
             engine.clone(),
             router.clone(),
             node.registry.clone(),
             ingress,
-            skip,
+            ours,
         )));
     }
 

@@ -1,8 +1,6 @@
 //! Data-plane attach points: the socket-protect hook, the L3 VPN routing hub,
 //! and the Yggdrasil transport.
 
-use std::collections::{HashMap, HashSet};
-
 use leviculum_std::socket_hook::OutboundSocketHook;
 
 use super::Node;
@@ -28,19 +26,18 @@ impl Node {
         let engine = self.engine.clone().ok_or(Error::NotRunning)?;
         let router = self.router.clone().ok_or(Error::NotRunning)?;
         let policy = self.config.ingress.clone().ok_or(Error::VpnNoIngress)?;
-        let mut skip: HashMap<String, HashSet<Vec<u8>>> = HashMap::new();
-        if let Some(identity) = &self.identity {
-            for own in &self.config.egress {
-                let hash = crate::egress::listen::dest_hash(identity.clone(), &own.service);
-                skip.entry(own.service.clone()).or_default().insert(hash);
-            }
-        }
+        let ours = match &self.identity {
+            Some(identity) => crate::egress::own::OwnExits::of(&self.config.egress, |service| {
+                crate::egress::listen::dest_hash(identity.clone(), service)
+            }),
+            None => crate::egress::own::OwnExits::default(),
+        };
         let params = crate::egress::vpn::VpnParams {
             engine,
             router,
             registry: self.registry.clone(),
             policy,
-            skip,
+            own: ours,
             mtu,
             ygg_fd,
             #[cfg(feature = "arti")]

@@ -1,7 +1,6 @@
 //! One intercepted TCP flow: route a `.onion` straight through Tor, everything
 //! else through an eligible mesh egress via a SOCKS5 CONNECT.
 
-use std::collections::{HashMap, HashSet};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 
@@ -23,7 +22,7 @@ pub(super) struct FlowCtx {
     pub registry: Arc<CandidateRegistry>,
     pub active: Arc<ActiveLinks>,
     pub policy: IngressConfig,
-    pub skip: HashMap<String, HashSet<Vec<u8>>>,
+    pub own: crate::egress::own::OwnExits,
     pub fakedns: Arc<FakeDns>,
     #[cfg(feature = "arti")]
     pub tor: Option<crate::tor::ArtiClient>,
@@ -92,7 +91,7 @@ async fn serve_mesh(ctx: Arc<FlowCtx>, mut stream: TcpStream, target: Target, de
         &ctx.policy.use_own,
         &ctx.policy.allow_country,
         &ctx.policy.deny_country,
-        &ctx.skip,
+        &ctx.own,
     );
     let Some(chosen) = choose_best(&elig, None).cloned() else {
         return;

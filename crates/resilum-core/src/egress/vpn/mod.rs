@@ -11,7 +11,6 @@ mod udp;
 #[cfg(feature = "i2p")]
 pub use i2p::I2pConduit;
 
-use std::collections::{HashMap, HashSet};
 use std::os::fd::RawFd;
 use std::sync::Arc;
 
@@ -32,7 +31,7 @@ pub struct VpnParams {
     pub router: Arc<LinkRouter>,
     pub registry: Arc<CandidateRegistry>,
     pub policy: IngressConfig,
-    pub skip: HashMap<String, HashSet<Vec<u8>>>,
+    pub own: crate::egress::own::OwnExits,
     pub mtu: usize,
     /// Packet fd of a host-managed Yggdrasil conduit; `200::/7` is routed to it.
     pub ygg_fd: Option<RawFd>,
@@ -72,7 +71,7 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
         router,
         registry,
         policy,
-        skip,
+        own,
         mtu,
         ygg_fd,
         #[cfg(feature = "arti")]
@@ -99,7 +98,7 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
         registry,
         active: Arc::new(ActiveLinks::default()),
         policy,
-        skip,
+        own,
         fakedns: fakedns.clone(),
         #[cfg(feature = "arti")]
         tor,

@@ -2,7 +2,6 @@
 //! link_rtt/egress_rtt back to the registry, so the selector sees measured
 //! effective_latency.
 
-use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -10,8 +9,9 @@ use leviculum_std::driver::ReticulumNode;
 use tokio::time::{Instant, sleep};
 
 use crate::config::IngressConfig;
-use crate::egress::probe::{ProbeStrategy, e2e_probe, resolve_targets};
-use crate::egress::{Candidate, CandidateRegistry, eligible};
+use crate::egress::own::OwnExits;
+use crate::egress::probe::{ProbeStrategy, e2e_probe, over_a_local_socket, resolve_targets};
+use crate::egress::{Candidate, CandidateRegistry, allowed};
 use crate::link::LinkRouter;
 
 const TICK: Duration = Duration::from_secs(1);
@@ -65,18 +65,18 @@ pub async fn run(
     router: Arc<LinkRouter>,
     registry: Arc<CandidateRegistry>,
     cfg: IngressConfig,
-    skip: HashMap<String, HashSet<Vec<u8>>>,
+    own: OwnExits,
 ) {
     let targets = resolve_targets(&cfg.probe_targets);
     let base = Instant::now();
     loop {
         sleep(TICK).await;
-        let elig = eligible(
+        let elig = allowed(
             &registry.all(),
             &cfg.use_own,
             &cfg.allow_country,
             &cfg.deny_country,
-            &skip,
+            &own,
         );
         let now = base.elapsed().as_secs_f64();
         for c in top_k(elig, TOP_K) {
@@ -87,9 +87,11 @@ pub async fn run(
             if !due_for_probe(&c, now, PROBE_INTERVAL) {
                 continue;
             }
-            let result = e2e_probe(&engine, &router, &c, &strategy, &targets)
-                .await
-                .map(|p| (p.link_rtt, egress_rtt_from_probe(p.e2e, p.link_rtt)));
+            let probe = match own.target_of(&c) {
+                Some(target) => over_a_local_socket(target, &targets).await,
+                None => e2e_probe(&engine, &router, &c, &strategy, &targets).await,
+            };
+            let result = probe.map(|p| (p.link_rtt, egress_rtt_from_probe(p.e2e, p.link_rtt)));
             report(&c, result);
             registry.record_probe(
                 &c.service,
