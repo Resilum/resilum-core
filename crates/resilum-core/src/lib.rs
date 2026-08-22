@@ -26,7 +26,6 @@ pub mod mirrors;
 pub mod net;
 mod node;
 pub mod pump;
-#[cfg(any(feature = "arti", feature = "ygg"))]
 mod socks5_tcp;
 pub mod spec;
 pub mod supervisor;

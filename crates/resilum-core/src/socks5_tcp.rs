@@ -15,8 +15,12 @@ const ATYP_DOMAIN: u8 = 3;
 const ATYP_V6: u8 = 4;
 const REP_CMD_NOT_SUPPORTED: u8 = 7;
 
+#[cfg(any(feature = "arti", feature = "ygg"))]
 pub(crate) const REP_OK: u8 = 0;
-pub(crate) const REP_UNREACHABLE: u8 = 5;
+pub(crate) const REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH: u8 = 3;
+pub(crate) const REP_EGRESS_DID_NOT_ANSWER: u8 = 4;
+#[cfg(any(feature = "arti", feature = "ygg"))]
+pub(crate) const REP_CONNECTION_REFUSED: u8 = 5;
 pub(crate) const REP_ATYP_NOT_SUPPORTED: u8 = 8;
 
 /// Read the client's method greeting and answer with no-auth.

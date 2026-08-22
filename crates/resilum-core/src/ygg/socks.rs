@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_smoltcp::Net;
 
-use crate::socks5_tcp::{self, REP_ATYP_NOT_SUPPORTED, REP_OK, REP_UNREACHABLE};
+use crate::socks5_tcp::{self, REP_ATYP_NOT_SUPPORTED, REP_CONNECTION_REFUSED, REP_OK};
 
 pub(super) async fn serve(net: Arc<Net>, port: u16) {
     let listener = match TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await {
@@ -44,7 +44,7 @@ async fn handle_conn(mut client: TcpStream, net: Arc<Net>) -> io::Result<()> {
             Ok(())
         }
         Err(e) => {
-            socks5_tcp::reply(&mut client, REP_UNREACHABLE).await?;
+            socks5_tcp::reply(&mut client, REP_CONNECTION_REFUSED).await?;
             Err(io::Error::other(format!("ygg connect: {e}")))
         }
     }

@@ -41,6 +41,25 @@ pub fn due_for_probe(c: &Candidate, now: f64, interval: f64) -> bool {
     c.last_probe.is_none_or(|last| now - last >= interval)
 }
 
+fn report(candidate: &Candidate, result: Option<(f64, f64)>) {
+    let service = &candidate.service;
+    let dest = data_encoding::HEXLOWER.encode(&candidate.dest_hash);
+    match result {
+        Some((link_rtt, egress_rtt)) => tracing::debug!(
+            %service,
+            %dest,
+            link_rtt,
+            egress_rtt,
+            "an egress answered a probe and stays in the running"
+        ),
+        None => tracing::warn!(
+            %service,
+            %dest,
+            "an egress failed its probe and will be skipped until it answers again"
+        ),
+    }
+}
+
 pub async fn run(
     engine: Arc<ReticulumNode>,
     router: Arc<LinkRouter>,
@@ -71,6 +90,7 @@ pub async fn run(
             let result = e2e_probe(&engine, &router, &c, &strategy, &targets)
                 .await
                 .map(|p| (p.link_rtt, egress_rtt_from_probe(p.e2e, p.link_rtt)));
+            report(&c, result);
             registry.record_probe(
                 &c.service,
                 &c.dest_hash,
