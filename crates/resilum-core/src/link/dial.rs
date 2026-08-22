@@ -23,14 +23,28 @@ pub async fn dial(
             .await
             .unwrap_or(false)
     {
+        tracing::debug!(dest = %dest_hash, "the mesh offers no path to dial over");
         return None;
     }
-    let identity = engine.get_identity(dest_hash)?;
-    let signing_key = signing_half_of(&identity.public_key_bytes())?;
-    let mut handle = engine.connect(dest_hash, &signing_key).await.ok()?;
+    let Some(identity) = engine.get_identity(dest_hash) else {
+        tracing::debug!(dest = %dest_hash, "a path leads there but the mesh does not know whose it is");
+        return None;
+    };
+    let Some(signing_key) = signing_half_of(&identity.public_key_bytes()) else {
+        tracing::debug!(dest = %dest_hash, "the announced identity carries no signing half");
+        return None;
+    };
+    let mut handle = match engine.connect(dest_hash, &signing_key).await {
+        Ok(handle) => handle,
+        Err(e) => {
+            tracing::debug!(dest = %dest_hash, error = %e, "opening a link was refused");
+            return None;
+        }
+    };
     let link_id = *handle.link_id();
     let mut from_link = router.attach(link_id);
     if !established(&mut from_link).await {
+        tracing::debug!(dest = %dest_hash, "the far side never confirmed the link");
         router.detach(&link_id);
         let _ = handle.close().await;
         return None;
