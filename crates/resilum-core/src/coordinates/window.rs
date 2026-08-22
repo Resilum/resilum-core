@@ -3,6 +3,7 @@ use std::time::Duration;
 
 const SEEN_WITHIN: f64 = 20.0 * 60.0;
 const AT_MOST: usize = 32;
+const SAMPLES_A_PATH_MUST_CARRY_ONE_OF: usize = 4;
 
 struct Seen {
     rtt: Duration,
@@ -23,9 +24,17 @@ impl Window {
         }
     }
 
-    pub(super) fn least(&self) -> Option<Duration> {
-        self.seen.iter().map(|seen| seen.rtt).min()
+    pub(super) fn dependably_fast(&self) -> Option<Duration> {
+        let mut sorted: Vec<Duration> = self.seen.iter().map(|seen| seen.rtt).collect();
+        sorted.sort_unstable();
+        sorted.get(quarter_way_up(sorted.len())).copied()
     }
+}
+
+fn quarter_way_up(count: usize) -> usize {
+    count
+        .div_ceil(SAMPLES_A_PATH_MUST_CARRY_ONE_OF)
+        .saturating_sub(1)
 }
 
 #[cfg(test)]
