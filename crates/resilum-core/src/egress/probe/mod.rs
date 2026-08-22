@@ -17,6 +17,14 @@ use tokio::sync::mpsc::UnboundedReceiver;
 pub use local::over_a_local_socket;
 pub use targets::resolve_targets;
 
+const GREETING_AND_CONNECT_REPLY: usize = 12;
+const CONNECT_REPLY_CODE: usize = 3;
+const OPENED: u8 = 0;
+
+fn the_exit_opened_the_connection(answer: &[u8]) -> bool {
+    answer.get(CONNECT_REPLY_CODE) == Some(&OPENED)
+}
+
 fn greeting_and_connect(host: Ipv4Addr, port: u16) -> Vec<u8> {
     let mut req = vec![5, 1, 0, 5, 1, 0, 1];
     req.extend_from_slice(&host.octets());

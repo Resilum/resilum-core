@@ -42,6 +42,20 @@ async fn an_exit_that_hangs_up_mid_answer_is_not_a_measurement() {
 }
 
 #[tokio::test]
+async fn an_exit_that_answers_quickly_but_refuses_is_not_a_working_exit() {
+    const REFUSED: [u8; 12] = [5, 0, 5, 4, 0, 1, 0, 0, 0, 0, 0, 0];
+
+    let target = an_exit_that(&REFUSED).await;
+
+    assert!(
+        over_a_local_socket(&target, &A_REFERENCE_TARGET)
+            .await
+            .is_none(),
+        "a fast refusal is the fastest answer there is, and would win every ranking"
+    );
+}
+
+#[tokio::test]
 async fn an_exit_with_nothing_listening_is_not_a_measurement() {
     assert!(
         over_a_local_socket("127.0.0.1:1", &A_REFERENCE_TARGET)
