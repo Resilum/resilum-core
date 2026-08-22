@@ -18,7 +18,6 @@ deploy/config/**
 !deploy/config/**/
 !deploy/config/*.example
 !deploy/config/**/*.example
-!deploy/config/resilumd.yaml
 
 deploy/compose.override.yaml
 

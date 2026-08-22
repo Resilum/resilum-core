@@ -2,11 +2,14 @@
 set -e
 
 seed_default() {
-    src="/config/$1.example"
     dst="/config/$1"
-    if [ -f "$src" ] && [ ! -f "$dst" ]; then
-        cp "$src" "$dst"
-    fi
+    [ -f "$dst" ] && return 0
+    for src in "/config/$1.example" "/usr/share/resilum/defaults/$1.example"; do
+        if [ -f "$src" ]; then
+            cp "$src" "$dst"
+            return 0
+        fi
+    done
 }
 
 ipv6_unavailable() {
@@ -47,6 +50,12 @@ if [ "${ENABLE_I2PD:-1}" = "1" ] && command -v i2pd >/dev/null 2>&1; then
             /config/i2p/keys/rns-server.dat \
             /config/i2p/hidden_service/hostname &
     fi
+fi
+
+seed_default resilumd.yaml
+if [ ! -f /config/resilumd.yaml ]; then
+    echo "[entrypoint] no /config/resilumd.yaml and no example to seed it from" >&2
+    exit 1
 fi
 
 exec resilumd /config/resilumd.yaml
