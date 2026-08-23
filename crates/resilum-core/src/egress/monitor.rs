@@ -52,11 +52,7 @@ fn report(candidate: &Candidate, result: Option<(f64, f64)>) {
             egress_rtt,
             "an egress answered a probe and stays in the running"
         ),
-        None => tracing::warn!(
-            %service,
-            %dest,
-            "an egress failed its probe and will be skipped until it answers again"
-        ),
+        None => tracing::warn!(%service, %dest, "an egress did not answer a probe"),
     }
 }
 

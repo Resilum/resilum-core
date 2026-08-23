@@ -15,6 +15,7 @@ pub struct Candidate {
     pub egress_rtt: Option<f64>,
     pub healthy: bool,
     pub last_probe: Option<f64>,
+    failed_in_a_row: usize,
 }
 
 impl Candidate {
@@ -27,12 +28,38 @@ impl Candidate {
             egress_rtt: None,
             healthy: true,
             last_probe: None,
+            failed_in_a_row: 0,
         }
     }
 
     /// Total latency (mesh + egress), or `None` until both legs are probed.
     pub fn effective_latency(&self) -> Option<f64> {
         Some(self.link_rtt? + self.egress_rtt?)
+    }
+
+    fn answered(&mut self, link_rtt: f64, egress_rtt: f64) {
+        self.link_rtt = Some(settled(self.link_rtt, link_rtt));
+        self.egress_rtt = Some(settled(self.egress_rtt, egress_rtt));
+        self.healthy = true;
+        self.failed_in_a_row = 0;
+    }
+
+    fn stayed_silent(&mut self) {
+        self.failed_in_a_row += 1;
+        self.healthy = self.failed_in_a_row < FAILURES_BEFORE_AN_EXIT_IS_WRITTEN_OFF;
+    }
+}
+
+const FAILURES_BEFORE_AN_EXIT_IS_WRITTEN_OFF: usize = 3;
+const WEIGHT_OF_THE_LATEST_MEASUREMENT: f64 = 0.3;
+
+fn settled(so_far: Option<f64>, measured: f64) -> f64 {
+    match so_far {
+        Some(before) => {
+            before * (1.0 - WEIGHT_OF_THE_LATEST_MEASUREMENT)
+                + measured * WEIGHT_OF_THE_LATEST_MEASUREMENT
+        }
+        None => measured,
     }
 }
 
@@ -79,8 +106,6 @@ impl CandidateRegistry {
         map.values().flat_map(|m| m.values().cloned()).collect()
     }
 
-    /// Write back probe results. `Some((link_rtt, egress_rtt))` marks healthy
-    /// and records both legs; `None` marks unhealthy. `now` timestamps the probe.
     pub fn record_probe(
         &self,
         service: &str,
@@ -93,13 +118,12 @@ impl CandidateRegistry {
             return;
         };
         match result {
-            Some((link_rtt, egress_rtt)) => {
-                cand.link_rtt = Some(link_rtt);
-                cand.egress_rtt = Some(egress_rtt);
-                cand.healthy = true;
-            }
-            None => cand.healthy = false,
+            Some((link_rtt, egress_rtt)) => cand.answered(link_rtt, egress_rtt),
+            None => cand.stayed_silent(),
         }
         cand.last_probe = Some(now);
     }
 }
+
+#[cfg(test)]
+mod tests;
