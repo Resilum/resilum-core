@@ -40,6 +40,7 @@ regexes = [
 description = "Paths whose content is patterns, notes, or a deliberate target list"
 paths = [
   '''\.gitleaks\.toml$''',
+  '''\.gitleaks-baseline\.json$''',
   '''lints/.*\.txt$''',
   '''docs/__.*''',
   # The egress speed probe has to reach hosts that are actually up; these are

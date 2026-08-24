@@ -77,27 +77,50 @@ impl Node {
         Ok(())
     }
 
+    /// Returns once the engine has released its sockets, so the ports are free
+    /// for the next `start`. A caller that restarts immediately depends on it.
     pub fn stop(&mut self) -> Result<()> {
-        for task in self.tasks.drain(..) {
-            task.abort();
-        }
-        if let Some(leviculum) = self.engine.take() {
-            match Arc::try_unwrap(leviculum) {
-                Ok(mut leviculum) => self
-                    .runtime
-                    .block_on(leviculum.stop())
-                    .map_err(|e| Error::Engine(e.to_string()))?,
-                Err(_shared) => {}
-            }
-            event::push(&self.event_queue, Event::Stopped);
-        }
+        self.wind_down_tasks();
         self.router = None;
         self.identity = None;
         self.lxmf = None;
+        #[cfg(all(unix, feature = "ygg"))]
+        {
+            self.ygg_discovery = None;
+        }
+        #[cfg(feature = "iroh")]
+        {
+            self.iroh_discovery = None;
+        }
         #[cfg(feature = "arti")]
         {
             self.embedded_tor = None;
         }
+        self.directories.clear();
+        if let Some(leviculum) = self.engine.take() {
+            let mut leviculum = Arc::try_unwrap(leviculum).map_err(|still_shared| {
+                Error::Engine(format!(
+                    "{} holders of the engine outlived stop; its ports stay bound",
+                    Arc::strong_count(&still_shared)
+                ))
+            })?;
+            self.runtime
+                .block_on(leviculum.stop())
+                .map_err(|e| Error::Engine(e.to_string()))?;
+            event::push(&self.event_queue, Event::Stopped);
+        }
         Ok(())
+    }
+
+    fn wind_down_tasks(&mut self) {
+        let tasks: Vec<_> = self.tasks.drain(..).collect();
+        for task in &tasks {
+            task.abort();
+        }
+        self.runtime.block_on(async {
+            for task in tasks {
+                let _ = task.await;
+            }
+        });
     }
 }
