@@ -11,7 +11,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::config::IngressConfig;
 use crate::egress::own::{self, OwnExits};
-use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, choose_best, eligible};
+use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, best_available};
 use crate::link::{LinkMsg, LinkRouter};
 use crate::socks5_tcp::{
     self, REP_EGRESS_DID_NOT_ANSWER, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH,
@@ -32,23 +32,11 @@ pub async fn run(
     if let Ok(addr) = listener.local_addr() {
         socks_port.store(addr.port(), Ordering::Relaxed);
     }
-    let mut current: Option<Vec<u8>> = None;
+    let mut current: Option<Candidate> = None;
     while let Ok((tcp, _)) = listener.accept().await {
-        let candidates = registry.all();
-        let elig = eligible(
-            &candidates,
-            &cfg.use_own,
-            &cfg.allow_country,
-            &cfg.deny_country,
-            &own,
-        );
-        let incumbent = current
-            .as_ref()
-            .and_then(|h| elig.iter().find(|c| &c.dest_hash == h));
-        match choose_best(&elig, incumbent) {
+        match best_available(&registry, &cfg, &own, current.as_ref()) {
             Some(chosen) => {
-                current = Some(chosen.dest_hash.clone());
-                match own.target_of(chosen) {
+                match own.target_of(&chosen) {
                     Some(target) => tokio::spawn(own_session(target.to_owned(), tcp)),
                     None => tokio::spawn(session(
                         engine.clone(),
@@ -58,13 +46,9 @@ pub async fn run(
                         tcp,
                     )),
                 };
+                current = Some(chosen);
             }
             None => {
-                tracing::warn!(
-                    announced = candidates.len(),
-                    passed_the_filter = elig.len(),
-                    "nothing to reach the internet through, turning a local connection away"
-                );
                 tokio::spawn(turn_away(tcp, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH));
             }
         }
@@ -98,11 +82,6 @@ async fn session(
     tcp: TcpStream,
 ) {
     let Some((mut handle, link_id, from_link)) = dial(&engine, &router, &candidate).await else {
-        tracing::warn!(
-            service = %candidate.service,
-            dest = %data_encoding::HEXLOWER.encode(&candidate.dest_hash),
-            "the egress this connection was routed to never came up"
-        );
         turn_away(tcp, REP_EGRESS_DID_NOT_ANSWER).await;
         return;
     };
@@ -125,5 +104,13 @@ pub(super) async fn dial(
     candidate: &Candidate,
 ) -> Option<(LinkHandle, LinkId, UnboundedReceiver<LinkMsg>)> {
     let bytes = <[u8; 16]>::try_from(candidate.dest_hash.as_slice()).ok()?;
-    crate::link::dial(engine, router, &DestinationHash::new(bytes)).await
+    let opened = crate::link::dial(engine, router, &DestinationHash::new(bytes)).await;
+    if opened.is_none() {
+        tracing::warn!(
+            service = %candidate.service,
+            dest = %data_encoding::HEXLOWER.encode(&candidate.dest_hash),
+            "the egress this traffic was routed to never came up"
+        );
+    }
+    opened
 }
