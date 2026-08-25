@@ -15,6 +15,7 @@ use std::os::fd::AsRawFd;
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
+use super::wake::{Ready, Wake};
 use super::wire;
 use crate::covert::carrier::CarrierServer;
 
@@ -29,6 +30,7 @@ pub struct IcmpServer {
     send6: Option<Socket>,
     sniff4: Socket,
     sniff6: Option<Socket>,
+    wake: Wake,
 }
 
 impl IcmpServer {
@@ -48,6 +50,7 @@ impl IcmpServer {
             send6,
             sniff4,
             sniff6,
+            wake: Wake::new()?,
         })
     }
 
@@ -73,6 +76,9 @@ impl IcmpServer {
     }
 
     pub fn recv_request(&self, buf: &mut [u8]) -> io::Result<Option<(IpAddr, Vec<u8>)>> {
+        if let Ready::Woken = self.wake.wait_for_carrier_or_a_raise(&self.as_raw_fds())? {
+            return Ok(None);
+        }
         let sockets: [(&Socket, u16); 2] = [
             (&self.sniff4, wire::ETH_P_IP),
             (
@@ -110,5 +116,11 @@ impl CarrierServer for IcmpServer {
     }
     fn recv_request(&self, buf: &mut [u8]) -> io::Result<Option<(Self::ReplyTo, Vec<u8>)>> {
         self.recv_request(buf)
+    }
+    fn stop_receiving(&self) {
+        self.wake.raise();
+    }
+    fn told_to_stop(&self) -> bool {
+        self.wake.raised()
     }
 }

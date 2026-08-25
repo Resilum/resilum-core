@@ -20,6 +20,10 @@ pub trait CarrierClient {
     /// Read the next inbound response payload, or `Ok(None)` on a foreign
     /// frame the carrier filtered out.
     fn recv_response(&self, buf: &mut [u8]) -> io::Result<Option<Vec<u8>>>;
+    fn stop_receiving(&self) {}
+    fn told_to_stop(&self) -> bool {
+        false
+    }
 }
 
 pub trait CarrierServer {
@@ -30,6 +34,10 @@ pub trait CarrierServer {
     fn capacity_for(&self, reply_to: &Self::ReplyTo) -> usize;
     fn send_response(&self, reply_to: &Self::ReplyTo, wire: &[u8]) -> io::Result<()>;
     fn recv_request(&self, buf: &mut [u8]) -> io::Result<Option<(Self::ReplyTo, Vec<u8>)>>;
+    fn stop_receiving(&self) {}
+    fn told_to_stop(&self) -> bool {
+        false
+    }
 }
 
 impl<T: CarrierClient + ?Sized> CarrierClient for Arc<T> {
@@ -44,6 +52,12 @@ impl<T: CarrierClient + ?Sized> CarrierClient for Arc<T> {
     }
     fn recv_response(&self, buf: &mut [u8]) -> io::Result<Option<Vec<u8>>> {
         (**self).recv_response(buf)
+    }
+    fn stop_receiving(&self) {
+        (**self).stop_receiving();
+    }
+    fn told_to_stop(&self) -> bool {
+        (**self).told_to_stop()
     }
 }
 
@@ -60,5 +74,11 @@ impl<T: CarrierServer + ?Sized> CarrierServer for Arc<T> {
     }
     fn recv_request(&self, buf: &mut [u8]) -> io::Result<Option<(Self::ReplyTo, Vec<u8>)>> {
         (**self).recv_request(buf)
+    }
+    fn stop_receiving(&self) {
+        (**self).stop_receiving();
+    }
+    fn told_to_stop(&self) -> bool {
+        (**self).told_to_stop()
     }
 }

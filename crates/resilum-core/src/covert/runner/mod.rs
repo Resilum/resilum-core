@@ -45,7 +45,7 @@ where
         MIN_POLL,
         MAX_POLL,
     );
-    drive::run(rx, |ev, now| match ev {
+    let outcome = drive::run(rx, |ev, now| match ev {
         drive::Event::Msg(drive::Msg::Rx(raw)) => engine.on_received(&raw, now),
         drive::Event::Msg(drive::Msg::Tx(chunk)) => {
             engine.write(&chunk);
@@ -53,7 +53,9 @@ where
         }
         drive::Event::Tick => engine.poll(now),
         _ => Ok(()),
-    })
+    });
+    carrier.stop_receiving();
+    outcome
 }
 
 pub fn run_server<S, F>(
@@ -71,8 +73,8 @@ where
     threads::spawn_uplink(uplink, tx.clone());
     threads::spawn_server_sniffer(Arc::clone(&carrier), tx);
 
-    let mut engine = ServerEngine::new(carrier, identity, Box::new(on_output), None);
-    drive::run(rx, |ev, now| match ev {
+    let mut engine = ServerEngine::new(Arc::clone(&carrier), identity, Box::new(on_output), None);
+    let outcome = drive::run(rx, |ev, now| match ev {
         drive::Event::Msg(drive::Msg::RxServer(peer, raw)) => engine.on_received(peer, &raw, now),
         drive::Event::Msg(drive::Msg::Tx(chunk)) => {
             engine.broadcast(&chunk);
@@ -83,5 +85,7 @@ where
             Ok(())
         }
         _ => Ok(()),
-    })
+    });
+    carrier.stop_receiving();
+    outcome
 }

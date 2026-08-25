@@ -12,6 +12,9 @@ use crate::covert::carrier::{CarrierClient, CarrierServer};
 
 const CARRIER_BUF: usize = 65535;
 
+#[cfg(test)]
+mod tests;
+
 pub fn spawn_uplink(uplink: Receiver<Vec<u8>>, out: Sender<Msg>) {
     thread::spawn(move || {
         while let Ok(chunk) = uplink.recv() {
@@ -36,6 +39,7 @@ where
                         return;
                     }
                 }
+                Ok(None) if carrier.told_to_stop() => return,
                 Ok(None) => continue,
                 Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
                 Err(e) => {
@@ -60,6 +64,7 @@ where
                         return;
                     }
                 }
+                Ok(None) if carrier.told_to_stop() => return,
                 Ok(None) => continue,
                 Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
                 Err(e) => {

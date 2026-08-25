@@ -16,8 +16,6 @@ that closes them.
 
 ## Correctness
 
-- `Node::stop` returns `Ok` and emits `Stopped` without stopping the engine when
-  another `Arc` survives
 - Reassembly buffer is not bounded by the window
 - `SendBuffer::ack` loops on an ack value taken from the packet
 - FakeDNS name map grows without eviction; the pool exhausts permanently
@@ -31,8 +29,6 @@ that closes them.
 - The "already connected" check and the insert are split by an `.await`
 - `active` is read outside the `handles` mutex
 - `notify_waiters` during `announce_all` is lost rather than queued
-- Blocking `recv` on the raw ICMP socket has no timeout and no cancellation, so
-  the thread and the socket leak
 - A `tokio::sync::Mutex` is held across a network `.await`, serialising i2p dials
 - No backpressure anywhere on the byte path: unbounded channels, unbounded ARQ
   buffers
