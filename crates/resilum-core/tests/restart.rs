@@ -1,7 +1,3 @@
-//! A node stopped and started again must get its own ports back. The mobile
-//! app restarts within a couple of hundred milliseconds when a start with Tor
-//! fails and it falls back to one without.
-
 use resilum_core::{Config, Node};
 
 fn free_port() -> u16 {
