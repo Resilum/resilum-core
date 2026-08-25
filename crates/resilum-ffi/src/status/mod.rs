@@ -27,7 +27,8 @@ use crate::set_error;
 ///     { "name": "<string>",
 ///       "added_by": "autoconnect" | "bootstrap" | "other",
 ///       "kind": "tcp" | "udp" | "i2p" | "serial" | "rnode" | "...",
-///       "discovered_via": "tor" | "i2p" | "yggdrasil" | "covert" | "direct",
+///       "discovered_via": "tor" | "i2p" | "yggdrasil" | "iroh" | "covert"
+///                       | "direct",
 ///       "online": true, "local_client": false,
 ///       "rx_bytes": 0, "tx_bytes": 0, "bitrate": 0 | null,
 ///       "peer_nodes": ["<32-hex>"], "peer_hashes": ["<32-hex>"] }
@@ -50,9 +51,14 @@ use crate::set_error;
 /// }
 /// ```
 /// `identity_hash` and `transport` are `null` before start. `added_by` is
-/// inferred from `name`; `kind` and `discovered_via` come from the engine and
-/// are orthogonal to each other — a peer found over I2P is still dialed as
-/// `tcp`. `nostr_relays` are Nostr bridge LXMF addresses heard on the mesh.
+/// inferred from `name`. `nostr_relays` are Nostr bridge LXMF addresses heard
+/// on the mesh.
+///
+/// `kind` and `discovered_via` share the word `i2p` but answer different
+/// questions: `kind` is the socket the engine opened (a peer found over I2P is
+/// still dialed as `tcp`), while `discovered_via` is the overlay that produced
+/// the address — the one to colour a link by. `direct` means this crate did
+/// not attach it: a bootstrap anchor, a LAN neighbour, or the engine's own.
 ///
 /// `coordinates` place peers in latency space rather than on the ground:
 /// distance is round-trip time, in seconds, and `error` is how much the node
