@@ -2,6 +2,7 @@
 
 pub mod active;
 mod candidate;
+mod choose;
 pub mod discover;
 mod eligibility;
 pub mod ingress;
@@ -16,5 +17,6 @@ pub mod vpn;
 
 pub use active::ActiveLinks;
 pub use candidate::{Candidate, CandidateRegistry};
+pub use choose::best_available;
 pub use eligibility::{allowed, eligible};
 pub use selector::choose_best;

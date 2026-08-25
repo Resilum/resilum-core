@@ -11,9 +11,7 @@ use tokio::io::AsyncWriteExt;
 use super::fakedns::FakeDns;
 use crate::config::IngressConfig;
 use crate::egress::socks5::Target;
-use crate::egress::{
-    ActiveLinks, CandidateRegistry, choose_best, eligible, ingress, relay, socks5,
-};
+use crate::egress::{ActiveLinks, CandidateRegistry, best_available, ingress, relay, socks5};
 use crate::link::LinkRouter;
 
 pub(super) struct FlowCtx {
@@ -85,20 +83,14 @@ async fn serve_onion(tor: &crate::tor::ArtiClient, host: &str, port: u16, mut st
 }
 
 async fn serve_mesh(ctx: Arc<FlowCtx>, mut stream: TcpStream, target: Target, dest: SocketAddr) {
-    let candidates = ctx.registry.all();
-    let elig = eligible(
-        &candidates,
-        &ctx.policy.use_own,
-        &ctx.policy.allow_country,
-        &ctx.policy.deny_country,
-        &ctx.own,
-    );
-    let Some(chosen) = choose_best(&elig, None).cloned() else {
+    let Some(chosen) = best_available(&ctx.registry, &ctx.policy, &ctx.own, None) else {
+        tracing::debug!(%dest, "closing a tunnelled flow with no egress to carry it");
         return;
     };
     let Some((mut handle, link_id, mut from_link)) =
         ingress::dial(&ctx.engine, &ctx.router, &chosen).await
     else {
+        tracing::debug!(%dest, "closing a tunnelled flow its egress never answered");
         return;
     };
     let dest_bytes: [u8; 16] = chosen
