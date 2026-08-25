@@ -8,10 +8,12 @@
 
 use std::io;
 use std::net::{IpAddr, SocketAddr};
+use std::os::fd::AsRawFd;
 use std::time::Duration;
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
+use super::wake::{Ready, Wake};
 use super::wire;
 use crate::covert::carrier::CarrierClient;
 
@@ -26,6 +28,7 @@ pub struct IcmpClient {
     ident: u16,
     mtu: usize,
     sock: Socket,
+    wake: Wake,
 }
 
 impl IcmpClient {
@@ -49,6 +52,7 @@ impl IcmpClient {
             ident,
             mtu,
             sock,
+            wake: Wake::new()?,
         })
     }
 
@@ -66,6 +70,12 @@ impl IcmpClient {
     /// Block until the next reply arrives, returning its payload when it
     /// carries our tunnel id (foreign echoes are silently skipped).
     pub fn recv(&self, buf: &mut [u8]) -> io::Result<Option<Vec<u8>>> {
+        if let Ready::Woken = self
+            .wake
+            .wait_for_carrier_or_a_raise(&[self.sock.as_raw_fd()])?
+        {
+            return Ok(None);
+        }
         let cell = unsafe { std::slice::from_raw_parts_mut(buf.as_mut_ptr().cast(), buf.len()) };
         let (n, _addr) = self.sock.recv_from(cell)?;
         let body = &buf[..n];
@@ -88,5 +98,11 @@ impl CarrierClient for IcmpClient {
     }
     fn recv_response(&self, buf: &mut [u8]) -> io::Result<Option<Vec<u8>>> {
         self.recv(buf)
+    }
+    fn stop_receiving(&self) {
+        self.wake.raise();
+    }
+    fn told_to_stop(&self) -> bool {
+        self.wake.raised()
     }
 }

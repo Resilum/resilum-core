@@ -7,6 +7,8 @@ pub mod id;
 pub mod nftguard;
 #[cfg(target_os = "linux")]
 pub mod server;
+#[cfg(unix)]
+pub mod wake;
 pub mod wire;
 
 pub use client::IcmpClient;
