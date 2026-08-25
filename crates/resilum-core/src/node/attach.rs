@@ -134,7 +134,14 @@ impl Node {
         let protect = self.protect.clone();
         let handle = self
             .runtime
-            .block_on(crate::iroh::attach(engine, &dir, &cfg, discovery, protect))
+            .block_on(crate::iroh::attach(
+                engine,
+                &dir,
+                &cfg,
+                discovery,
+                protect,
+                self.origin_registry.clone(),
+            ))
             .map_err(Error::Iroh)?;
         self.discovery_trigger.notify_waiters();
         Ok(handle)

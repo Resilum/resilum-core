@@ -70,9 +70,9 @@ impl Node {
     }
 
     /// The discovery overlay an interface was attached over (`tor` / `i2p` /
-    /// `yggdrasil` / `covert`), or `None` when resilum-core did not attach it
-    /// (bootstrap, LAN, or a leviculum-managed peer). Keyed by the interface id
-    /// from an interface-status snapshot.
+    /// `yggdrasil` / `iroh` / `covert`), or `None` when resilum-core did not
+    /// attach it (bootstrap, LAN, or a leviculum-managed peer). Keyed by the
+    /// interface id from an interface-status snapshot.
     pub fn discovered_via(&self, id: leviculum_std::InterfaceId) -> Option<String> {
         self.origin_registry.get(id)
     }

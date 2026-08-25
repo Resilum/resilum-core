@@ -30,6 +30,8 @@ use crate::config::IrohConfig;
 /// can detach them all.
 pub(super) type Links = Arc<Mutex<HashMap<EndpointId, ByteChannelHandle>>>;
 
+pub(super) const ORIGIN: &str = "iroh";
+
 /// A live iroh attachment; drop or [`IrohHandle::detach`] to tear it down.
 #[must_use]
 pub struct IrohHandle {
@@ -89,6 +91,7 @@ pub async fn attach(
     cfg: &IrohConfig,
     discovery: Option<Arc<IrohDiscovery>>,
     protect: Option<leviculum_std::socket_hook::OutboundSocketHook>,
+    origin: Arc<crate::discovery::OriginRegistry>,
 ) -> Result<IrohHandle, String> {
     let secret = key::load_or_create(dir);
     let endpoint = engine::build(secret, cfg, protect).await?;
@@ -97,17 +100,24 @@ pub async fn attach(
         endpoint.clone(),
         engine.clone(),
         links.clone(),
+        origin.clone(),
     ))];
     for peer in &cfg.bootstrap {
         tasks.push(tokio::spawn(dial::bootstrap(
             endpoint.clone(),
             engine.clone(),
             links.clone(),
+            origin.clone(),
             peer.clone(),
         )));
     }
     if let Some(discovery) = &discovery {
-        discovery.activate(endpoint.clone(), engine.clone(), links.clone());
+        discovery.activate(
+            endpoint.clone(),
+            engine.clone(),
+            links.clone(),
+            origin.clone(),
+        );
     }
     Ok(IrohHandle {
         endpoint,

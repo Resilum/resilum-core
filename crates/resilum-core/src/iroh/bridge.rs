@@ -11,6 +11,7 @@ use leviculum_std::driver::ReticulumNode;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 use super::Links;
+use crate::discovery::OriginRegistry;
 
 /// A QUIC bidi stream as one duplex: reads pull from the recv half, writes push
 /// to the send half.
@@ -50,17 +51,27 @@ impl AsyncWrite for IrohStream {
 }
 
 /// Accept the peer's first bidi stream on an inbound connection and bridge it.
-pub async fn accept_link(engine: &ReticulumNode, links: &Links, conn: Connection) {
+pub async fn accept_link(
+    engine: &ReticulumNode,
+    links: &Links,
+    origin: &OriginRegistry,
+    conn: Connection,
+) {
     match conn.accept_bi().await {
-        Ok((send, recv)) => register(engine, links, conn.remote_id(), send, recv),
+        Ok((send, recv)) => register(engine, links, origin, conn.remote_id(), send, recv),
         Err(e) => tracing::warn!(error = %e, "iroh accept_bi failed"),
     }
 }
 
 /// Open a bidi stream on an outbound connection and bridge it.
-pub async fn dial_link(engine: &ReticulumNode, links: &Links, conn: Connection) {
+pub async fn dial_link(
+    engine: &ReticulumNode,
+    links: &Links,
+    origin: &OriginRegistry,
+    conn: Connection,
+) {
     match conn.open_bi().await {
-        Ok((send, recv)) => register(engine, links, conn.remote_id(), send, recv),
+        Ok((send, recv)) => register(engine, links, origin, conn.remote_id(), send, recv),
         Err(e) => tracing::warn!(error = %e, "iroh open_bi failed"),
     }
 }
@@ -68,6 +79,7 @@ pub async fn dial_link(engine: &ReticulumNode, links: &Links, conn: Connection) 
 fn register(
     engine: &ReticulumNode,
     links: &Links,
+    origin: &OriginRegistry,
     id: EndpointId,
     send: SendStream,
     recv: RecvStream,
@@ -75,6 +87,7 @@ fn register(
     let name = format!("iroh[{}]", id.fmt_short());
     match engine.spawn_byte_channel(&name, IrohStream { send, recv }) {
         Ok(handle) => {
+            origin.record(handle.id(), super::ORIGIN);
             tracing::info!(%name, "attached RNS peer over iroh");
             // Inserting drops any prior handle for this peer, detaching a stale
             // link it is re-dialing over.

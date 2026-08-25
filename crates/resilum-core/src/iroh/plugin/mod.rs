@@ -12,12 +12,13 @@ use leviculum_std::driver::ReticulumNode;
 use addr::{encode_addr, parse_addr};
 
 use super::{Links, dial};
-use crate::discovery::DiscoveryPlugin;
+use crate::discovery::{DiscoveryPlugin, OriginRegistry};
 
 struct Active {
     endpoint: Endpoint,
     engine: Arc<ReticulumNode>,
     links: Links,
+    origin: Arc<OriginRegistry>,
 }
 
 #[derive(Default)]
@@ -27,11 +28,18 @@ pub struct IrohDiscovery {
 
 impl IrohDiscovery {
     /// Wire the live transport in, so announces start producing and consuming.
-    pub fn activate(&self, endpoint: Endpoint, engine: Arc<ReticulumNode>, links: Links) {
+    pub fn activate(
+        &self,
+        endpoint: Endpoint,
+        engine: Arc<ReticulumNode>,
+        links: Links,
+        origin: Arc<OriginRegistry>,
+    ) {
         *self.active.lock().unwrap_or_else(|e| e.into_inner()) = Some(Active {
             endpoint,
             engine,
             links,
+            origin,
         });
     }
 
@@ -66,6 +74,7 @@ impl DiscoveryPlugin for IrohDiscovery {
             active.endpoint.clone(),
             active.engine.clone(),
             active.links.clone(),
+            active.origin.clone(),
             addr,
         ));
     }
