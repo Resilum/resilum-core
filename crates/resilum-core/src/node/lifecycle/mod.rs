@@ -77,10 +77,8 @@ impl Node {
         Ok(())
     }
 
-    /// Returns once the engine has released its sockets, so the ports are free
-    /// for the next `start`. A caller that restarts immediately depends on it.
     pub fn stop(&mut self) -> Result<()> {
-        self.wind_down_tasks();
+        self.wait_for_tasks_to_let_go_of_the_engine();
         self.router = None;
         self.identity = None;
         self.lxmf = None;
@@ -112,7 +110,7 @@ impl Node {
         Ok(())
     }
 
-    fn wind_down_tasks(&mut self) {
+    fn wait_for_tasks_to_let_go_of_the_engine(&mut self) {
         let tasks: Vec<_> = self.tasks.drain(..).collect();
         for task in &tasks {
             task.abort();
