@@ -85,7 +85,7 @@ fn connect_forwards_a_local_connection_through_egress() {
     assert!(discovered, "egress candidate was discovered");
     assert_eq!(
         connect.socks_port(),
-        listen_tcp,
+        Some(listen_tcp),
         "bound SOCKS port is reported"
     );
 

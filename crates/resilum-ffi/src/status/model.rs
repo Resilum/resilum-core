@@ -7,7 +7,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub(super) struct NodeStatus {
     pub running: bool,
-    pub socks_port: u16,
+    pub socks_port: Option<u16>,
     pub identity_hash: Option<String>,
     pub reachable_destinations: usize,
     pub interfaces: Vec<Interface>,

@@ -20,7 +20,7 @@ use crate::set_error;
 /// ```json
 /// {
 ///   "running": true,
-///   "socks_port": 0,
+///   "socks_port": 0 | null,
 ///   "identity_hash": "<32-hex>" | null,
 ///   "reachable_destinations": 0,
 ///   "interfaces": [
@@ -52,7 +52,8 @@ use crate::set_error;
 /// ```
 /// `identity_hash` and `transport` are `null` before start. `added_by` is
 /// inferred from `name`. `nostr_relays` are Nostr bridge LXMF addresses heard
-/// on the mesh.
+/// on the mesh. `socks_port` is `null` when `ingress` names no `listen_tcp`:
+/// discovery and probing run, but nothing local is bound and nothing will be.
 ///
 /// `kind` and `discovered_via` share the word `i2p` but answer different
 /// questions: `kind` is the socket the engine opened (a peer found over I2P is
