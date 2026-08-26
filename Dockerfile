@@ -1,14 +1,19 @@
 # syntax=docker/dockerfile:1.7
 
-FROM rust:1.97-alpine3.24 AS build
-RUN apk add --no-cache musl-dev=1.2.6-r2
+FROM --platform=$BUILDPLATFORM ghcr.io/rust-cross/cargo-zigbuild:0.23.2 AS build
+ARG TARGETPLATFORM
 WORKDIR /src
 COPY . /src
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/src/target \
-    cargo build --release --target x86_64-unknown-linux-musl -p resilumd \
- && strip target/x86_64-unknown-linux-musl/release/resilumd \
- && cp target/x86_64-unknown-linux-musl/release/resilumd /resilumd
+    case "$TARGETPLATFORM" in \
+      linux/amd64) target=x86_64-unknown-linux-musl ;; \
+      linux/arm64) target=aarch64-unknown-linux-musl ;; \
+      *) echo "no rust target mapped for $TARGETPLATFORM" >&2; exit 1 ;; \
+    esac \
+ && rustup target add "$target" \
+ && RUSTFLAGS="-C strip=symbols" cargo zigbuild --release --target "$target" -p resilumd \
+ && cp "target/$target/release/resilumd" /resilumd
 
 FROM alpine:3.21 AS runtime
 RUN apk add --no-cache --no-scripts \
