@@ -8,7 +8,7 @@ use super::model::{CoordinatesStatus, LxmfStatus, NodeStatus};
 fn bare_status() -> NodeStatus {
     NodeStatus {
         running: false,
-        socks_port: 0,
+        socks_port: Some(0),
         identity_hash: None,
         reachable_destinations: 0,
         interfaces: Vec::new(),

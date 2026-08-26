@@ -19,10 +19,14 @@ impl Node {
         self.engine.is_some()
     }
 
-    /// The bound local SOCKS/connect port, or `0` if the connect listener is not
-    /// up (no connect config, or not yet bound).
-    pub fn socks_port(&self) -> u16 {
-        self.socks_port.load(Ordering::Relaxed)
+    /// `None` when no local proxy is configured, `Some(0)` before it binds.
+    pub fn socks_port(&self) -> Option<u16> {
+        self.config
+            .ingress
+            .as_ref()?
+            .listen_tcp
+            .as_ref()
+            .map(|_| self.socks_port.load(Ordering::Relaxed))
     }
 
     /// Shared engine handle for runtime tasks; `None` before start / after stop.

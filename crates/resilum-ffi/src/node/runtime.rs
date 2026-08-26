@@ -19,14 +19,15 @@ pub unsafe extern "C" fn resilum_node_announce_now(node: *const ResilumNode) {
     })
 }
 
-/// The bound local SOCKS port, or 0 if the connect listener is not up.
+/// The bound local SOCKS port, 0 before it binds, and 0 when no local proxy is
+/// configured — `resilum_node_status` tells those two apart.
 ///
 /// # Safety
 /// `node` must be a live pointer from `resilum_node_new_from_yaml`, or null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn resilum_node_socks_port(node: *const ResilumNode) -> u16 {
     guard(0, || {
-        (unsafe { node.as_ref() }).map_or(0, |node| node.0.socks_port())
+        (unsafe { node.as_ref() }).map_or(0, |node| node.0.socks_port().unwrap_or(0))
     })
 }
 

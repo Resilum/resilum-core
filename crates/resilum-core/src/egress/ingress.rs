@@ -26,7 +26,11 @@ pub async fn run(
     cfg: IngressConfig,
     own: OwnExits,
 ) {
-    let Ok(listener) = TcpListener::bind(&cfg.listen_tcp).await else {
+    let Some(where_to_listen) = cfg.listen_tcp.clone() else {
+        return;
+    };
+    let Ok(listener) = TcpListener::bind(&where_to_listen).await else {
+        tracing::error!(%where_to_listen, "the local proxy could not bind, so it is off");
         return;
     };
     if let Ok(addr) = listener.local_addr() {

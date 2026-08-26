@@ -51,7 +51,8 @@ impl From<EgressFile> for EgressListen {
 #[derive(Deserialize)]
 pub(in crate::config_file) struct IngressFile {
     services: Vec<String>,
-    listen_tcp: String,
+    #[serde(default)]
+    listen_tcp: Option<String>,
     #[serde(default = "smart")]
     use_own: String,
     #[serde(default)]
@@ -64,7 +65,7 @@ impl From<IngressFile> for IngressConfig {
     fn from(f: IngressFile) -> Self {
         Self {
             services: f.services,
-            listen_tcp: f.listen_tcp,
+            listen_tcp: f.listen_tcp.filter(|where_to| where_to != "none"),
             use_own: f.use_own,
             allow_country: f.allow_countries,
             deny_country: f.deny_countries,
