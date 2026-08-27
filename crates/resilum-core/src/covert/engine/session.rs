@@ -6,6 +6,7 @@ use std::net::IpAddr;
 use super::framing::{RecvBuffer, SendBuffer};
 
 const DEFAULT_TTL_SECS: f64 = 300.0;
+pub(in crate::covert::engine) const SESSIONS_HELD_AT_ONCE: usize = 256;
 
 pub struct Session {
     pub send: SendBuffer,
@@ -16,13 +17,14 @@ pub struct Session {
 }
 
 /// Payload budget for the SendBuffer of a session addressing `reply_to`. The
-/// carrier decides how many bytes fit; the SessionTable calls this on `get`.
-pub type SizeFor = Box<dyn Fn(Option<IpAddr>) -> usize + Send + Sync>;
+/// carrier decides how many bytes fit; the SessionTable calls this on `open`.
+pub type SizeFor = Box<dyn Fn(IpAddr) -> usize + Send + Sync>;
 
 pub struct SessionTable {
     size_for: SizeFor,
     window: usize,
     ttl: f64,
+    capacity: usize,
     sessions: HashMap<u32, Session>,
 }
 
@@ -36,11 +38,26 @@ impl SessionTable {
             size_for,
             window,
             ttl,
+            capacity: SESSIONS_HELD_AT_ONCE,
             sessions: HashMap::new(),
         }
     }
 
-    pub fn get(&mut self, session_id: u32, now: f64, reply_to: Option<IpAddr>) -> &mut Session {
+    pub fn already_open(&mut self, session_id: u32, now: f64) -> Option<&mut Session> {
+        let s = self.sessions.get_mut(&session_id)?;
+        s.last_seen = now;
+        Some(s)
+    }
+
+    pub fn open_unless_full(
+        &mut self,
+        session_id: u32,
+        now: f64,
+        reply_to: IpAddr,
+    ) -> Option<&mut Session> {
+        if !self.sessions.contains_key(&session_id) && self.sessions.len() >= self.capacity {
+            return None;
+        }
         let window = self.window;
         let payload = (self.size_for)(reply_to);
         let s = self.sessions.entry(session_id).or_insert_with(|| Session {
@@ -51,14 +68,16 @@ impl SessionTable {
             key: None,
         });
         s.last_seen = now;
-        s
+        Some(s)
+    }
+
+    pub fn key_of(&self, session_id: u32) -> Option<Vec<u8>> {
+        self.sessions.get(&session_id)?.key.clone()
     }
 
     pub fn already_belongs_to_another_key(&self, session_id: u32, offered: &[u8]) -> bool {
-        self.sessions
-            .get(&session_id)
-            .and_then(|s| s.key.as_deref())
-            .is_some_and(|established| !super::datagram::ct_eq(established, offered))
+        self.key_of(session_id)
+            .is_some_and(|established| !super::datagram::ct_eq(&established, offered))
     }
 
     pub fn expire(&mut self, now: f64) {
