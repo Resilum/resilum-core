@@ -28,7 +28,9 @@ where
         return Ok(());
     }
     {
-        let s = engine.table.get(session_id, now, Some(reply_to));
+        let Some(s) = engine.table.open_unless_full(session_id, now, reply_to) else {
+            return Ok(());
+        };
         s.key = Some(key);
         s.reply_to = Some(reply_to);
     }
@@ -40,7 +42,9 @@ where
     S: CarrierServer<ReplyTo = IpAddr>,
 {
     let (key, reply_to, chunks, ack) = {
-        let s = engine.table.get(session_id, now, None);
+        let Some(s) = engine.table.already_open(session_id, now) else {
+            return Ok(());
+        };
         let Some(reply_to) = s.reply_to else {
             return Ok(());
         };
