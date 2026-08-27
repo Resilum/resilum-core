@@ -6,14 +6,23 @@ use std::net::IpAddr;
 
 use crate::net;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reach {
+    GlobalOnly,
+    LocalNetworksToo,
+}
+
 pub struct DialableAddress(IpAddr);
 
 impl DialableAddress {
-    pub fn first_globally_routable_of(offered: &[String]) -> Option<Self> {
+    pub fn first_of(offered: &[String], reach: Reach) -> Option<Self> {
         offered
             .iter()
             .filter_map(|addr| addr.parse::<IpAddr>().ok())
-            .find(net::is_globally_routable)
+            .find(|ip| match reach {
+                Reach::GlobalOnly => net::is_globally_routable(ip),
+                Reach::LocalNetworksToo => net::names_one_host(ip),
+            })
             .map(Self)
     }
 
@@ -81,7 +90,7 @@ mod tests {
             "fd00::1",
         ] {
             assert!(
-                DialableAddress::first_globally_routable_of(&offered(&[addr])).is_none(),
+                DialableAddress::first_of(&offered(&[addr]), Reach::GlobalOnly).is_none(),
                 "{addr} was accepted as dialable"
             );
         }
@@ -90,9 +99,34 @@ mod tests {
     #[test]
     fn a_routable_address_further_down_the_list_is_still_reached() {
         let chosen =
-            DialableAddress::first_globally_routable_of(&offered(&["127.0.0.1", "198.18.0.1"]))
+            DialableAddress::first_of(&offered(&["127.0.0.1", "198.18.0.1"]), Reach::GlobalOnly)
                 .expect("the routable address is picked");
 
         assert_eq!(chosen.ip().to_string(), "198.18.0.1");
+    }
+
+    #[test]
+    fn opening_up_to_local_networks_reaches_a_lan_peer() {
+        let chosen =
+            DialableAddress::first_of(&offered(&["192.168.0.10"]), Reach::LocalNetworksToo)
+                .expect("a LAN peer is reachable once local networks are allowed");
+
+        assert_eq!(chosen.ip().to_string(), "192.168.0.10");
+    }
+
+    #[test]
+    fn opening_up_to_local_networks_still_refuses_this_host_and_broadcasts() {
+        for addr in [
+            "127.0.0.1",
+            "0.0.0.0",
+            "255.255.255.255",
+            "224.0.0.1",
+            "::1",
+        ] {
+            assert!(
+                DialableAddress::first_of(&offered(&[addr]), Reach::LocalNetworksToo).is_none(),
+                "{addr} was accepted once local networks were allowed"
+            );
+        }
     }
 }

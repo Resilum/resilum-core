@@ -85,7 +85,7 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
         tracing::debug!(carrier = %inner.cfg.carrier, "rendezvous fetch yielded no endpoint");
         return;
     };
-    let Some(addr) = DialableAddress::first_globally_routable_of(&addrs) else {
+    let Some(addr) = DialableAddress::first_of(&addrs, inner.cfg.reach()) else {
         tracing::warn!(
             carrier = %carrier,
             offered = ?addrs,
