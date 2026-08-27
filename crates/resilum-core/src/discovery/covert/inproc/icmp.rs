@@ -1,26 +1,23 @@
 //! ICMP carrier construction for the in-process covert bridge.
 
-use std::net::IpAddr;
 use std::sync::Arc;
 
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 
+use super::DialableAddress;
 use crate::covert::icmp::client::IcmpClient;
 use crate::covert::icmp::id::tunnel_id;
 
-/// Build an ICMP carrier for `addr` (an IP) and bridge it in-process.
 pub(super) fn attach(
     engine: &Arc<ReticulumNode>,
     name: &str,
-    addr: &str,
+    addr: &DialableAddress,
     server_pubkey: &[u8],
     mtu: usize,
 ) -> Result<ByteChannelHandle, String> {
-    let addr: IpAddr = addr
-        .parse()
-        .map_err(|_| format!("covert endpoint address is not an IP: {addr}"))?;
+    let addr = addr.ip();
     let server = Identity::from_public_key_bytes(server_pubkey)
         .map_err(|e| format!("covert server identity: {e:?}"))?;
     let ident = tunnel_id(&server.public_key_bytes());

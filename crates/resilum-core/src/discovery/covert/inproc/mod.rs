@@ -12,6 +12,7 @@ use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+use super::DialableAddress;
 use crate::covert::carrier::CarrierClient;
 use crate::covert::runner;
 
@@ -21,7 +22,7 @@ pub(in crate::discovery::covert) fn attach(
     engine: &Arc<ReticulumNode>,
     name: &str,
     carrier: &str,
-    addr: &str,
+    addr: &DialableAddress,
     server_pubkey: &[u8],
     mtu: usize,
 ) -> Result<ByteChannelHandle, String> {

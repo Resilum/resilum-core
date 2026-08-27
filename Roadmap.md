@@ -7,7 +7,6 @@ that closes them.
 ## Security
 
 - Egress links are accepted without authentication
-- Covert discovery dials any IP a peer sends
 - Yggdrasil discovery accepts any IPv6, including `::1`, ULA and link-local
 - Yggdrasil private key is written without restricting permissions
 
