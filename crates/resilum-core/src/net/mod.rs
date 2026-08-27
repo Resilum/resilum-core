@@ -5,7 +5,7 @@ mod yggdrasil;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 
-pub use routable::is_globally_routable;
+pub use routable::{is_globally_routable, names_one_host};
 pub use yggdrasil::yggdrasil_local_ipv6;
 
 const V4_PROBE: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)), 80);
