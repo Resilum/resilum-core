@@ -7,7 +7,7 @@ fn covert_section_carries_the_carrier_addresses_and_reach() {
         "
 instance_name: n
 covert:
-  - identity_path: /var/lib/resilum/covert.id
+  - carrier: icmp
     mtu: 1200
     addresses: ['198.18.0.1']
     dial_local_networks: true
@@ -22,21 +22,39 @@ covert:
 }
 
 #[test]
+fn a_node_on_the_default_network_carries_icmp_without_being_asked() {
+    let cfg = from_yaml("instance_name: n").unwrap();
+    let carriers: Vec<&str> = cfg
+        .covert_discovery
+        .iter()
+        .map(|c| c.carrier.as_str())
+        .collect();
+
+    assert_eq!(carriers, vec!["icmp"]);
+}
+
+#[test]
 fn covert_keeps_to_globally_routable_peers_unless_asked_otherwise() {
     let cfg = from_yaml(
         "
 instance_name: n
 covert:
-  - identity_path: /var/lib/resilum/covert.id
+  - carrier: icmp
 ",
     )
     .unwrap();
     assert_eq!(cfg.covert_discovery[0].reach(), Reach::GlobalOnly);
+}
 
-    assert!(
-        from_yaml("instance_name: n")
-            .unwrap()
-            .covert_discovery
-            .is_empty()
-    );
+#[test]
+fn an_isolated_node_carries_nothing_it_was_not_given() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+default_anchors: false
+",
+    )
+    .unwrap();
+
+    assert!(cfg.covert_discovery.is_empty());
 }

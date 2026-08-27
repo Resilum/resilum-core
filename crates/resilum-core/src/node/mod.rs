@@ -45,6 +45,7 @@ pub struct Node {
     pub(crate) directories: BTreeMap<Service, Arc<crate::discovery::ServiceDirectory>>,
     pub(crate) coordinates: Arc<crate::coordinates::Coordinates>,
     pub(crate) attachments: Arc<crate::discovery::Attachments>,
+    pub(crate) covert_listeners: Vec<leviculum_std::interfaces::ByteChannelHandle>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
     #[cfg(feature = "iroh")]
@@ -80,6 +81,7 @@ impl Node {
                 .map(|service| (service, Arc::default()))
                 .collect(),
             attachments: Arc::new(crate::discovery::Attachments::new(Arc::clone(&coordinates))),
+            covert_listeners: Vec::new(),
             coordinates,
             #[cfg(all(unix, feature = "ygg"))]
             ygg_discovery: None,

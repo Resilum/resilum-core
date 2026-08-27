@@ -89,7 +89,9 @@ impl FileConfig {
         cfg.advertised_mirrors = self.advertised_mirrors;
         cfg.rngit_destination_file = self.rngit_destination_file;
         cfg.lxmf = self.lxmf.map(Into::into);
-        cfg.covert_discovery = self.covert.into_iter().map(Into::into).collect();
+        if !self.covert.is_empty() {
+            cfg.covert_discovery = self.covert.into_iter().map(Into::into).collect();
+        }
         if !self.discovery.is_empty() {
             let mut services = Vec::new();
             for entry in self.discovery {
