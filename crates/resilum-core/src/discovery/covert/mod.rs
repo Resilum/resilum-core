@@ -7,5 +7,5 @@ mod inproc;
 mod plugin;
 pub mod rendezvous;
 
-pub use addresses::AddressSource;
+pub use addresses::{AddressSource, DialableAddress};
 pub use plugin::CovertDiscovered;

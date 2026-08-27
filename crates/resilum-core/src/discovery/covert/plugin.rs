@@ -8,8 +8,8 @@ use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 
 use super::super::DiscoveryPlugin;
-use super::AddressSource;
 use super::rendezvous;
+use super::{AddressSource, DialableAddress};
 use crate::config::CovertDiscoveryService;
 use crate::dispatch::Events;
 
@@ -85,7 +85,12 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
         tracing::debug!(carrier = %inner.cfg.carrier, "rendezvous fetch yielded no endpoint");
         return;
     };
-    let Some(addr) = addrs.into_iter().next() else {
+    let Some(addr) = DialableAddress::first_globally_routable_of(&addrs) else {
+        tracing::warn!(
+            carrier = %carrier,
+            offered = ?addrs,
+            "peer named no address this node may dial"
+        );
         return;
     };
     let name = format!("CovertDiscovered[{carrier}:{addr}]");
