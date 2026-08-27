@@ -54,6 +54,13 @@ impl SessionTable {
         s
     }
 
+    pub fn already_belongs_to_another_key(&self, session_id: u32, offered: &[u8]) -> bool {
+        self.sessions
+            .get(&session_id)
+            .and_then(|s| s.key.as_deref())
+            .is_some_and(|established| !super::datagram::ct_eq(established, offered))
+    }
+
     pub fn expire(&mut self, now: f64) {
         let ttl = self.ttl;
         self.sessions.retain(|_, s| now - s.last_seen <= ttl);

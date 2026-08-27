@@ -21,6 +21,12 @@ where
     let Some(key) = keyx::unseal(&engine.identity, token) else {
         return Ok(());
     };
+    if engine
+        .table
+        .already_belongs_to_another_key(session_id, &key)
+    {
+        return Ok(());
+    }
     {
         let s = engine.table.get(session_id, now, Some(reply_to));
         s.key = Some(key);
