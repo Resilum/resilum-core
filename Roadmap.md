@@ -9,7 +9,6 @@ that closes them.
 - Egress links are accepted without authentication
 - Covert server allocates a session before authentication, and the session table
   has no upper bound
-- Covert handshake overwrites the key and reply address of an established session
 - Covert discovery dials any IP a peer sends
 - Yggdrasil discovery accepts any IPv6, including `::1`, ULA and link-local
 - Yggdrasil private key is written without restricting permissions

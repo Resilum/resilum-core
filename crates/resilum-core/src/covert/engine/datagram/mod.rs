@@ -99,7 +99,7 @@ fn hmac_tag(key: &[u8], body: &[u8], tag_len: usize) -> Vec<u8> {
     full[..tag_len].to_vec()
 }
 
-fn ct_eq(a: &[u8], b: &[u8]) -> bool {
+pub(in crate::covert::engine) fn ct_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
     }
