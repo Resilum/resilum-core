@@ -8,4 +8,5 @@ mod plugin;
 pub mod rendezvous;
 
 pub use addresses::{AddressSource, DialableAddress, Reach};
+pub use inproc::listen;
 pub use plugin::CovertDiscovered;

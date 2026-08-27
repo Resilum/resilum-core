@@ -82,6 +82,7 @@ impl Node {
         self.router = None;
         self.identity = None;
         self.lxmf = None;
+        self.covert_listeners.clear();
         #[cfg(all(unix, feature = "ygg"))]
         {
             self.ygg_discovery = None;

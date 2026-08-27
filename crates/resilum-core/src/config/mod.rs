@@ -138,6 +138,7 @@ impl Config {
                 .iter()
                 .map(|s| s.to_string())
                 .collect(),
+            covert_discovery: vec![CovertDiscoveryService::icmp()],
             ..Self::minimal(instance_name)
         }
     }

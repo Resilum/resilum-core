@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use serde::Deserialize;
 
 use crate::config::CovertDiscoveryService;
@@ -8,7 +6,6 @@ use crate::config::CovertDiscoveryService;
 pub(in crate::config_file) struct CovertFile {
     #[serde(default = "icmp")]
     carrier: String,
-    identity_path: PathBuf,
     #[serde(default)]
     mtu: Option<usize>,
     #[serde(default)]
@@ -23,7 +20,7 @@ fn icmp() -> String {
 
 impl From<CovertFile> for CovertDiscoveryService {
     fn from(f: CovertFile) -> Self {
-        let mut svc = CovertDiscoveryService::icmp(f.identity_path);
+        let mut svc = CovertDiscoveryService::icmp();
         svc.carrier = f.carrier;
         if let Some(mtu) = f.mtu {
             svc.mtu = mtu;

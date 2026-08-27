@@ -1,3 +1,4 @@
+mod covert;
 mod resolve;
 
 use std::sync::Arc;
@@ -102,6 +103,9 @@ pub(super) fn bring_up(
                 addresses.clone(),
                 node.events.subscribe(),
             )));
+        if let Some(listener) = covert::start_listener_if_this_host_can(engine, cfg, identity) {
+            node.covert_listeners.push(listener);
+        }
     }
     node.tasks.push(tokio::spawn(discovery::run_produce(
         engine.clone(),
