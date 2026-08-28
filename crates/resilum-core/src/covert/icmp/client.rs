@@ -25,7 +25,7 @@ const IPV6_OVERHEAD: usize = 40 + 8;
 
 pub struct IcmpClient {
     server: IpAddr,
-    ident: u16,
+    marker: [u8; super::marker::MARKER_LEN],
     mtu: usize,
     sock: Socket,
     wake: Wake,
@@ -33,14 +33,17 @@ pub struct IcmpClient {
 
 impl IcmpClient {
     /// Open the ICMP socket for `server` with the default MTU.
-    pub fn new(server: IpAddr, ident: u16) -> io::Result<Self> {
-        Self::with_mtu(server, ident, DEFAULT_MTU)
+    pub fn new(server: IpAddr, marker: [u8; super::marker::MARKER_LEN]) -> io::Result<Self> {
+        Self::with_mtu(server, marker, DEFAULT_MTU)
     }
 
-    /// Open the ICMP socket with a custom MTU (from `CovertSpec::mtu`).
-    /// `ident` is the tunnel id both peers derive from the server's public key
-    /// (see [`super::id::tunnel_id`]).
-    pub fn with_mtu(server: IpAddr, ident: u16, mtu: usize) -> io::Result<Self> {
+    /// `marker` is the per-server tunnel marker both peers derive from the
+    /// server's public key (see [`super::marker::tunnel_marker`]).
+    pub fn with_mtu(
+        server: IpAddr,
+        marker: [u8; super::marker::MARKER_LEN],
+        mtu: usize,
+    ) -> io::Result<Self> {
         let (domain, proto) = match server {
             IpAddr::V4(_) => (Domain::IPV4, Protocol::ICMPV4),
             IpAddr::V6(_) => (Domain::IPV6, Protocol::ICMPV6),
@@ -49,7 +52,7 @@ impl IcmpClient {
         sock.set_nonblocking(false)?;
         Ok(Self {
             server,
-            ident,
+            marker,
             mtu,
             sock,
             wake: Wake::new()?,
@@ -62,7 +65,7 @@ impl IcmpClient {
 
     /// Wrap `payload` in an echo-request and send it to the server.
     pub fn send(&self, payload: &[u8]) -> io::Result<()> {
-        let body = wire::build_echo_request(self.ident, payload, self.server.is_ipv6());
+        let body = wire::build_echo_request(self.marker, payload, self.server.is_ipv6());
         let addr: SockAddr = SocketAddr::new(self.server, 0).into();
         self.sock.send_to(&body, &addr).map(|_| ())
     }
@@ -80,7 +83,7 @@ impl IcmpClient {
         let (n, _addr) = self.sock.recv_from(cell)?;
         let body = &buf[..n];
         let v6 = self.server.is_ipv6();
-        Ok(wire::payload_of_reply(body, self.ident, v6).map(<[u8]>::to_vec))
+        Ok(wire::payload_of_reply(body, self.marker, v6).map(<[u8]>::to_vec))
     }
 }
 

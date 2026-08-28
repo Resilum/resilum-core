@@ -1,7 +1,15 @@
-//! Build and parse ICMP/ICMPv6 echo messages carrying the wire datagram in the
-//! echo data field. Building emits the ICMP body alone; the kernel adds the IP
-//! header on send (and fills the ICMPv6 checksum). Parsing takes the L3 IP
-//! packet plus its ethertype.
+//! Build and parse ICMP/ICMPv6 echo messages carrying the wire datagram behind
+//! a per-server marker. Building emits the ICMP body alone; the kernel adds the
+//! IP header on send (and fills the ICMPv6 checksum).
+//!
+//! A datagram ping socket's id is kernel-assigned, so the tunnel is recognised
+//! by the marker at the start of the payload rather than by the id. The id is
+//! still what routes the kernel's delivery of a reply to the client socket, so
+//! a reply echoes the id its request arrived with.
+
+use std::net::IpAddr;
+
+use super::marker::MARKER_LEN;
 
 pub(super) const ETH_P_IP: u16 = 0x0800;
 pub(super) const ETH_P_IPV6: u16 = 0x86DD;
@@ -28,13 +36,14 @@ fn checksum(data: &[u8]) -> u16 {
     !(sum as u16)
 }
 
-fn echo(icmp_type: u8, ident: u16, payload: &[u8], v6: bool) -> Vec<u8> {
-    let mut buf = Vec::with_capacity(HEADER_LEN + payload.len());
+fn echo(icmp_type: u8, id: u16, marker: [u8; MARKER_LEN], payload: &[u8], v6: bool) -> Vec<u8> {
+    let mut buf = Vec::with_capacity(HEADER_LEN + MARKER_LEN + payload.len());
     buf.push(icmp_type);
     buf.push(0); // code
     buf.extend_from_slice(&[0, 0]); // checksum placeholder
-    buf.extend_from_slice(&ident.to_be_bytes());
+    buf.extend_from_slice(&id.to_be_bytes());
     buf.extend_from_slice(&[0, 0]); // seq
+    buf.extend_from_slice(&marker);
     buf.extend_from_slice(payload);
     if !v6 {
         // Kernel fills the ICMPv6 checksum; only IPv4 echoes need it here.
@@ -45,52 +54,48 @@ fn echo(icmp_type: u8, ident: u16, payload: &[u8], v6: bool) -> Vec<u8> {
     buf
 }
 
-pub fn build_echo_request(ident: u16, payload: &[u8], v6: bool) -> Vec<u8> {
+const KERNEL_ASSIGNS_THE_ID: u16 = 0;
+
+pub fn build_echo_request(marker: [u8; MARKER_LEN], payload: &[u8], v6: bool) -> Vec<u8> {
     let ty = if v6 { REQUEST_V6 } else { REQUEST_V4 };
-    echo(ty, ident, payload, v6)
+    echo(ty, KERNEL_ASSIGNS_THE_ID, marker, payload, v6)
 }
 
-pub fn build_echo_reply(ident: u16, payload: &[u8], v6: bool) -> Vec<u8> {
+pub fn build_echo_reply(id: u16, marker: [u8; MARKER_LEN], payload: &[u8], v6: bool) -> Vec<u8> {
     let ty = if v6 { REPLY_V6 } else { REPLY_V4 };
-    echo(ty, ident, payload, v6)
+    echo(ty, id, marker, payload, v6)
 }
 
-/// Payload from an ICMP echo-reply body (no IP header), matching only our id.
-/// Used with `SOCK_DGRAM/IPPROTO_ICMP` where the kernel strips the IP header.
-pub fn payload_of_reply(icmp: &[u8], ident: u16, v6: bool) -> Option<&[u8]> {
-    echo_payload(icmp, if v6 { REPLY_V6 } else { REPLY_V4 }, ident)
+pub fn payload_of_reply(icmp: &[u8], marker: [u8; MARKER_LEN], v6: bool) -> Option<&[u8]> {
+    behind_marker(icmp, if v6 { REPLY_V6 } else { REPLY_V4 }, marker).map(|(_id, p)| p)
 }
 
-/// Split an ICMP echo body into (id, payload). Returns `None` when the buffer
-/// is too short, the ICMP type does not match, or the id does not match ours.
-fn echo_payload(icmp: &[u8], want_type: u8, ident: u16) -> Option<&[u8]> {
-    if icmp.len() < HEADER_LEN {
+fn behind_marker(icmp: &[u8], want_type: u8, marker: [u8; MARKER_LEN]) -> Option<(u16, &[u8])> {
+    if icmp.len() < HEADER_LEN + MARKER_LEN {
         return None;
     }
     if icmp[0] != want_type {
         return None;
     }
-    let iid = u16::from_be_bytes([icmp[4], icmp[5]]);
-    if iid != ident {
+    if icmp[HEADER_LEN..HEADER_LEN + MARKER_LEN] != marker {
         return None;
     }
-    Some(&icmp[HEADER_LEN..])
+    let id = u16::from_be_bytes([icmp[4], icmp[5]]);
+    Some((id, &icmp[HEADER_LEN + MARKER_LEN..]))
 }
 
-/// Src IP + payload for an inbound raw L3 packet.
 pub struct Peeled<'a> {
-    pub src: std::net::IpAddr,
+    pub src: IpAddr,
+    pub id: u16,
     pub payload: &'a [u8],
 }
 
-/// Extract `(src, payload)` from the L3 packet whose ethertype is `ethertype`
-/// (`ETH_P_IP` / `ETH_P_IPV6`), matching only echoes with our id.
-pub fn extract_echo(
+fn extract_echo(
     ethertype: u16,
     pkt: &[u8],
-    v4_type: u8,
-    v6_type: u8,
-    ident: u16,
+    v4: u8,
+    v6: u8,
+    marker: [u8; MARKER_LEN],
 ) -> Option<Peeled<'_>> {
     match ethertype {
         ETH_P_IP => {
@@ -101,30 +106,25 @@ pub fn extract_echo(
             if ihl < 20 {
                 return None;
             }
-            let payload = echo_payload(pkt.get(ihl..)?, v4_type, ident)?;
-            let src =
-                std::net::IpAddr::V4(std::net::Ipv4Addr::new(pkt[12], pkt[13], pkt[14], pkt[15]));
-            Some(Peeled { src, payload })
+            let (id, payload) = behind_marker(pkt.get(ihl..)?, v4, marker)?;
+            let src = IpAddr::V4(std::net::Ipv4Addr::new(pkt[12], pkt[13], pkt[14], pkt[15]));
+            Some(Peeled { src, id, payload })
         }
         ETH_P_IPV6 => {
             if pkt.len() < 40 || pkt[6] != PROTO_ICMPV6 {
                 return None;
             }
-            let payload = echo_payload(&pkt[40..], v6_type, ident)?;
+            let (id, payload) = behind_marker(&pkt[40..], v6, marker)?;
             let raw: [u8; 16] = pkt[8..24].try_into().ok()?;
-            let src = std::net::IpAddr::V6(std::net::Ipv6Addr::from(raw));
-            Some(Peeled { src, payload })
+            let src = IpAddr::V6(std::net::Ipv6Addr::from(raw));
+            Some(Peeled { src, id, payload })
         }
         _ => None,
     }
 }
 
-pub fn extract_request(ethertype: u16, pkt: &[u8], ident: u16) -> Option<Peeled<'_>> {
-    extract_echo(ethertype, pkt, REQUEST_V4, REQUEST_V6, ident)
-}
-
-pub fn extract_reply(ethertype: u16, pkt: &[u8], ident: u16) -> Option<Peeled<'_>> {
-    extract_echo(ethertype, pkt, REPLY_V4, REPLY_V6, ident)
+pub fn extract_request(ethertype: u16, pkt: &[u8], marker: [u8; MARKER_LEN]) -> Option<Peeled<'_>> {
+    extract_echo(ethertype, pkt, REQUEST_V4, REQUEST_V6, marker)
 }
 
 #[cfg(test)]

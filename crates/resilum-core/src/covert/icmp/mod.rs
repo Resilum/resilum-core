@@ -2,7 +2,7 @@
 //! BPF filter, and netfilter suppression of the kernel's own echo-reply.
 
 pub mod client;
-pub mod id;
+pub mod marker;
 #[cfg(target_os = "linux")]
 pub mod nftguard;
 #[cfg(target_os = "linux")]
@@ -12,6 +12,6 @@ pub mod wake;
 pub mod wire;
 
 pub use client::IcmpClient;
-pub use id::tunnel_id;
+pub use marker::tunnel_marker;
 #[cfg(target_os = "linux")]
 pub use server::IcmpServer;
