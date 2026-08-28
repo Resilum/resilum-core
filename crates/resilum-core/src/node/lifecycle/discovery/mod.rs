@@ -90,23 +90,7 @@ pub(super) fn bring_up(
         .push(tokio::spawn(discovery::run_consume(plugins.clone(), bus)));
 
     let destination = discovery::build_destination(engine, identity.clone())?;
-    discovery::covert::rendezvous::build_destinations(
-        engine,
-        identity.clone(),
-        &node.config.covert_discovery,
-    )?;
-    for (cfg, addresses) in node.config.covert_discovery.iter().zip(&covert_addresses) {
-        node.tasks
-            .push(tokio::spawn(discovery::covert::rendezvous::run_responder(
-                engine.clone(),
-                cfg.carrier.clone(),
-                addresses.clone(),
-                node.events.subscribe(),
-            )));
-        if let Some(listener) = covert::start_listener_if_this_host_can(engine, cfg, identity) {
-            node.covert_listeners.push(listener);
-        }
-    }
+    covert::bring_up(node, engine, identity, &covert_addresses)?;
     node.tasks.push(tokio::spawn(discovery::run_produce(
         engine.clone(),
         plugins,

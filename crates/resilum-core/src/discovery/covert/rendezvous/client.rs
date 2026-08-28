@@ -27,7 +27,7 @@ pub async fn fetch_endpoint(
     events: Receiver<Arc<NodeEvent>>,
 ) -> Option<(String, Vec<String>)> {
     let identity = Identity::from_public_key_bytes(&announcer_pubkey).ok()?;
-    let signing_key: [u8; 32] = announcer_pubkey[32..64].try_into().ok()?;
+    let signing_key: [u8; 32] = announcer_pubkey.get(32..64)?.try_into().ok()?;
     let dest = Destination::new(
         Some(identity),
         Direction::Out,
@@ -50,7 +50,7 @@ pub async fn fetch_endpoint(
         .await
         .ok()?;
     let raw = wait_response(&mut events, link_id, &request_id).await?;
-    endpoint::parse(&raw)
+    endpoint::parse(&super::from_one_msgpack_value(&raw)?)
 }
 
 async fn wait_link_up(events: &mut Receiver<Arc<NodeEvent>>, link_id: LinkId) -> bool {
