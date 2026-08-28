@@ -2,6 +2,11 @@
 
 FROM --platform=$BUILDPLATFORM ghcr.io/rust-cross/cargo-zigbuild:0.23.2 AS build
 ARG TARGETPLATFORM
+ARG RUST_VERSION=1.97.1
+ENV RUSTUP_TOOLCHAIN=${RUST_VERSION}
+RUN rustup toolchain install "$RUST_VERSION" --profile minimal \
+      --target x86_64-unknown-linux-musl \
+      --target aarch64-unknown-linux-musl
 WORKDIR /src
 COPY . /src
 RUN --mount=type=cache,target=/root/.cargo/registry \
@@ -11,7 +16,6 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
       linux/arm64) target=aarch64-unknown-linux-musl ;; \
       *) echo "no rust target mapped for $TARGETPLATFORM" >&2; exit 1 ;; \
     esac \
- && rustup target add "$target" \
  && RUSTFLAGS="-C strip=symbols" cargo zigbuild --release --target "$target" -p resilumd \
  && cp "target/$target/release/resilumd" /resilumd
 
@@ -23,13 +27,14 @@ RUN apk add --no-cache --no-scripts \
         i2pd=2.54.0-r0 \
         libcap-setcap=2.78-r0 \
  && setcap cap_net_admin+ep /usr/bin/yggdrasil \
- && apk del libcap-setcap \
  && adduser -D -H -u 1000 resilum \
  && mkdir -p /config /var/run/yggdrasil \
  && chown resilum:resilum /config /var/run/yggdrasil
 COPY --chmod=755 docker/entrypoint.sh docker/healthcheck.sh /
 COPY deploy/config/*.example /usr/share/resilum/defaults/
 COPY --from=build /resilumd /usr/local/bin/resilumd
+RUN setcap cap_net_raw+ep /usr/local/bin/resilumd \
+ && apk del libcap-setcap
 USER resilum
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
     CMD ["/healthcheck.sh"]
