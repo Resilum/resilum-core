@@ -8,8 +8,7 @@ use leviculum_std::interfaces::ByteChannelHandle;
 
 use super::DialableAddress;
 use crate::covert::icmp::client::IcmpClient;
-use crate::covert::icmp::id::tunnel_id;
-use crate::covert::icmp::server::IcmpServer;
+use crate::covert::icmp::marker::tunnel_marker;
 use crate::covert::runner;
 
 pub(super) fn attach(
@@ -22,9 +21,9 @@ pub(super) fn attach(
     let addr = addr.ip();
     let server = Identity::from_public_key_bytes(server_pubkey)
         .map_err(|e| format!("covert server identity: {e:?}"))?;
-    let ident = tunnel_id(&server.public_key_bytes());
+    let marker = tunnel_marker(&server.public_key_bytes());
     let carrier =
-        IcmpClient::with_mtu(addr, ident, mtu).map_err(|e| format!("open icmp socket: {e}"))?;
+        IcmpClient::with_mtu(addr, marker, mtu).map_err(|e| format!("open icmp socket: {e}"))?;
     let session = super::random_session_id();
     super::bridge(engine, name, move |uplink, decoded| {
         let _ = runner::run_client(carrier, server, session, uplink, move |bytes| {
@@ -33,18 +32,29 @@ pub(super) fn attach(
     })
 }
 
+#[cfg(target_os = "linux")]
 pub(super) fn listen(
     engine: &Arc<ReticulumNode>,
     name: &str,
     identity: Identity,
     mtu: usize,
 ) -> Result<ByteChannelHandle, String> {
-    let ident = tunnel_id(&identity.public_key_bytes());
-    let carrier =
-        IcmpServer::with_mtu(ident, mtu).map_err(|e| format!("open icmp server socket: {e}"))?;
+    let marker = tunnel_marker(&identity.public_key_bytes());
+    let carrier = crate::covert::icmp::server::IcmpServer::with_mtu(marker, mtu)
+        .map_err(|e| format!("open icmp server socket: {e}"))?;
     super::bridge(engine, name, move |uplink, decoded| {
         let _ = runner::run_server(carrier, identity, uplink, move |_session, bytes| {
             decoded.hand_to_leviculum(bytes);
         });
     })
+}
+
+#[cfg(not(target_os = "linux"))]
+pub(super) fn listen(
+    _engine: &Arc<ReticulumNode>,
+    _name: &str,
+    _identity: Identity,
+    _mtu: usize,
+) -> Result<ByteChannelHandle, String> {
+    Err("covert ICMP listening needs a raw socket, which this platform does not offer".into())
 }

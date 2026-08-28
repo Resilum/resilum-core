@@ -25,6 +25,7 @@ RUN apk add --no-cache --no-scripts \
         yggdrasil=0.5.9-r5 \
         tor=0.4.9.11-r0 \
         i2pd=2.54.0-r0 \
+        nftables=1.1.1-r0 \
         libcap-setcap=2.78-r0 \
  && setcap cap_net_admin+ep /usr/bin/yggdrasil \
  && adduser -D -H -u 1000 resilum \

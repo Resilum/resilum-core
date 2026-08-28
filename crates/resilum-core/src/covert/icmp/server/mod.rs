@@ -2,19 +2,22 @@
 //!
 //! Send: `SOCK_RAW + IPPROTO_ICMP{V4,V6}` — the kernel adds the IP header.
 //! Sniff: `AF_PACKET` + BPF ICMP filter. Callers must first install
-//! `super::nftguard::Guard` so the kernel does not answer echo-requests with
-//! our id itself.
+//! `super::nftguard::Guard` so the kernel does not answer our marked
+//! echo-requests itself.
 
 #![cfg(target_os = "linux")]
 
 mod sniff;
 
+use std::collections::HashMap;
 use std::io;
 use std::net::{IpAddr, SocketAddr};
 use std::os::fd::AsRawFd;
+use std::sync::Mutex;
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
+use super::marker::MARKER_LEN;
 use super::wake::{Ready, Wake};
 use super::wire;
 use crate::covert::carrier::CarrierServer;
@@ -24,32 +27,36 @@ const IPV4_OVERHEAD: usize = 20 + 8;
 const IPV6_OVERHEAD: usize = 40 + 8;
 
 pub struct IcmpServer {
-    ident: u16,
+    marker: [u8; MARKER_LEN],
     mtu: usize,
     send4: Socket,
     send6: Option<Socket>,
     sniff4: Socket,
     sniff6: Option<Socket>,
+    reply_id: Mutex<HashMap<IpAddr, u16>>,
+    _kernel_stays_quiet: super::nftguard::Guard,
     wake: Wake,
 }
 
 impl IcmpServer {
-    pub fn new(ident: u16) -> io::Result<Self> {
-        Self::with_mtu(ident, DEFAULT_MTU)
+    pub fn new(marker: [u8; MARKER_LEN]) -> io::Result<Self> {
+        Self::with_mtu(marker, DEFAULT_MTU)
     }
 
-    pub fn with_mtu(ident: u16, mtu: usize) -> io::Result<Self> {
+    pub fn with_mtu(marker: [u8; MARKER_LEN], mtu: usize) -> io::Result<Self> {
         let send4 = Socket::new(Domain::IPV4, Type::RAW, Some(Protocol::ICMPV4))?;
         let send6 = Socket::new(Domain::IPV6, Type::RAW, Some(Protocol::ICMPV6)).ok();
         let sniff4 = sniff::sniff_socket(wire::ETH_P_IP)?;
         let sniff6 = sniff::sniff_socket(wire::ETH_P_IPV6).ok();
         Ok(Self {
-            ident,
+            marker,
             mtu,
             send4,
             send6,
             sniff4,
             sniff6,
+            reply_id: Mutex::new(HashMap::new()),
+            _kernel_stays_quiet: super::nftguard::Guard::install(marker),
             wake: Wake::new()?,
         })
     }
@@ -62,8 +69,19 @@ impl IcmpServer {
         fds
     }
 
+    fn id_the_client_will_accept(&self, dest: IpAddr) -> Option<u16> {
+        self.reply_id
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&dest)
+            .copied()
+    }
+
     pub fn send_reply(&self, dest: IpAddr, payload: &[u8]) -> io::Result<()> {
-        let body = wire::build_echo_reply(self.ident, payload, dest.is_ipv6());
+        let Some(id) = self.id_the_client_will_accept(dest) else {
+            return Ok(());
+        };
+        let body = wire::build_echo_reply(id, self.marker, payload, dest.is_ipv6());
         let addr: SockAddr = SocketAddr::new(dest, 0).into();
         let sock = match dest {
             IpAddr::V4(_) => &self.send4,
@@ -93,7 +111,11 @@ impl IcmpServer {
             if !is_ingress {
                 continue;
             }
-            if let Some(p) = wire::extract_request(ethertype, pkt, self.ident) {
+            if let Some(p) = wire::extract_request(ethertype, pkt, self.marker) {
+                self.reply_id
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .insert(p.src, p.id);
                 return Ok(Some((p.src, p.payload.to_vec())));
             }
         }

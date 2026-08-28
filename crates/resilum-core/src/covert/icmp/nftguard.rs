@@ -1,22 +1,19 @@
-//! Suppress the kernel's echo-reply for our tunnel packets only. Without this
-//! a covert server answers each request twice — once from the kernel, once
-//! with our crafted reply — doubling an already narrow channel. The rule
-//! matches this server's echo id, so every other ping is still answered
-//! normally.
+//! Suppress the kernel's echo-reply for our tunnel packets only, so a passive
+//! observer sees one reply per request instead of two — the kernel's and our
+//! crafted one. The rule matches our marker in the echo payload, so every
+//! other ping is still answered normally.
 //!
 //! `AF_PACKET` taps below netfilter, so our sniffer still sees the dropped
 //! requests. Linux only.
 
 use std::process::Command;
 
-const TABLE: &str = "resilum_covert";
+use super::marker::MARKER_LEN;
 
-/// Install the nft table + chain + drop rule for `ident`. Returns `true` when
-/// every step succeeded; a partial install is torn down before returning.
-///
-/// On success, callers should call [`remove`] on shutdown. A dropped `Guard`
-/// (see [`Guard::install`]) does that automatically.
-pub fn install(ident: u16) -> bool {
+const TABLE: &str = "resilum_covert";
+const MARKER_OFFSET_BITS: usize = 64; // past the 8-byte ICMP header
+
+pub fn install(marker: [u8; MARKER_LEN]) -> bool {
     remove();
     let ok = nft(&["add", "table", "inet", TABLE])
         && nft(&[
@@ -27,8 +24,8 @@ pub fn install(ident: u16) -> bool {
             "input",
             "{ type filter hook input priority 0; policy accept; }",
         ])
-        && drop_rule("icmp", ident)
-        && drop_rule("icmpv6", ident);
+        && drop_rule("icmp", marker)
+        && drop_rule("icmpv6", marker);
     if !ok {
         remove();
     }
@@ -39,8 +36,9 @@ pub fn remove() {
     let _ = nft(&["delete", "table", "inet", TABLE]);
 }
 
-fn drop_rule(proto: &str, ident: u16) -> bool {
-    let id = ident.to_string();
+fn drop_rule(proto: &str, marker: [u8; MARKER_LEN]) -> bool {
+    let field = format!("@th,{MARKER_OFFSET_BITS},{}", MARKER_LEN * 8);
+    let value = format!("0x{:08x}", u32::from_be_bytes(marker));
     nft(&[
         "add",
         "rule",
@@ -50,9 +48,8 @@ fn drop_rule(proto: &str, ident: u16) -> bool {
         proto,
         "type",
         "echo-request",
-        proto,
-        "id",
-        &id,
+        &field,
+        &value,
         "drop",
     ])
 }
@@ -71,9 +68,9 @@ pub struct Guard {
 }
 
 impl Guard {
-    pub fn install(ident: u16) -> Self {
+    pub fn install(marker: [u8; MARKER_LEN]) -> Self {
         Self {
-            installed: install(ident),
+            installed: install(marker),
         }
     }
 
