@@ -3,6 +3,8 @@
 FROM --platform=$BUILDPLATFORM ghcr.io/rust-cross/cargo-zigbuild:0.23.2 AS build
 ARG TARGETPLATFORM
 ARG RUST_VERSION=1.97.1
+# PROFILE=quick trades an unoptimised binary for a far faster build when testing.
+ARG PROFILE=release
 ENV RUSTUP_TOOLCHAIN=${RUST_VERSION}
 RUN rustup toolchain install "$RUST_VERSION" --profile minimal \
       --target x86_64-unknown-linux-musl \
@@ -16,8 +18,8 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
       linux/arm64) target=aarch64-unknown-linux-musl ;; \
       *) echo "no rust target mapped for $TARGETPLATFORM" >&2; exit 1 ;; \
     esac \
- && RUSTFLAGS="-C strip=symbols" cargo zigbuild --release --target "$target" -p resilumd \
- && cp "target/$target/release/resilumd" /resilumd
+ && RUSTFLAGS="-C strip=symbols" cargo zigbuild --profile "$PROFILE" --target "$target" -p resilumd \
+ && cp "target/$target/$PROFILE/resilumd" /resilumd
 
 FROM alpine:3.21 AS runtime
 RUN apk add --no-cache --no-scripts \
