@@ -58,6 +58,18 @@ ast-grep scan
 step "clippy (deny warnings)"
 cargo clippy --workspace --all-targets -- -D warnings
 
+step "cross-compile the shared crate for Android"
+# Catches a linux-gated item reaching shared code before it breaks the mobile
+# build; needs no NDK, as resilum-core pulls no C at this layer.
+ANDROID_TARGET=aarch64-linux-android
+require rustup 'https://rustup.rs'
+rustup target list --installed | grep -qx "$ANDROID_TARGET" || {
+    printf '  ✗ target %s is not installed\n    install: rustup target add %s\n' \
+        "$ANDROID_TARGET" "$ANDROID_TARGET"
+    exit 1
+}
+cargo check --quiet -p resilum-core --target "$ANDROID_TARGET"
+
 step "test"
 cargo test --workspace
 
