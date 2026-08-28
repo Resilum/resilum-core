@@ -44,9 +44,20 @@ pub async fn run_produce(
     interval: Duration,
     trigger: Arc<Notify>,
 ) {
+    on_tick_or_trigger(interval, trigger, || {
+        announce_all(&engine, &discovery, &destination)
+    })
+    .await;
+}
+
+pub async fn on_tick_or_trigger<F, Fut>(interval: Duration, trigger: Arc<Notify>, mut announce: F)
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = ()>,
+{
     let mut ticker = tokio::time::interval(interval);
     loop {
-        announce_all(&engine, &discovery, &destination).await;
+        announce().await;
         tokio::select! {
             _ = ticker.tick() => {}
             _ = trigger.notified() => {}

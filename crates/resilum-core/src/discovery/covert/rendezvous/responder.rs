@@ -44,6 +44,29 @@ pub fn build_destinations(
     Ok(out)
 }
 
+pub async fn run_announcer(
+    engine: Arc<ReticulumNode>,
+    destinations: Vec<DestinationHash>,
+    interval: std::time::Duration,
+    trigger: Arc<tokio::sync::Notify>,
+) {
+    crate::discovery::produce::on_tick_or_trigger(interval, trigger, || {
+        give_peers_a_path_to_the_responder(&engine, &destinations)
+    })
+    .await;
+}
+
+async fn give_peers_a_path_to_the_responder(
+    engine: &ReticulumNode,
+    destinations: &[DestinationHash],
+) {
+    for hash in destinations {
+        if let Err(e) = engine.announce_destination(hash, None).await {
+            tracing::warn!(error = %e, "covert rendezvous announce failed");
+        }
+    }
+}
+
 /// One responder task per configured covert carrier. Fires on every
 /// `RequestReceived` event on path `endpoint` and replies with our addresses.
 pub async fn run_responder(
@@ -71,7 +94,10 @@ pub async fn run_responder(
                 if addrs.is_empty() {
                     continue;
                 }
-                let response = endpoint::pack(&carrier, addrs);
+                let Ok(response) = super::as_one_msgpack_value(&endpoint::pack(&carrier, addrs))
+                else {
+                    continue;
+                };
                 if let Err(e) = engine.send_response(link_id, request_id, &response).await {
                     tracing::warn!(carrier = %carrier, error = %e, "rendezvous respond failed");
                 }
