@@ -45,6 +45,7 @@ pub(super) fn bring_up(
     Ok(())
 }
 
+#[cfg(target_os = "linux")]
 fn start_listener_if_this_host_can(
     engine: &Arc<ReticulumNode>,
     cfg: &CovertDiscoveryService,
@@ -61,4 +62,13 @@ fn start_listener_if_this_host_can(
             None
         }
     }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn start_listener_if_this_host_can(
+    _engine: &Arc<ReticulumNode>,
+    _cfg: &CovertDiscoveryService,
+    _identity: &Identity,
+) -> Option<ByteChannelHandle> {
+    None
 }

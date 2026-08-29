@@ -7,6 +7,7 @@ mod icmp;
 
 use std::sync::Arc;
 
+#[cfg(target_os = "linux")]
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
@@ -29,6 +30,7 @@ pub(in crate::discovery::covert) fn attach(
     }
 }
 
+#[cfg(target_os = "linux")]
 pub fn listen(
     engine: &Arc<ReticulumNode>,
     name: &str,
