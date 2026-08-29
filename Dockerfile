@@ -30,6 +30,7 @@ RUN apk add --no-cache --no-scripts \
         nftables=1.1.1-r0 \
         libcap-setcap=2.78-r0 \
  && setcap cap_net_admin+ep /usr/bin/yggdrasil \
+ && setcap cap_net_admin+ep /usr/sbin/nft \
  && adduser -D -H -u 1000 resilum \
  && mkdir -p /config /var/run/yggdrasil \
  && chown resilum:resilum /config /var/run/yggdrasil

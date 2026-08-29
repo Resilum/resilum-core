@@ -8,7 +8,6 @@ use leviculum_std::interfaces::ByteChannelHandle;
 
 use super::DialableAddress;
 use crate::covert::icmp::client::IcmpClient;
-use crate::covert::icmp::marker::tunnel_marker;
 use crate::covert::runner;
 
 pub(super) fn attach(
@@ -21,9 +20,8 @@ pub(super) fn attach(
     let addr = addr.ip();
     let server = Identity::from_public_key_bytes(server_pubkey)
         .map_err(|e| format!("covert server identity: {e:?}"))?;
-    let marker = tunnel_marker(&server.public_key_bytes());
-    let carrier =
-        IcmpClient::with_mtu(addr, marker, mtu).map_err(|e| format!("open icmp socket: {e}"))?;
+    let carrier = IcmpClient::with_mtu(addr, &server.public_key_bytes(), mtu)
+        .map_err(|e| format!("open icmp socket: {e}"))?;
     let session = super::random_session_id();
     super::bridge(engine, name, move |uplink, decoded| {
         let _ = runner::run_client(carrier, server, session, uplink, move |bytes| {
@@ -39,9 +37,9 @@ pub(super) fn listen(
     identity: Identity,
     mtu: usize,
 ) -> Result<ByteChannelHandle, String> {
-    let marker = tunnel_marker(&identity.public_key_bytes());
-    let carrier = crate::covert::icmp::server::IcmpServer::with_mtu(marker, mtu)
-        .map_err(|e| format!("open icmp server socket: {e}"))?;
+    let carrier =
+        crate::covert::icmp::server::IcmpServer::with_mtu(&identity.public_key_bytes(), mtu)
+            .map_err(|e| format!("open icmp server socket: {e}"))?;
     super::bridge(engine, name, move |uplink, decoded| {
         let _ = runner::run_server(carrier, identity, uplink, move |_session, bytes| {
             decoded.hand_to_leviculum(bytes);
