@@ -46,13 +46,3 @@ pub(super) fn listen(
         });
     })
 }
-
-#[cfg(not(target_os = "linux"))]
-pub(super) fn listen(
-    _engine: &Arc<ReticulumNode>,
-    _name: &str,
-    _identity: Identity,
-    _mtu: usize,
-) -> Result<ByteChannelHandle, String> {
-    Err("covert ICMP listening needs a raw socket, which this platform does not offer".into())
-}
