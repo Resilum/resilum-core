@@ -4,13 +4,19 @@
 
 instance_name: resilum
 
-# Persist identity and RNS state across restarts (omit for ephemeral node).
-storage_path: /config/state
+# Identity and RNS state persist in `state/` next to this file. Set a path to
+# put them elsewhere.
+# storage_path: /var/lib/resilum
 
 # Join the global mesh through the built-in public + Yggdrasil anchors and a
 # discoverable public listener on [::]:4242. Set to false for an isolated node
 # configured purely via `listen`/`bootstrap`.
 default_anchors: true
+
+# Reach the mesh over the plain internet: public anchors, LAN, and an inbound
+# listener. false leaves only the overlays (tor/ygg/iroh/covert) — the node's
+# address is never exposed, but it is isolated until one of them is up.
+# plain_ip: true
 
 discover_interfaces: true
 
@@ -74,12 +80,29 @@ egress:
 # address, but allows your own tor/i2p.
 ingress:
   services: [socks-egress, tor]
+  # `none`, or drop the line, to find and rank exits without binding a local
+  # proxy — a loopback proxy is reachable by everything else on the host.
   listen_tcp: 127.0.0.1:${RESILUM_SOCKS_PORT:-10808}
   # smart | "true" | "false" — the last two need the quotes: unquoted they are
   # YAML booleans and the config fails to load. Anything else means smart.
   use_own: smart
   allow_countries: []
   deny_countries: []
+
+# Reach peers by tunnelling inside ICMP echo. This node announces the
+# addresses peers should aim at, and dials the ones their announces name.
+# Listening needs raw sockets (CAP_NET_RAW, granted in compose.yaml); without
+# them the node still dials out, it just cannot be dialled. `covert: []` turns
+# it off; omitting the key keeps the default on.
+covert:
+  - carrier: icmp
+    mtu: 1400
+    addresses: []              # empty: detect this host's public addresses
+    dial_local_networks: false # only dial peers at addresses the public
+                               # internet routes. Set true for peers on your
+                               # own LAN — it also lets any peer aim this
+                               # node at a host inside your network, so turn
+                               # it on only among nodes you run yourself.
 
 # Messaging. Registers this node's LXMF delivery destination so peers can send
 # it messages, and is what the Nostr bridge below carries them over — without
