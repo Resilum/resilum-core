@@ -29,6 +29,10 @@ impl DiscoveryFile {
         self.service == "iroh"
     }
 
+    pub(in crate::config_file) fn is_yggdrasil(&self) -> bool {
+        self.service == "yggdrasil"
+    }
+
     pub(in crate::config_file) fn into_iroh(self) -> IrohConfig {
         IrohConfig {
             relay: self.relay,

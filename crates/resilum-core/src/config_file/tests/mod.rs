@@ -122,6 +122,6 @@ discovery:
 fn bare_config_joins_the_default_network() {
     let cfg = from_yaml("instance_name: bare").unwrap();
     assert!(cfg.egress.is_empty());
-    assert!(!cfg.bootstrap.is_empty());
+    assert!(!cfg.bootstrap_only.is_empty());
     assert!(cfg.listen.is_some());
 }
