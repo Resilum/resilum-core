@@ -8,9 +8,9 @@ instance_name: resilum
 # put them elsewhere.
 # storage_path: /var/lib/resilum
 
-# Join the global mesh through the built-in public + Yggdrasil anchors and a
-# discoverable public listener on [::]:4242. Set to false for an isolated node
-# configured purely via `listen`/`bootstrap`.
+# Built-in public anchors + a discoverable listener on [::]:4242. Yggdrasil
+# anchors are added only with `yggdrasil` in `discovery`. false → isolated node,
+# `listen`/`bootstrap` only.
 default_anchors: true
 
 # Reach the mesh over the plain internet: public anchors, LAN, and an inbound

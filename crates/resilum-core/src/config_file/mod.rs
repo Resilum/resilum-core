@@ -79,6 +79,9 @@ impl FileConfig {
         if self.reachable_on.is_some() {
             cfg.reachable_on = self.reachable_on;
         }
+        if !self.discovery.iter().any(DiscoveryFile::is_yggdrasil) {
+            cfg.bootstrap.clear();
+        }
         cfg.bootstrap.extend(self.bootstrap);
         cfg.discover_interfaces = self.plain_ip && self.discover_interfaces;
         if !self.plain_ip {
