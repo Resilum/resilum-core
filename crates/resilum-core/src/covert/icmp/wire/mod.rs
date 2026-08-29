@@ -3,9 +3,9 @@
 //! IP header on send (and fills the ICMPv6 checksum).
 //!
 //! A datagram ping socket's id is kernel-assigned, so the tunnel is recognised
-//! by the marker at the start of the payload rather than by the id. The id is
-//! still what routes the kernel's delivery of a reply to the client socket, so
-//! a reply echoes the id its request arrived with.
+//! by a marker at the start of the payload rather than by the id. Request and
+//! reply carry different markers. The id still routes the kernel's delivery of
+//! a reply to the client socket, so a reply echoes the id its request had.
 
 use std::net::IpAddr;
 

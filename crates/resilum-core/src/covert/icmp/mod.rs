@@ -12,6 +12,5 @@ pub mod wake;
 pub mod wire;
 
 pub use client::IcmpClient;
-pub use marker::tunnel_marker;
 #[cfg(target_os = "linux")]
 pub use server::IcmpServer;

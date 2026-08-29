@@ -27,7 +27,8 @@ const IPV4_OVERHEAD: usize = 20 + 8;
 const IPV6_OVERHEAD: usize = 40 + 8;
 
 pub struct IcmpServer {
-    marker: [u8; MARKER_LEN],
+    request_marker: [u8; MARKER_LEN],
+    reply_marker: [u8; MARKER_LEN],
     mtu: usize,
     send4: Socket,
     send6: Option<Socket>,
@@ -39,24 +40,26 @@ pub struct IcmpServer {
 }
 
 impl IcmpServer {
-    pub fn new(marker: [u8; MARKER_LEN]) -> io::Result<Self> {
-        Self::with_mtu(marker, DEFAULT_MTU)
+    pub fn new(server_pubkey: &[u8]) -> io::Result<Self> {
+        Self::with_mtu(server_pubkey, DEFAULT_MTU)
     }
 
-    pub fn with_mtu(marker: [u8; MARKER_LEN], mtu: usize) -> io::Result<Self> {
+    pub fn with_mtu(server_pubkey: &[u8], mtu: usize) -> io::Result<Self> {
         let send4 = Socket::new(Domain::IPV4, Type::RAW, Some(Protocol::ICMPV4))?;
         let send6 = Socket::new(Domain::IPV6, Type::RAW, Some(Protocol::ICMPV6)).ok();
         let sniff4 = sniff::sniff_socket(wire::ETH_P_IP)?;
         let sniff6 = sniff::sniff_socket(wire::ETH_P_IPV6).ok();
+        let request_marker = super::marker::request_marker(server_pubkey);
         Ok(Self {
-            marker,
+            request_marker,
+            reply_marker: super::marker::reply_marker(server_pubkey),
             mtu,
             send4,
             send6,
             sniff4,
             sniff6,
             reply_id: Mutex::new(HashMap::new()),
-            _kernel_stays_quiet: super::nftguard::Guard::install(marker),
+            _kernel_stays_quiet: super::nftguard::Guard::install(request_marker),
             wake: Wake::new()?,
         })
     }
@@ -69,19 +72,13 @@ impl IcmpServer {
         fds
     }
 
-    fn id_the_client_will_accept(&self, dest: IpAddr) -> Option<u16> {
-        self.reply_id
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .get(&dest)
-            .copied()
-    }
-
     pub fn send_reply(&self, dest: IpAddr, payload: &[u8]) -> io::Result<()> {
-        let Some(id) = self.id_the_client_will_accept(dest) else {
+        let known = self.reply_id.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(&id) = known.get(&dest) else {
             return Ok(());
         };
-        let body = wire::build_echo_reply(id, self.marker, payload, dest.is_ipv6());
+        drop(known);
+        let body = wire::build_echo_reply(id, self.reply_marker, payload, dest.is_ipv6());
         let addr: SockAddr = SocketAddr::new(dest, 0).into();
         let sock = match dest {
             IpAddr::V4(_) => &self.send4,
@@ -111,7 +108,7 @@ impl IcmpServer {
             if !is_ingress {
                 continue;
             }
-            if let Some(p) = wire::extract_request(ethertype, pkt, self.marker) {
+            if let Some(p) = wire::extract_request(ethertype, pkt, self.request_marker) {
                 self.reply_id
                     .lock()
                     .unwrap_or_else(|e| e.into_inner())

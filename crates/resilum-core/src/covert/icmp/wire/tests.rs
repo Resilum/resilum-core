@@ -65,6 +65,23 @@ fn a_reply_the_client_gets_keeps_the_data_behind_the_marker() {
     assert!(payload_of_reply(&body, [0, 0, 0, 0], false).is_none());
 }
 
+const REQUEST_M: [u8; MARKER_LEN] = [1, 2, 3, 4];
+const REPLY_M: [u8; MARKER_LEN] = [5, 6, 7, 8];
+
+#[test]
+fn a_kernel_echo_of_our_request_is_not_taken_for_a_reply() {
+    let request = build_echo_request(REQUEST_M, b"data", false);
+    let reflected = kernel_echo_of(&request);
+
+    assert!(payload_of_reply(&reflected, REPLY_M, false).is_none());
+}
+
+fn kernel_echo_of(request: &[u8]) -> Vec<u8> {
+    let mut echo = request.to_vec();
+    echo[0] = REPLY_V4;
+    echo
+}
+
 #[test]
 fn a_header_longer_than_the_packet_is_refused_rather_than_read() {
     let mut pkt = vec![

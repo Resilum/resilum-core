@@ -4,7 +4,6 @@ use std::io;
 use std::net::IpAddr;
 
 use resilum_core::covert::icmp::client::IcmpClient;
-use resilum_core::covert::icmp::marker::tunnel_marker;
 use resilum_core::covert::icmp::server::IcmpServer;
 use resilum_core::identity;
 
@@ -35,8 +34,7 @@ pub fn client(opts: Options) -> i32 {
             return 2;
         }
     };
-    let marker = tunnel_marker(&server.public_key_bytes());
-    let client = match IcmpClient::with_mtu(addr, marker, opts.mtu) {
+    let client = match IcmpClient::with_mtu(addr, &server.public_key_bytes(), opts.mtu) {
         Ok(c) => c,
         Err(e) => return exit_io("open icmp socket", e),
     };
@@ -52,8 +50,7 @@ pub fn server(opts: Options) -> i32 {
         return 2;
     };
     let identity = identity::load_or_create_at(&path);
-    let marker = tunnel_marker(&identity.public_key_bytes());
-    let srv = match IcmpServer::with_mtu(marker, opts.mtu) {
+    let srv = match IcmpServer::with_mtu(&identity.public_key_bytes(), opts.mtu) {
         Ok(s) => s,
         Err(e) => return exit_io("open icmp server", e),
     };

@@ -12,6 +12,7 @@ use crate::covert::icmp::wire;
 pub(super) fn sniff_socket(ethertype: u16) -> io::Result<Socket> {
     let proto = Protocol::from(i32::from(ethertype.to_be()));
     let sock = Socket::new(Domain::PACKET, Type::DGRAM, Some(proto))?;
+    sock.set_nonblocking(true)?;
     attach_icmp_filter(&sock, ethertype)?;
     Ok(sock)
 }
