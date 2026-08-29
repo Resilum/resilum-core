@@ -43,8 +43,8 @@ One message, top to bottom. Each step wraps what the step above handed it, and
 only the last one touches the network you actually have.
 
 ```mermaid
-flowchart TB
-    APP["a message, a TCP stream, a git fetch"]
+flowchart LR
+    APP["a message,<br/>a TCP stream,<br/>a git fetch"]
     LINK["Reticulum link"]
     PKT["Reticulum packet"]
     PICK{"reachable<br/>right now?"}
@@ -55,16 +55,16 @@ flowchart TB
     IROH["iroh"]
     ICMP["ICMP echo"]
     LORA["LoRa"]
-    PEER["the peer<br/>unwraps it in reverse"]
+    PEER["the peer unwraps it<br/>in reverse"]
 
-    APP -->|"addressed to a destination hash"| LINK
-    LINK -->|"encrypted end to end, lost pieces re-sent"| PKT
+    APP -->|"addressed to a<br/>destination hash"| LINK
+    LINK -->|"encrypted end to end,<br/>lost pieces re-sent"| PKT
     PKT --> PICK
     PICK --> TCP & YGG & TOR & I2P & IROH & ICMP & LORA
     TCP & YGG & TOR & I2P & IROH & ICMP & LORA --> PEER
 ```
 
-The branch at the bottom is the whole point: the destination hash is the
+The branch is the whole point: the destination hash is the
 address, so the same peer stays the same peer whether the packet arrives over a
 LAN cable, an onion circuit or an echo reply. When an interface dies, the next
 announce re-establishes the path over another one and nothing above notices.
