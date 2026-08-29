@@ -58,3 +58,16 @@ default_anchors: false
 
     assert!(cfg.covert_discovery.is_empty());
 }
+
+#[test]
+fn an_empty_covert_list_turns_the_default_icmp_off() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+covert: []
+",
+    )
+    .unwrap();
+
+    assert!(cfg.covert_discovery.is_empty());
+}

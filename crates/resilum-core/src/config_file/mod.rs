@@ -33,6 +33,8 @@ struct FileConfig {
     reachable_on: Option<String>,
     #[serde(default = "yes")]
     default_anchors: bool,
+    #[serde(default = "yes")]
+    plain_ip: bool,
     #[serde(default)]
     bootstrap: Vec<String>,
     #[serde(default = "yes")]
@@ -54,7 +56,7 @@ struct FileConfig {
     #[serde(default)]
     discovery: Vec<DiscoveryFile>,
     #[serde(default)]
-    covert: Vec<CovertFile>,
+    covert: Option<Vec<CovertFile>>,
     #[serde(default)]
     lxmf: Option<LxmfFile>,
 }
@@ -78,7 +80,11 @@ impl FileConfig {
             cfg.reachable_on = self.reachable_on;
         }
         cfg.bootstrap.extend(self.bootstrap);
-        cfg.discover_interfaces = self.discover_interfaces;
+        cfg.discover_interfaces = self.plain_ip && self.discover_interfaces;
+        if !self.plain_ip {
+            cfg.listen = None;
+            cfg.bootstrap_only.clear();
+        }
         if let Some(path) = self.network_identity {
             cfg.network_identity = Some(path.into());
         }
@@ -89,8 +95,8 @@ impl FileConfig {
         cfg.advertised_mirrors = self.advertised_mirrors;
         cfg.rngit_destination_file = self.rngit_destination_file;
         cfg.lxmf = self.lxmf.map(Into::into);
-        if !self.covert.is_empty() {
-            cfg.covert_discovery = self.covert.into_iter().map(Into::into).collect();
+        if let Some(covert) = self.covert {
+            cfg.covert_discovery = covert.into_iter().map(Into::into).collect();
         }
         if !self.discovery.is_empty() {
             let mut services = Vec::new();
