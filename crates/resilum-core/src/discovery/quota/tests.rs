@@ -10,6 +10,15 @@ fn peer(nth: u8, estimate: Option<Duration>) -> Peer {
     Peer {
         attached_as: format!("tor[peer{nth}]:4242"),
         estimate,
+        node: Some([nth; 16]),
+    }
+}
+
+fn same_node_over(transport: &str, nth: u8) -> Peer {
+    Peer {
+        attached_as: format!("{transport}[peer{nth}]:4242"),
+        estimate: None,
+        node: Some([nth; 16]),
     }
 }
 
@@ -90,4 +99,27 @@ fn a_newcomer_nobody_can_place_does_not_displace_a_measured_peer() {
     let kept = a_full_set_nearest_first();
 
     assert_eq!(judge(&kept, peer(99, None), A_MESH_OF), Verdict::Refuse);
+}
+
+#[test]
+fn a_second_way_to_a_node_already_kept_costs_no_slot() {
+    let kept = a_full_set_nearest_first();
+
+    let verdict = judge(&kept, same_node_over("udp", 2), A_MESH_OF);
+
+    assert_eq!(verdict, Verdict::Attach);
+}
+
+#[test]
+fn the_budget_counts_nodes_rather_than_the_ways_to_reach_them() {
+    let one_node_many_ways: Vec<Peer> = ["tor", "i2p", "udp", "covert"]
+        .iter()
+        .map(|transport| same_node_over(transport, 7))
+        .collect();
+
+    assert_eq!(nodes_kept(&one_node_many_ways), 1);
+    assert_eq!(
+        judge(&one_node_many_ways, peer(99, None), A_MESH_OF),
+        Verdict::Attach
+    );
 }

@@ -7,10 +7,10 @@ use std::sync::{Arc, Mutex};
 use leviculum_std::driver::ReticulumNode;
 
 use super::super::DiscoveryPlugin;
-use super::admit;
 use super::rendezvous;
 use super::{AddressSource, DialableAddress};
 use crate::config::CovertDiscoveryService;
+use crate::discovery::admit::{self, Room};
 use crate::discovery::attachments::{Attached, Attachments};
 use crate::dispatch::Events;
 
@@ -99,9 +99,12 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
     };
     let name = format!("CovertDiscovered[{carrier}:{addr}]");
     let peer = admit::who_announced(&pubkey);
-    if !admit::makes_room_for(&inner.attachments, inner.engine.path_count(), &name, peer) {
-        inner.dialled.lock().expect("dialled").remove(&pubkey);
-        return;
+    match admit::room_for(&inner.attachments, inner.engine.path_count(), &name, peer) {
+        Room::Yes | Room::OnceThisIsLetGo(_) => {}
+        Room::No => {
+            inner.dialled.lock().expect("dialled").remove(&pubkey);
+            return;
+        }
     }
     match super::inproc::attach(
         &inner.engine,

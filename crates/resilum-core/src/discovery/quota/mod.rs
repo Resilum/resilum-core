@@ -19,6 +19,7 @@ fn crossing_of(kept: usize) -> usize {
 pub(crate) struct Peer {
     pub(crate) attached_as: String,
     pub(crate) estimate: Option<Duration>,
+    pub(crate) node: Option<[u8; 16]>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -30,7 +31,10 @@ pub(crate) enum Verdict {
 
 pub(crate) fn judge(kept: &[Peer], newcomer: Peer, mesh: usize) -> Verdict {
     let room = kept_of(mesh);
-    if kept.len() < room {
+    if another_way_to_a_node_we_keep(kept, &newcomer) {
+        return Verdict::Attach;
+    }
+    if nodes_kept(kept) < room {
         return Verdict::Attach;
     }
     let mut all = kept.to_vec();
@@ -46,6 +50,17 @@ pub(crate) fn judge(kept: &[Peer], newcomer: Peer, mesh: usize) -> Verdict {
         Some(displaced) => Verdict::Replace(displaced.attached_as.clone()),
         None => Verdict::Refuse,
     }
+}
+
+fn another_way_to_a_node_we_keep(kept: &[Peer], newcomer: &Peer) -> bool {
+    newcomer
+        .node
+        .is_some_and(|node| kept.iter().any(|peer| peer.node == Some(node)))
+}
+
+fn nodes_kept(kept: &[Peer]) -> usize {
+    let named: BTreeSet<[u8; 16]> = kept.iter().filter_map(|peer| peer.node).collect();
+    named.len() + kept.iter().filter(|peer| peer.node.is_none()).count()
 }
 
 fn worth_keeping(all: &[Peer], room: usize) -> BTreeSet<String> {

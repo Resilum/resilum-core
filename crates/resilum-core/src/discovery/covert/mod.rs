@@ -2,7 +2,6 @@
 //! attach a per-peer covert interface in-process at runtime.
 
 mod addresses;
-mod admit;
 pub mod endpoint;
 mod inproc;
 mod plugin;

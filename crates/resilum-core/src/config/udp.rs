@@ -4,6 +4,7 @@ pub const UDP_LISTEN_UNLESS_TOLD_OTHERWISE: &str = "0.0.0.0:4242";
 pub struct UdpInterface {
     pub listen: Option<String>,
     pub peers_every_datagram_goes_to: Vec<String>,
+    pub reachable_on: Vec<String>,
 }
 
 impl UdpInterface {

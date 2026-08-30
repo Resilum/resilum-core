@@ -13,6 +13,8 @@ pub(in crate::config_file) struct UdpFile {
     pub listen: Option<String>,
     #[serde(default)]
     pub peers: Vec<String>,
+    #[serde(default)]
+    pub reachable_on: Vec<String>,
 }
 
 impl From<UdpFile> for UdpInterface {
@@ -20,6 +22,7 @@ impl From<UdpFile> for UdpInterface {
         Self {
             listen: f.listen,
             peers_every_datagram_goes_to: f.peers,
+            reachable_on: f.reachable_on,
         }
     }
 }

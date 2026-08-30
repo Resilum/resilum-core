@@ -86,3 +86,21 @@ fn a_payload_of_the_wrong_shape_is_refused() {
     // An IPv6 address is exactly 16 bytes.
     assert!(parse_endpoint(&[0x01; 17], &EndpointFormat::BracketedIpv6).is_none());
 }
+
+#[test]
+fn an_ip_endpoint_round_trips_in_either_family() {
+    for host in ["203.0.113.7", "2001:db8::1"] {
+        let wire = encode_endpoint(host, 4242, &EndpointFormat::IpAddress).expect("encodes");
+        assert_eq!(
+            parse_endpoint(&wire, &EndpointFormat::IpAddress),
+            Some((host.to_owned(), 4242))
+        );
+    }
+}
+
+#[test]
+fn an_ip_endpoint_of_neither_length_is_refused() {
+    assert!(encode_endpoint("nowhere", 4242, &EndpointFormat::IpAddress).is_none());
+    assert!(parse_endpoint(&[0x01; 9], &EndpointFormat::IpAddress).is_none());
+    assert!(parse_endpoint(&[0u8; 6], &EndpointFormat::IpAddress).is_none());
+}

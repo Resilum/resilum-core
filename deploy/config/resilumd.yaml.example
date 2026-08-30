@@ -31,11 +31,14 @@ discover_interfaces: true
 #   - anchor.example:4343
 
 # A UDP interface beside the TCP ones: the same peers reachable a second way,
-# so one path dying does not isolate the node. Every datagram goes to every
-# peer listed, so keep it to the few worth the duplication. For the local
-# broadcast domain use `discover_interfaces` instead.
+# so one path dying does not isolate the node. Peers announcing `udp` are added
+# on their own; `peers` pins extra ones by hand. One socket serves them all, so
+# every datagram goes to every peer — the quota bounds how many. `reachable_on`
+# is what peers are told to send to; unset detects this host's egress address.
+# For the local broadcast domain use `discover_interfaces` instead.
 # udp:
 #   listen: "0.0.0.0:4242"
+#   reachable_on: ["203.0.113.10"]
 #   peers:
 #     - anchor.example:4242
 
