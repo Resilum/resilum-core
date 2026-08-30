@@ -74,6 +74,7 @@ announce re-establishes the path over another one and nothing above notices.
 | Interface | How it moves a packet | Status |
 | --- | --- | --- |
 | TCP/IP | public anchors, explicit `bootstrap`, LAN autodiscovery | ready |
+| UDP | datagrams to the peers under `udp`, beside the TCP ones so one path dying does not isolate the node | ready |
 | Yggdrasil | announce carries the node's `200::/7` address | ready, feature `ygg` |
 | Tor | announce carries an onion address; external `tor` daemon serves it | ready |
 | Tor (embedded) | in-process Tor client, no daemon on the host, outbound only | ready, feature `arti` |

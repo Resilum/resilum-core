@@ -4,7 +4,25 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
+use crate::config::UdpInterface;
 use crate::{EgressListen, I2pInterface, IngressConfig};
+
+#[derive(Deserialize)]
+pub(in crate::config_file) struct UdpFile {
+    #[serde(default)]
+    pub listen: Option<String>,
+    #[serde(default)]
+    pub peers: Vec<String>,
+}
+
+impl From<UdpFile> for UdpInterface {
+    fn from(f: UdpFile) -> Self {
+        Self {
+            listen: f.listen,
+            peers_every_datagram_goes_to: f.peers,
+        }
+    }
+}
 
 #[derive(Deserialize)]
 pub(in crate::config_file) struct I2pFile {
