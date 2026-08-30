@@ -16,6 +16,38 @@ plain_ip: false
 }
 
 #[test]
+fn a_udp_section_carries_its_listener_and_peers() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+udp:
+  listen: '0.0.0.0:4343'
+  peers: [a.example:4242]
+",
+    )
+    .unwrap();
+
+    let udp = cfg.udp.expect("udp interface");
+    assert_eq!(udp.bound_to(), "0.0.0.0:4343");
+    assert_eq!(udp.peers_every_datagram_goes_to, vec!["a.example:4242"]);
+}
+
+#[test]
+fn udp_is_plain_ip_so_the_switch_takes_it_too() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+plain_ip: false
+udp:
+  peers: [a.example:4242]
+",
+    )
+    .unwrap();
+
+    assert!(cfg.udp.is_none());
+}
+
+#[test]
 fn plain_ip_leaves_the_ygg_anchors_to_the_ygg_transport() {
     let cfg = from_yaml(
         "

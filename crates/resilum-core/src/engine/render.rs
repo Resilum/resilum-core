@@ -57,6 +57,15 @@ pub(crate) fn render_config(config: &Config) -> String {
              target_host = {host}\n    target_port = {port}\n    bootstrap_only = yes\n"
         );
     }
+    if let Some(udp) = config.udp.as_ref().filter(|udp| !udp.carries_nothing()) {
+        let (host, port) = split_host_port(udp.bound_to());
+        let _ = write!(
+            out,
+            "\n  [[UDP]]\n    type = UDPInterface\n    enabled = yes\n    listen_ip = {host}\n    \
+             listen_port = {port}\n    forward_ip = {}\n",
+            udp.peers_every_datagram_goes_to.join(", ")
+        );
+    }
     if let Some(i2p) = &config.i2p {
         let _ = write!(
             out,

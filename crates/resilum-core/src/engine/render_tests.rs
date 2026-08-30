@@ -42,6 +42,34 @@ fn default_network_renders_anchors_and_discovery() {
 }
 
 #[test]
+fn renders_udp_beside_the_tcp_interfaces() {
+    let cfg = Config {
+        udp: Some(crate::config::UdpInterface {
+            listen: Some("0.0.0.0:4343".into()),
+            peers_every_datagram_goes_to: vec!["a.example:4242".into(), "b.example:4242".into()],
+        }),
+        ..Config::minimal("test")
+    };
+
+    let ini = render_config(&cfg);
+
+    assert!(ini.contains("type = UDPInterface"));
+    assert!(ini.contains("listen_ip = 0.0.0.0"));
+    assert!(ini.contains("listen_port = 4343"));
+    assert!(ini.contains("forward_ip = a.example:4242, b.example:4242"));
+}
+
+#[test]
+fn a_udp_interface_with_nobody_to_forward_to_is_not_rendered() {
+    let cfg = Config {
+        udp: Some(crate::config::UdpInterface::default()),
+        ..Config::minimal("test")
+    };
+
+    assert!(!render_config(&cfg).contains("UDPInterface"));
+}
+
+#[test]
 fn renders_i2p_interface() {
     let cfg = Config {
         i2p: Some(crate::config::I2pInterface {

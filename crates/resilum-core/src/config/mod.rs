@@ -3,12 +3,14 @@ mod discovery;
 mod egress;
 mod ingress;
 mod lxmf;
+mod udp;
 
 pub use covert_discovery::CovertDiscoveryService;
 pub use discovery::{DiscoveryService, EndpointFormat, SocksProxy};
 pub use egress::EgressListen;
 pub use ingress::IngressConfig;
 pub use lxmf::LxmfConfig;
+pub use udp::UdpInterface;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -67,6 +69,7 @@ pub struct Config {
     /// Rendered with `bootstrap_only = yes`.
     pub bootstrap_only: Vec<String>,
     pub discover_interfaces: bool,
+    pub udp: Option<UdpInterface>,
     pub i2p: Option<I2pInterface>,
     pub iroh: Option<IrohConfig>,
     pub lxmf: Option<LxmfConfig>,
@@ -106,6 +109,7 @@ impl Config {
             bootstrap: Vec::new(),
             bootstrap_only: Vec::new(),
             discover_interfaces: true,
+            udp: None,
             i2p: None,
             iroh: None,
             lxmf: None,

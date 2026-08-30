@@ -30,6 +30,15 @@ discover_interfaces: true
 # bootstrap:
 #   - anchor.example:4343
 
+# A UDP interface beside the TCP ones: the same peers reachable a second way,
+# so one path dying does not isolate the node. Every datagram goes to every
+# peer listed, so keep it to the few worth the duplication. For the local
+# broadcast domain use `discover_interfaces` instead.
+# udp:
+#   listen: "0.0.0.0:4242"
+#   peers:
+#     - anchor.example:4242
+
 # Transport-discovery plugins: each attaches discovered peers over its
 # transport and (when it can determine our own reachable endpoint) announces
 # ours for others to attach. `iroh` is the exception: it resolves peers but
