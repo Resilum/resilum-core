@@ -2,20 +2,29 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
-use leviculum_std::interfaces::TcpClientHandle;
+use leviculum_std::InterfaceId;
 
-use super::quota;
 use crate::coordinates::{Coordinates, PeerId};
+use crate::discovery::quota;
 
-pub(super) struct Attached {
-    pub(super) service: String,
-    pub(super) announced_by: Option<PeerId>,
-    pub(super) handle: TcpClientHandle,
+pub type DetachesWhenDropped = Box<dyn std::any::Any + Send>;
+
+pub(crate) struct Attached {
+    pub(crate) service: String,
+    pub(crate) announced_by: Option<PeerId>,
+    pub(crate) interface: InterfaceId,
+    pub(crate) _detaches_when_dropped: DetachesWhenDropped,
 }
 
 pub struct Attachments {
     held: Mutex<HashMap<String, Attached>>,
     coordinates: Arc<Coordinates>,
+}
+
+pub struct Link {
+    pub peer: PeerId,
+    pub transport: String,
+    pub interface: InterfaceId,
 }
 
 impl Attachments {
@@ -27,23 +36,23 @@ impl Attachments {
         }
     }
 
-    pub(super) fn estimate_of(&self, peer: &PeerId) -> Option<Duration> {
+    pub(crate) fn estimate_of(&self, peer: &PeerId) -> Option<Duration> {
         self.coordinates.estimated_rtt(peer)
     }
 
-    pub(super) fn holds(&self, attached_as: &str) -> bool {
+    pub(crate) fn holds(&self, attached_as: &str) -> bool {
         self.lock().contains_key(attached_as)
     }
 
-    pub(super) fn hold(&self, attached_as: String, attached: Attached) {
+    pub(crate) fn hold(&self, attached_as: String, attached: Attached) {
         self.lock().insert(attached_as, attached);
     }
 
-    pub(super) fn release(&self, attached_as: &str) -> Option<Attached> {
+    pub(crate) fn release(&self, attached_as: &str) -> Option<Attached> {
         self.lock().remove(attached_as)
     }
 
-    pub(super) fn release_service(&self, service: &str) {
+    pub(crate) fn release_service(&self, service: &str) {
         self.lock().retain(|_, held| held.service != service);
     }
 
@@ -59,7 +68,21 @@ impl Attachments {
         kept
     }
 
-    pub(super) fn kept(&self) -> Vec<quota::Peer> {
+    #[must_use]
+    pub fn links(&self) -> Vec<Link> {
+        self.lock()
+            .values()
+            .filter_map(|held| {
+                Some(Link {
+                    peer: held.announced_by?,
+                    transport: held.service.clone(),
+                    interface: held.interface,
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn kept(&self) -> Vec<quota::Peer> {
         self.lock()
             .iter()
             .map(|(attached_as, held)| quota::Peer {

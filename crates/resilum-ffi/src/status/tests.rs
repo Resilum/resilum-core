@@ -20,7 +20,14 @@ fn bare_status() -> NodeStatus {
             ours: Coordinates::default().ours(),
             peers: Vec::new(),
         },
+        links: Vec::new(),
     }
+}
+
+#[test]
+fn a_node_keeping_no_links_serializes_them_as_an_array() {
+    let json = serde_json::to_string(&bare_status()).expect("serialization");
+    assert!(json.contains("\"links\":[]"), "JSON: {json}");
 }
 
 #[test]

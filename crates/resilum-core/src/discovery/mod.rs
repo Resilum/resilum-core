@@ -2,6 +2,7 @@
 //! node has ready, and each endpoint in it routes to the plugin for its
 //! service.
 
+mod attachments;
 mod build;
 mod cache;
 mod consume;
@@ -9,15 +10,17 @@ pub mod covert;
 mod directory;
 mod origin;
 mod produce;
+mod quota;
 pub mod service;
 mod tcp;
+pub use attachments::{Attachments, Link};
 pub use build::{BuildParams, build_covert_addresses, build_from_services};
 pub use cache::run_prune_loop;
 pub use consume::run_consume;
 pub use directory::ServiceDirectory;
 pub use origin::OriginRegistry;
 pub use produce::{build_destination, run_produce};
-pub use tcp::{Attachments, TcpDiscovered};
+pub use tcp::TcpDiscovered;
 
 use std::collections::BTreeMap;
 use std::sync::Arc;

@@ -47,7 +47,12 @@ use crate::set_error;
 ///                  "at": { "position": [0.0, 0.0, 0.0],
 ///                          "height": 0.0, "error": 0.0 },
 ///                  "estimated_rtt_ms": 0 } ]
-///   }
+///   },
+///   "links": [ { "identity_hash": "<32-hex>",
+///                "transport": "tor" | "i2p" | "yggdrasil" | "covert/icmp"
+///                            | "...",
+///                "interface_name": "<string>" | null,
+///                "estimated_rtt_ms": 0 | null } ]
 /// }
 /// ```
 /// `identity_hash` and `transport` are `null` before start. `added_by` is
@@ -60,6 +65,15 @@ use crate::set_error;
 /// still dialed as `tcp`), while `discovered_via` is the overlay that produced
 /// the address — the one to colour a link by. `direct` means this crate did
 /// not attach it: a bootstrap anchor, a LAN neighbour, or the engine's own.
+///
+/// `links` are the resilum peers this node keeps a link with, one entry per
+/// link — the edges a map draws from this node. They are the set the quota
+/// keeps (nearest, plus a quarter reserved for the furthest, so the graph stays
+/// navigable), across every transport and whatever the hop count: a peer four
+/// hops away over Tor is a link here, while `interfaces[].peer_nodes` holds
+/// only what sits one hop away and follows the single path RNS chose, so a
+/// covert peer reachable another way never appears under its covert interface.
+/// The same peer appears once per transport that carries a link to it.
 ///
 /// `coordinates` place peers in latency space rather than on the ground:
 /// distance is round-trip time, in seconds, and `error` is how much the node

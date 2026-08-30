@@ -60,6 +60,7 @@ pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDisc
             p.engine.clone(),
             p.events.clone(),
             p.origin_registry.clone(),
+            attachments.clone(),
         ));
         d.register(service, plugin);
     }

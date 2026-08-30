@@ -6,10 +6,10 @@ use std::time::Duration;
 use leviculum_std::api::Identity;
 
 use super::endpoint::{encode_endpoint, parse_endpoint};
-use super::{Attached, TcpDiscovered, quota};
+use super::{Attached, TcpDiscovered};
 use crate::config::SocksProxy;
 use crate::coordinates::PeerId;
-use crate::discovery::{DiscoveryPlugin, cache};
+use crate::discovery::{DiscoveryPlugin, cache, quota};
 
 fn who_announced(announcer_pubkey: Option<&[u8]>) -> Option<PeerId> {
     Identity::from_public_key_bytes(announcer_pubkey?)
@@ -47,7 +47,7 @@ impl DiscoveryPlugin for TcpDiscovered {
             quota::Verdict::Replace(displaced) => {
                 tracing::info!(service = %self.cfg.service, %displaced, %name, "a nearer peer took an attached one's place");
                 if let Some(gone) = self.attachments.release(&displaced) {
-                    self.cap_controller.detach(gone.handle.id());
+                    self.cap_controller.detach(gone.interface);
                 }
             }
             quota::Verdict::Refuse => {
@@ -74,7 +74,8 @@ impl DiscoveryPlugin for TcpDiscovered {
                     Attached {
                         service: self.cfg.service.clone(),
                         announced_by: who_announced(announcer_pubkey),
-                        handle,
+                        interface: handle.id(),
+                        _detaches_when_dropped: Box::new(handle),
                     },
                 );
                 self.trigger.notify_waiters();

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::lxmf;
 use super::model::{
-    CoordinatesStatus, Interface, NodeStatus, PlacedPeer, TorStatus, Transport, added_by, hex,
+    CoordinatesStatus, Interface, Link, NodeStatus, PlacedPeer, TorStatus, Transport, added_by, hex,
 };
 use crate::node::ResilumNode;
 use resilum_core::discovery::Service;
@@ -45,6 +45,7 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
                 })
                 .collect(),
         },
+        links: Vec::new(),
     };
     let Some(engine) = node.0.engine() else {
         return status;
@@ -95,6 +96,23 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
             rx_bytes: i.rx_bytes,
             tx_bytes: i.tx_bytes,
             bitrate: i.configured_bitrate,
+        })
+        .collect();
+    let named: HashMap<usize, String> = status
+        .interfaces
+        .iter()
+        .zip(engine.interface_stats())
+        .map(|(shown, i)| (i.interface_id.0, shown.name.clone()))
+        .collect();
+    status.links = node
+        .0
+        .links_we_keep()
+        .into_iter()
+        .map(|link| Link {
+            identity_hash: hex(&link.peer),
+            transport: link.transport,
+            interface_name: named.get(&link.interface.0).cloned(),
+            estimated_rtt_ms: node.0.estimated_rtt(&link.peer).map(|rtt| rtt.as_millis()),
         })
         .collect();
     let t = engine.transport_stats();
