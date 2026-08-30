@@ -6,7 +6,7 @@ const MOST_KEPT: usize = 24;
 
 /// `log2` of the mesh, which is what greedy routing over a small-world graph
 /// needs per node to keep the diameter logarithmic (Kleinberg).
-pub(super) fn kept_of(mesh_destinations: usize) -> usize {
+pub(crate) fn kept_of(mesh_destinations: usize) -> usize {
     let ideal = usize::BITS - mesh_destinations.max(1).leading_zeros();
     (ideal as usize).clamp(FEWEST_KEPT, MOST_KEPT)
 }
@@ -16,19 +16,19 @@ fn crossing_of(kept: usize) -> usize {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct Peer {
-    pub(super) attached_as: String,
-    pub(super) estimate: Option<Duration>,
+pub(crate) struct Peer {
+    pub(crate) attached_as: String,
+    pub(crate) estimate: Option<Duration>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum Verdict {
+pub(crate) enum Verdict {
     Attach,
     Replace(String),
     Refuse,
 }
 
-pub(super) fn judge(kept: &[Peer], newcomer: Peer, mesh: usize) -> Verdict {
+pub(crate) fn judge(kept: &[Peer], newcomer: Peer, mesh: usize) -> Verdict {
     let room = kept_of(mesh);
     if kept.len() < room {
         return Verdict::Attach;

@@ -16,6 +16,15 @@ pub(super) struct NodeStatus {
     pub lxmf: Option<LxmfStatus>,
     pub tor: Option<TorStatus>,
     pub coordinates: CoordinatesStatus,
+    pub links: Vec<Link>,
+}
+
+#[derive(Serialize)]
+pub(super) struct Link {
+    pub identity_hash: String,
+    pub transport: String,
+    pub interface_name: Option<String>,
+    pub estimated_rtt_ms: Option<u128>,
 }
 
 #[derive(Serialize)]

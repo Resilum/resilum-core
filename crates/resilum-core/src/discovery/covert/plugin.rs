@@ -1,16 +1,17 @@
 //! Covert-carrier discovery plugin. On peer announce → fetch endpoint over an
 //! encrypted rendezvous link → attach a per-peer covert interface in-process.
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::driver::ReticulumNode;
-use leviculum_std::interfaces::ByteChannelHandle;
 
 use super::super::DiscoveryPlugin;
+use super::admit;
 use super::rendezvous;
 use super::{AddressSource, DialableAddress};
 use crate::config::CovertDiscoveryService;
+use crate::discovery::attachments::{Attached, Attachments};
 use crate::dispatch::Events;
 
 pub struct CovertDiscovered {
@@ -22,8 +23,9 @@ struct Inner {
     addresses: Arc<AddressSource>,
     engine: Arc<ReticulumNode>,
     events: Events,
-    attached: Mutex<HashMap<Vec<u8>, ByteChannelHandle>>,
+    dialled: Mutex<HashSet<Vec<u8>>>,
     origin_registry: Arc<crate::discovery::OriginRegistry>,
+    attachments: Arc<Attachments>,
 }
 
 impl CovertDiscovered {
@@ -33,6 +35,7 @@ impl CovertDiscovered {
         engine: Arc<ReticulumNode>,
         events: Events,
         origin_registry: Arc<crate::discovery::OriginRegistry>,
+        attachments: Arc<Attachments>,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -40,8 +43,9 @@ impl CovertDiscovered {
                 addresses,
                 engine,
                 events,
-                attached: Mutex::new(HashMap::new()),
+                dialled: Mutex::new(HashSet::new()),
                 origin_registry,
+                attachments,
             }),
         }
     }
@@ -60,11 +64,11 @@ impl DiscoveryPlugin for CovertDiscovered {
         };
         let inner = Arc::clone(&self.inner);
         let pubkey = pubkey.to_vec();
-        if inner
-            .attached
+        if !inner
+            .dialled
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .contains_key(&pubkey)
+            .insert(pubkey.clone())
         {
             return;
         }
@@ -94,6 +98,11 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
         return;
     };
     let name = format!("CovertDiscovered[{carrier}:{addr}]");
+    let peer = admit::who_announced(&pubkey);
+    if !admit::makes_room_for(&inner.attachments, inner.engine.path_count(), &name, peer) {
+        inner.dialled.lock().expect("dialled").remove(&pubkey);
+        return;
+    }
     match super::inproc::attach(
         &inner.engine,
         &name,
@@ -105,14 +114,19 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
         Ok(handle) => {
             tracing::info!(%name, carrier = %carrier, addr = %addr, "covert peer attached");
             inner.origin_registry.record(handle.id(), "covert");
-            inner
-                .attached
-                .lock()
-                .expect("attached")
-                .insert(pubkey, handle);
+            inner.attachments.hold(
+                name,
+                Attached {
+                    service: inner.cfg.service_name(),
+                    announced_by: peer,
+                    interface: handle.id(),
+                    _detaches_when_dropped: Box::new(handle),
+                },
+            );
         }
         Err(e) => {
             tracing::warn!(%name, error = %e, "covert peer attach failed");
+            inner.dialled.lock().expect("dialled").remove(&pubkey);
         }
     }
 }

@@ -1,12 +1,9 @@
 //! TCP discovery plugin (Tor / I2P / Yggdrasil).
 
-mod attachments;
 mod endpoint;
 mod plugin;
-mod quota;
 
-use attachments::Attached;
-pub use attachments::Attachments;
+use super::attachments::{Attached, Attachments};
 
 use std::path::PathBuf;
 use std::sync::Arc;
