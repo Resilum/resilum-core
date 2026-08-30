@@ -41,21 +41,18 @@ pub(super) fn bring_up(
         node.coordinates.clone(),
         wall_clock::unix_now,
     )));
-    node.tasks
-        .push(tokio::spawn(announce(engine.clone(), ours)));
+    node.tasks.push(tokio::spawn(crate::announce_ours::every(
+        engine.clone(),
+        ours,
+        ANNOUNCE_EVERY,
+    )));
     node.tasks.push(tokio::spawn(ask_around(
         engine.clone(),
         router.clone(),
         node.coordinates.clone(),
         node.attachments.clone(),
+        identity.clone(),
     )));
-}
-
-async fn announce(engine: Arc<ReticulumNode>, ours: DestinationHash) {
-    loop {
-        let _ = engine.announce_destination(&ours, None).await;
-        tokio::time::sleep(ANNOUNCE_EVERY).await;
-    }
 }
 
 async fn ask_around(
@@ -63,6 +60,7 @@ async fn ask_around(
     router: Arc<LinkRouter>,
     coordinates: Arc<Coordinates>,
     attachments: Arc<Attachments>,
+    us: Identity,
 ) {
     let aspect = Destination::compute_name_hash(exchange::APP_NAME, &[exchange::ASPECT]);
     let mut round = 0usize;
@@ -86,7 +84,7 @@ async fn ask_around(
                 continue;
             }
             asked_at.insert(*peer, now);
-            if exchange::place(&engine, &router, &coordinates, *peer, *at, now).await {
+            if exchange::place(&engine, &router, &coordinates, &us, *peer, *at, now).await {
                 placed += 1;
             }
         }
