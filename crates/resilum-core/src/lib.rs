@@ -2,6 +2,7 @@
 //! Consumed directly by a Rust caller, or over the C ABI through `resilum-ffi`.
 
 pub mod announce_cap;
+pub mod announce_ours;
 pub mod announce_payload;
 pub mod announce_trigger;
 mod bridge;

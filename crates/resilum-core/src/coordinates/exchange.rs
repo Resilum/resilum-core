@@ -8,10 +8,10 @@ use leviculum_std::api::{
 };
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::time::timeout;
+use tokio::task::JoinSet;
 
-use super::{Claimed, Coordinates, PeerId};
-use crate::link::{Inbound, LinkMsg, LinkRouter};
+use super::{Coordinates, PeerId};
+use crate::link::{Inbound, LinkMsg, LinkRouter, answered};
 
 pub(crate) const APP_NAME: &str = "resilum";
 pub(crate) const ASPECT: &str = "coordinates";
@@ -36,34 +36,45 @@ pub async fn answer(
     coordinates: Arc<Coordinates>,
     now: fn() -> f64,
 ) {
+    let mut serving = JoinSet::new();
     while let Some((link_id, _, from_link)) = arriving.recv().await {
+        while serving.try_join_next().is_some() {}
         let handle = engine.link_handle(&link_id);
-        let asker = engine
-            .get_remote_identity(&link_id)
-            .map(|identity| *identity.hash());
-        tokio::spawn(serve(handle, from_link, coordinates.clone(), asker, now()));
+        serving.spawn(serve(
+            engine.clone(),
+            link_id,
+            handle,
+            from_link,
+            coordinates.clone(),
+            now(),
+        ));
     }
 }
 
 async fn serve(
-    mut handle: LinkHandle,
+    engine: Arc<ReticulumNode>,
+    link_id: LinkId,
+    handle: LinkHandle,
     mut from_link: UnboundedReceiver<LinkMsg>,
     coordinates: Arc<Coordinates>,
-    asker: Option<PeerId>,
     now: f64,
 ) {
-    if let (Some(theirs), Some(peer)) = (read(&mut from_link).await, asker) {
+    let theirs = answered(&mut from_link, ANSWER_WITHIN).await;
+    let asker = engine
+        .get_remote_identity(&link_id)
+        .map(|identity| *identity.hash());
+    if let (Some(theirs), Some(peer)) = (theirs, asker) {
         coordinates.heard(peer, theirs, now);
     }
     let ours = serde_json::to_vec(&coordinates.ours()).unwrap_or_default();
     let _ = handle.send(&ours).await;
-    let _ = handle.close().await;
 }
 
 pub async fn place(
     engine: &Arc<ReticulumNode>,
     router: &Arc<LinkRouter>,
     coordinates: &Arc<Coordinates>,
+    us: &Identity,
     peer: PeerId,
     at: DestinationHash,
     now: f64,
@@ -74,10 +85,13 @@ pub async fn place(
         tracing::debug!(peer = %asking, "no link to ask a peer over");
         return false;
     };
+    if let Err(error) = engine.identify_link(&link_id, us).await {
+        tracing::debug!(peer = %asking, %error, "a peer was asked without saying who was asking");
+    }
     let ours = serde_json::to_vec(&coordinates.ours()).unwrap_or_default();
     let asked_at = Instant::now();
     let theirs = match handle.send(&ours).await {
-        Ok(()) => read(&mut from_link).await,
+        Ok(()) => answered(&mut from_link, ANSWER_WITHIN).await,
         Err(error) => {
             tracing::debug!(peer = %asking, %error, "the ask never went out");
             None
@@ -104,14 +118,4 @@ pub async fn place(
 fn least_round_trip_of(engine: &Arc<ReticulumNode>, link_id: &LinkId) -> Option<Duration> {
     let least = engine.link_stats(link_id)?.min_rtt_ms()?;
     Some(Duration::from_millis(least))
-}
-
-async fn read(from_link: &mut UnboundedReceiver<LinkMsg>) -> Option<Claimed> {
-    loop {
-        match timeout(ANSWER_WITHIN, from_link.recv()).await {
-            Ok(Some(LinkMsg::Data(bytes))) => return serde_json::from_slice(&bytes).ok(),
-            Ok(Some(LinkMsg::Established)) => continue,
-            _ => return None,
-        }
-    }
 }
