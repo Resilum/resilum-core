@@ -1,9 +1,10 @@
 mod pace;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use pace::{between_asks, forgotten_after};
+use pace::{between_asks, forgotten_after, still_resting};
 
 use leviculum_std::api::{Destination, DestinationHash, Identity};
 use leviculum_std::driver::ReticulumNode;
@@ -65,6 +66,7 @@ async fn ask_around(
 ) {
     let aspect = Destination::compute_name_hash(exchange::APP_NAME, &[exchange::ASPECT]);
     let mut round = 0usize;
+    let mut asked_at: HashMap<PeerId, f64> = HashMap::new();
     loop {
         let between_asks = between_asks(coordinates.how_wrong_we_are());
         tokio::time::sleep(between_asks).await;
@@ -73,13 +75,25 @@ async fn ask_around(
         let asking = whom_to_ask(&engine, &aspect, &attachments, round);
         round = round.wrapping_add(1);
         let mut placed = 0;
+        let mut spared = 0;
         for (peer, at) in &asking {
+            if still_resting(
+                coordinates.estimated_rtt(peer),
+                asked_at.get(peer).copied(),
+                now,
+            ) {
+                spared += 1;
+                continue;
+            }
+            asked_at.insert(*peer, now);
             if exchange::place(&engine, &router, &coordinates, *peer, *at, now).await {
                 placed += 1;
             }
         }
+        asked_at.retain(|peer, _| asking.iter().any(|(asked, _)| asked == peer));
         tracing::debug!(
-            asked = asking.len(),
+            asked = asking.len() - spared,
+            spared,
             placed,
             how_wrong_we_are = coordinates.how_wrong_we_are(),
             ours = %format_args!("{:?}", coordinates.ours()),
