@@ -1,6 +1,5 @@
 //! TCP discovery plugin (Tor / I2P / Yggdrasil).
 
-mod endpoint;
 mod plugin;
 
 use super::attachments::{Attached, Attachments};

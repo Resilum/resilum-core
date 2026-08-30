@@ -1,21 +1,12 @@
 //! Announcing our own address, and dialling the peers who announce theirs.
 
 use std::sync::atomic::Ordering;
-use std::time::Duration;
 
-use leviculum_std::api::Identity;
-
-use super::endpoint::{encode_endpoint, parse_endpoint};
 use super::{Attached, TcpDiscovered};
 use crate::config::SocksProxy;
-use crate::coordinates::PeerId;
-use crate::discovery::{DiscoveryPlugin, cache, quota};
-
-fn who_announced(announcer_pubkey: Option<&[u8]>) -> Option<PeerId> {
-    Identity::from_public_key_bytes(announcer_pubkey?)
-        .ok()
-        .map(|identity| *identity.hash())
-}
+use crate::discovery::admit::{self, Room};
+use crate::discovery::endpoint::{encode_endpoint, parse_endpoint};
+use crate::discovery::{DiscoveryPlugin, cache};
 
 impl DiscoveryPlugin for TcpDiscovered {
     fn produce_endpoint(&self) -> Option<Vec<u8>> {
@@ -38,22 +29,11 @@ impl DiscoveryPlugin for TcpDiscovered {
         if self.attachments.holds(&name) {
             return;
         }
-        let newcomer = quota::Peer {
-            attached_as: name.clone(),
-            estimate: self.estimate_for(announcer_pubkey),
-        };
-        match quota::judge(&self.attachments.kept(), newcomer, self.engine.path_count()) {
-            quota::Verdict::Attach => {}
-            quota::Verdict::Replace(displaced) => {
-                tracing::info!(service = %self.cfg.service, %displaced, %name, "a nearer peer took an attached one's place");
-                if let Some(gone) = self.attachments.release(&displaced) {
-                    self.cap_controller.detach(gone.interface);
-                }
-            }
-            quota::Verdict::Refuse => {
-                tracing::debug!(service = %self.cfg.service, %name, "already attached to nearer and further peers");
-                return;
-            }
+        let peer = admit::who_announced(announcer_pubkey.unwrap_or_default());
+        match admit::room_for(&self.attachments, self.engine.path_count(), &name, peer) {
+            Room::Yes => {}
+            Room::OnceThisIsLetGo(gone) => self.cap_controller.detach(gone.interface),
+            Room::No => return,
         }
         let socks = match &self.cfg.socks_proxy {
             Some(SocksProxy::External(h, p)) => Some((h.clone(), *p)),
@@ -73,7 +53,7 @@ impl DiscoveryPlugin for TcpDiscovered {
                     name,
                     Attached {
                         service: self.cfg.service.clone(),
-                        announced_by: who_announced(announcer_pubkey),
+                        announced_by: peer,
                         interface: handle.id(),
                         _detaches_when_dropped: Box::new(handle),
                     },
@@ -89,11 +69,6 @@ impl DiscoveryPlugin for TcpDiscovered {
 }
 
 impl TcpDiscovered {
-    fn estimate_for(&self, announcer_pubkey: Option<&[u8]>) -> Option<Duration> {
-        self.attachments
-            .estimate_of(&who_announced(announcer_pubkey)?)
-    }
-
     /// Keep the peer for the next start, when no announce has arrived yet.
     fn remember(&self, payload: &[u8]) {
         let Some(path) = &self.cache_path else {

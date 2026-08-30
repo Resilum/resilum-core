@@ -47,6 +47,7 @@ fn renders_udp_beside_the_tcp_interfaces() {
         udp: Some(crate::config::UdpInterface {
             listen: Some("0.0.0.0:4343".into()),
             peers_every_datagram_goes_to: vec!["a.example:4242".into(), "b.example:4242".into()],
+            reachable_on: Vec::new(),
         }),
         ..Config::minimal("test")
     };

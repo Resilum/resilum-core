@@ -11,11 +11,12 @@ enum Reach {
     MeshAddress,
 }
 
-const SERVICES: [(&str, u8, Reach); 6] = [
+const SERVICES: [(&str, u8, Reach); 7] = [
     ("tor", 0x01, Reach::Transport),
     ("i2p", 0x02, Reach::Transport),
     ("yggdrasil", 0x03, Reach::Transport),
     ("iroh", 0x04, Reach::Transport),
+    ("udp", 0x05, Reach::Transport),
     // Covert carriers sit above the transports that carry themselves.
     ("covert_icmp", 0x10, Reach::Transport),
     ("nostr_relay", 0x20, Reach::MeshAddress),
@@ -36,8 +37,9 @@ impl Service {
     pub const I2P: Self = Self::at(1);
     pub const YGGDRASIL: Self = Self::at(2);
     pub const IROH: Self = Self::at(3);
-    pub const COVERT_ICMP: Self = Self::at(4);
-    pub const NOSTR_RELAY: Self = Self::at(5);
+    pub const UDP: Self = Self::at(4);
+    pub const COVERT_ICMP: Self = Self::at(5);
+    pub const NOSTR_RELAY: Self = Self::at(6);
 
     /// A name off the wire or out of a configuration file, or `None` when this
     /// build has no such service.
@@ -116,6 +118,7 @@ mod tests {
             (Service::I2P, "i2p"),
             (Service::YGGDRASIL, "yggdrasil"),
             (Service::IROH, "iroh"),
+            (Service::UDP, "udp"),
             (Service::COVERT_ICMP, "covert_icmp"),
             (Service::NOSTR_RELAY, "nostr_relay"),
         ] {

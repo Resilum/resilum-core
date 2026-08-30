@@ -13,6 +13,8 @@ pub enum EndpointFormat {
     },
     /// `[<ipv6>]:<port>` (Yggdrasil): the announced IPv6 is dialed directly.
     BracketedIpv6,
+    /// A plain IPv4 or IPv6 address, four or sixteen bytes on the wire.
+    IpAddress,
 }
 
 /// How to reach the transport's egress proxy.
@@ -89,6 +91,17 @@ impl DiscoveryService {
             socks_proxy: Some(SocksProxy::External("127.0.0.1".into(), 4447)),
             hostname_path: Some(PathBuf::from("/config/i2p/hidden_service/hostname")),
             rns_port: 4242,
+        }
+    }
+
+    pub fn udp(rns_port: u16) -> Self {
+        Self {
+            service: "udp".into(),
+            name_prefix: "UdpDiscovered".into(),
+            endpoint_format: EndpointFormat::IpAddress,
+            socks_proxy: None,
+            hostname_path: None,
+            rns_port,
         }
     }
 

@@ -17,6 +17,7 @@ use resolve::resolve_discovery;
 fn wants_discovery(config: &Config) -> bool {
     !config.discovery.is_empty()
         || !config.covert_discovery.is_empty()
+        || config.udp.is_some()
         || (cfg!(feature = "iroh") && config.iroh.is_some())
         || !config.advertised_services.is_empty()
 }
@@ -60,6 +61,7 @@ pub(super) fn bring_up(
         tcp: &discovery_cfg,
         covert: &node.config.covert_discovery,
         covert_addresses: &covert_addresses,
+        udp: node.config.udp.as_ref(),
         engine: engine.clone(),
         coordinates: node.coordinates.clone(),
         attachments: node.attachments.clone(),

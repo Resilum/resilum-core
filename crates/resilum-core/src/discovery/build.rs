@@ -14,6 +14,7 @@ pub struct BuildParams<'a> {
     pub tcp: &'a [DiscoveryService],
     pub covert: &'a [CovertDiscoveryService],
     pub covert_addresses: &'a [Arc<covert::AddressSource>],
+    pub udp: Option<&'a crate::config::UdpInterface>,
     pub engine: Arc<ReticulumNode>,
     pub coordinates: Arc<crate::coordinates::Coordinates>,
     pub attachments: Arc<super::Attachments>,
@@ -49,6 +50,20 @@ pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDisc
             ygg = Some(plugin.clone());
         }
         d.register(service, plugin);
+    }
+    if let Some(udp) = p.udp {
+        let (_, port) = udp.bound_to().rsplit_once(':').unwrap_or_default();
+        d.register(
+            Service::UDP,
+            Arc::new(super::UdpDiscovered::new(
+                DiscoveryService::udp(port.parse().unwrap_or(4242)),
+                udp,
+                p.engine.clone(),
+                attachments.clone(),
+                p.origin_registry.clone(),
+                Arc::new(covert::AddressSource::new(udp.reachable_on.clone())),
+            )),
+        );
     }
     for (cfg, addresses) in p.covert.iter().zip(p.covert_addresses) {
         let Some(service) = named(&cfg.service_name()) else {

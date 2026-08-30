@@ -90,6 +90,7 @@ impl Attachments {
                 estimate: held
                     .announced_by
                     .and_then(|peer| self.coordinates.estimated_rtt(&peer)),
+                node: held.announced_by,
             })
             .collect()
     }
