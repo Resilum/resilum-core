@@ -5,6 +5,8 @@ const ONCE_SETTLED: Duration = Duration::from_secs(900);
 const SETTLED_BELOW: f64 = 0.25;
 const ROUNDS_MISSED_BEFORE_FORGOTTEN: u32 = 3;
 const NEVER_FORGET_SOONER_THAN: Duration = Duration::from_secs(600);
+const A_LINK_IS_SLOW_ABOVE: Duration = Duration::from_secs(1);
+const SLOW_LINKS_REASKED_NO_SOONER_THAN: Duration = Duration::from_secs(300);
 
 pub(super) fn between_asks(our_error: f64) -> Duration {
     if our_error > SETTLED_BELOW {
@@ -12,6 +14,22 @@ pub(super) fn between_asks(our_error: f64) -> Duration {
     } else {
         ONCE_SETTLED
     }
+}
+
+fn reask_no_sooner_than(estimated_rtt: Option<Duration>) -> Duration {
+    match estimated_rtt {
+        Some(rtt) if rtt >= A_LINK_IS_SLOW_ABOVE => SLOW_LINKS_REASKED_NO_SOONER_THAN,
+        _ => Duration::ZERO,
+    }
+}
+
+pub(super) fn still_resting(
+    estimated_rtt: Option<Duration>,
+    last_asked: Option<f64>,
+    now: f64,
+) -> bool {
+    let rest = reask_no_sooner_than(estimated_rtt);
+    last_asked.is_some_and(|last| now - last < rest.as_secs_f64())
 }
 
 pub(super) fn forgotten_after(between_asks: Duration) -> Duration {
@@ -45,5 +63,37 @@ mod tests {
     fn a_peer_is_forgotten_after_the_rounds_it_missed_but_never_after_just_one() {
         assert_eq!(forgotten_after(ONCE_SETTLED), ONCE_SETTLED * 3);
         assert_eq!(forgotten_after(WHILE_SETTLING), NEVER_FORGET_SOONER_THAN);
+    }
+
+    #[test]
+    fn a_fast_or_unplaced_peer_may_be_reasked_every_round() {
+        assert_eq!(reask_no_sooner_than(None), Duration::ZERO);
+        assert_eq!(
+            reask_no_sooner_than(Some(Duration::from_millis(200))),
+            Duration::ZERO
+        );
+    }
+
+    #[test]
+    fn a_slow_link_is_spared_the_settling_cadence() {
+        assert_eq!(
+            reask_no_sooner_than(Some(Duration::from_secs(2))),
+            SLOW_LINKS_REASKED_NO_SOONER_THAN
+        );
+        assert!(SLOW_LINKS_REASKED_NO_SOONER_THAN > WHILE_SETTLING);
+    }
+
+    #[test]
+    fn a_slow_peer_rests_between_asks_while_a_fast_one_never_does() {
+        let slow = Some(Duration::from_secs(2));
+        let floor = SLOW_LINKS_REASKED_NO_SOONER_THAN.as_secs_f64();
+        assert!(still_resting(slow, Some(1_000.0), 1_000.0 + floor / 2.0));
+        assert!(!still_resting(slow, Some(1_000.0), 1_000.0 + floor + 1.0));
+        assert!(!still_resting(slow, None, 9_999.0));
+        assert!(!still_resting(
+            Some(Duration::from_millis(50)),
+            Some(1_000.0),
+            1_000.1
+        ));
     }
 }
