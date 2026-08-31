@@ -4,8 +4,22 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use crate::config::UdpInterface;
+use crate::config::{BleInterface, UdpInterface};
 use crate::{EgressListen, I2pInterface, IngressConfig};
+
+#[derive(Deserialize)]
+pub(in crate::config_file) struct BleFile {
+    #[serde(default)]
+    pub can_host_a_group: bool,
+}
+
+impl From<BleFile> for BleInterface {
+    fn from(f: BleFile) -> Self {
+        Self {
+            can_host_a_group: f.can_host_a_group,
+        }
+    }
+}
 
 #[derive(Deserialize)]
 pub(in crate::config_file) struct UdpFile {

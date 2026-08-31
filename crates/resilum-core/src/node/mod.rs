@@ -1,5 +1,6 @@
 mod accessors;
 mod attach;
+mod attach_ble;
 mod coordinates;
 mod directory;
 mod interface;
@@ -32,6 +33,7 @@ pub struct Node {
     pub(crate) engine: Option<Arc<ReticulumNode>>,
     pub(crate) registry: Arc<CandidateRegistry>,
     pub(crate) router: Option<Arc<LinkRouter>>,
+    pub(crate) inbox: Option<Arc<crate::link::Inbox>>,
     pub(crate) identity: Option<Identity>,
     pub(crate) lxmf: Option<Arc<crate::lxmf::LxmfHandle>>,
     pub(crate) protect: Option<OutboundSocketHook>,
@@ -45,6 +47,9 @@ pub struct Node {
     pub(crate) directories: BTreeMap<Service, Arc<crate::discovery::ServiceDirectory>>,
     pub(crate) coordinates: Arc<crate::coordinates::Coordinates>,
     pub(crate) attachments: Arc<crate::discovery::Attachments>,
+    pub(crate) ble_facts: crate::ble::election::WhatThePlatformKnows,
+    pub(crate) ble_hosting: crate::ble::election::HostingTheGroup,
+    pub(crate) ble_field: crate::ble::election::Field,
     pub(crate) covert_listeners: Vec<leviculum_std::interfaces::ByteChannelHandle>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
@@ -61,12 +66,14 @@ impl Node {
             .build()
             .map_err(|e| Error::Engine(format!("tokio runtime: {e}")))?;
         let coordinates: Arc<crate::coordinates::Coordinates> = Arc::default();
+        let can_host_a_group = config.ble.as_ref().is_some_and(|ble| ble.can_host_a_group);
         Ok(Self {
             config,
             runtime,
             engine: None,
             registry: Arc::new(CandidateRegistry::default()),
             router: None,
+            inbox: None,
             identity: None,
             lxmf: None,
             protect: None,
@@ -81,6 +88,11 @@ impl Node {
                 .map(|service| (service, Arc::default()))
                 .collect(),
             attachments: Arc::new(crate::discovery::Attachments::new(Arc::clone(&coordinates))),
+            ble_facts: crate::ble::election::WhatThePlatformKnows::unless_a_platform_says(
+                can_host_a_group,
+            ),
+            ble_hosting: crate::ble::election::HostingTheGroup::nobody_yet(),
+            ble_field: crate::ble::election::Field::default(),
             covert_listeners: Vec::new(),
             coordinates,
             #[cfg(all(unix, feature = "ygg"))]

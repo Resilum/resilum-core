@@ -42,6 +42,13 @@ discover_interfaces: true
 #   peers:
 #     - anchor.example:4242
 
+# Bluetooth LE, speaking BLE_PROTOCOL v2.2 so a link works against any peer on
+# that protocol. Absent means no radio is opened; a host without an adapter says
+# so once and carries on. Unlike `udp` this is a medium of its own, so the
+# plain-IP switch does not touch it.
+# ble:
+#   can_host_a_group: false
+
 # Transport-discovery plugins: each attaches discovered peers over its
 # transport and (when it can determine our own reachable endpoint) announces
 # ours for others to attach. `iroh` is the exception: it resolves peers but

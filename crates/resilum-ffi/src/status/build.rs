@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use super::lxmf;
 use super::model::{
-    CoordinatesStatus, Interface, Link, NodeStatus, PlacedPeer, TorStatus, Transport, added_by, hex,
+    BleStatus, CoordinatesStatus, Interface, Link, NodeStatus, PlacedPeer, TorStatus, Transport,
+    added_by, hex,
 };
 use crate::node::ResilumNode;
 use resilum_core::discovery::Service;
@@ -46,6 +47,9 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
                 .collect(),
         },
         links: Vec::new(),
+        ble: BleStatus {
+            hosting_the_group: node.0.ble_hosting_the_group(),
+        },
     };
     let Some(engine) = node.0.engine() else {
         return status;

@@ -5,6 +5,7 @@ pub mod announce_cap;
 pub mod announce_ours;
 pub mod announce_payload;
 pub mod announce_trigger;
+pub mod ble;
 mod bridge;
 mod config;
 mod config_file;
@@ -37,8 +38,8 @@ mod wall_clock;
 pub mod ygg;
 
 pub use config::{
-    Config, CovertDiscoveryService, DiscoveryService, EgressListen, EndpointFormat, I2pInterface,
-    IngressConfig, LxmfConfig,
+    BleInterface, Config, CovertDiscoveryService, DiscoveryService, EgressListen, EndpointFormat,
+    I2pInterface, IngressConfig, LxmfConfig, UdpInterface,
 };
 pub use config_file::{from_json, from_yaml};
 pub use error::{Error, Result};

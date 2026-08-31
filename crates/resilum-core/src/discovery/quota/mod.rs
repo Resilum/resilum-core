@@ -15,11 +15,32 @@ fn crossing_of(kept: usize) -> usize {
     (kept / 4).max(1)
 }
 
+fn held_for_the_radio_of(kept: usize) -> usize {
+    (kept / 4).max(1)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Reached {
+    OverTheRadio,
+    OverTheNetwork,
+}
+
+impl Reached {
+    pub(crate) fn attached_as(service: &str) -> Self {
+        if service == crate::ble::ATTACHED_AS {
+            Self::OverTheRadio
+        } else {
+            Self::OverTheNetwork
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Peer {
     pub(crate) attached_as: String,
     pub(crate) estimate: Option<Duration>,
     pub(crate) node: Option<[u8; 16]>,
+    pub(crate) reached: Reached,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -35,6 +56,11 @@ pub(crate) fn judge(kept: &[Peer], newcomer: Peer, mesh: usize) -> Verdict {
         return Verdict::Attach;
     }
     if nodes_kept(kept) < room {
+        return Verdict::Attach;
+    }
+    if newcomer.reached == Reached::OverTheRadio
+        && reached_over_the_radio(kept) < held_for_the_radio_of(room)
+    {
         return Verdict::Attach;
     }
     let mut all = kept.to_vec();
@@ -56,6 +82,16 @@ fn another_way_to_a_node_we_keep(kept: &[Peer], newcomer: &Peer) -> bool {
     newcomer
         .node
         .is_some_and(|node| kept.iter().any(|peer| peer.node == Some(node)))
+}
+
+fn reached_over_the_radio(kept: &[Peer]) -> usize {
+    nodes_kept(
+        &kept
+            .iter()
+            .filter(|peer| peer.reached == Reached::OverTheRadio)
+            .cloned()
+            .collect::<Vec<Peer>>(),
+    )
 }
 
 fn nodes_kept(kept: &[Peer]) -> usize {

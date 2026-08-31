@@ -11,6 +11,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [dependencies]
 resilum-core = { path = "../resilum-core", features = [
   "arti",
+  "ble",
   "i2p",
   "ygg",
   "iroh-protect",

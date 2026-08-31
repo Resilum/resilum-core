@@ -17,6 +17,12 @@ pub(super) struct NodeStatus {
     pub tor: Option<TorStatus>,
     pub coordinates: CoordinatesStatus,
     pub links: Vec<Link>,
+    pub ble: BleStatus,
+}
+
+#[derive(Serialize)]
+pub(super) struct BleStatus {
+    pub hosting_the_group: bool,
 }
 
 #[derive(Serialize)]

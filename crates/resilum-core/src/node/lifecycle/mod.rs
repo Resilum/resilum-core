@@ -1,3 +1,4 @@
+pub(crate) mod ble;
 mod coordinates;
 mod discovery;
 mod egress;
@@ -52,6 +53,15 @@ impl Node {
             let inbox = Arc::new(link::Inbox::default());
             let (unclaimed_tx, unclaimed_rx) = mpsc::unbounded_channel();
             discovery::bring_up(self, &leviculum, &identity)?;
+            ble::bring_up(
+                self,
+                &ble::Wiring {
+                    engine: &leviculum,
+                    identity: &identity,
+                    router: &router,
+                    inbox: &inbox,
+                },
+            );
             coordinates::bring_up(
                 self,
                 &leviculum,
@@ -70,6 +80,7 @@ impl Node {
             }
             self.tasks.extend(supervisor::spawn_all(bridge_tasks));
             self.router = Some(router.clone());
+            self.inbox = Some(inbox.clone());
         }
         self.identity = Some(identity);
         self.engine = Some(leviculum);
@@ -80,6 +91,7 @@ impl Node {
     pub fn stop(&mut self) -> Result<()> {
         self.wait_for_tasks_to_let_go_of_the_engine();
         self.router = None;
+        self.inbox = None;
         self.identity = None;
         self.lxmf = None;
         self.covert_listeners.clear();

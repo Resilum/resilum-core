@@ -83,7 +83,7 @@ announce re-establishes the path over another one and nothing above notices.
 | ICMP echo | frames ride inside echo payloads; the client needs no privileges, only a listening node wants a raw socket | ready |
 | LoRa (RNode) | radio over USB; the stack drives it, the config here cannot name one yet | planned |
 | WebRTC | the meeting point for two peers both behind carrier NAT, where no side has an address the other can dial — and the only transport a browser could speak | planned |
-| BLE | GATT for the control plane, L2CAP channels for bulk; tens of kB/s, no infrastructure and no user interaction at all | planned |
+| BLE | GATT carrying BLE_PROTOCOL v2.2, the protocol Columba speaks, so a link works against any peer on it — no infrastructure, no pairing and no user interaction at all | feature `ble`, not yet run on a radio |
 | Wi-Fi Direct | tens of Mbps between devices with no router present; a Linux board can host the group, which is what phones on one platform cannot do | planned |
 | BPv7 bundles | store-and-forward as a carrier: a bundle waits for the next contact instead of needing a live path, with custody handed over hop by hop | planned |
 | RaptorQ coding | rides on top of another interface: send symbols until enough arrive, so a lossy or one-way path needs no round trip per gap — the fit for radio and for the covert carriers | planned |

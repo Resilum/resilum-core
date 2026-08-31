@@ -99,7 +99,13 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
     };
     let name = format!("CovertDiscovered[{carrier}:{addr}]");
     let peer = admit::who_announced(&pubkey);
-    match admit::room_for(&inner.attachments, inner.engine.path_count(), &name, peer) {
+    match admit::room_for(
+        &inner.attachments,
+        inner.engine.path_count(),
+        &name,
+        peer,
+        admit::Reached::OverTheNetwork,
+    ) {
         Room::Yes | Room::OnceThisIsLetGo(_) => {}
         Room::No => {
             inner.dialled.lock().expect("dialled").remove(&pubkey);
