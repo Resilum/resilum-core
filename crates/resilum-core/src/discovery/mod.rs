@@ -2,8 +2,8 @@
 //! node has ready, and each endpoint in it routes to the plugin for its
 //! service.
 
-mod admit;
-mod attachments;
+pub(crate) mod admit;
+pub(crate) mod attachments;
 mod build;
 mod cache;
 mod consume;

@@ -1,0 +1,100 @@
+mod dial;
+mod meet;
+mod rounds;
+
+use std::sync::Arc;
+use std::time::Duration;
+
+use leviculum_std::driver::ReticulumNode;
+use tokio::sync::mpsc::Receiver;
+
+use super::beacon::Beacon;
+use super::election::Field;
+use super::handshake::Handshakes;
+use super::links::{Links, PeerId};
+use super::radio::{Radio, RadioEvent};
+use super::spec;
+use dial::HeldOff;
+
+pub use rounds::{Deciding, keep_deciding};
+
+const LOOK_AROUND_EVERY: Duration = Duration::from_secs(5);
+const GIVE_UP_ON_A_HANDSHAKE_AFTER_MS: u64 = 5_000;
+
+pub struct Ours {
+    pub engine: Arc<ReticulumNode>,
+    pub radio: Arc<dyn Radio>,
+    pub identity: PeerId,
+    pub beacon: Beacon,
+    pub attachments: Arc<crate::discovery::Attachments>,
+    pub origins: Arc<crate::discovery::OriginRegistry>,
+    pub field: Field,
+}
+
+pub async fn run(ours: Ours, mut events: Receiver<RadioEvent>, since: std::time::Instant) {
+    let now_ms = move || u64::try_from(since.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let mut links = Links::new();
+    let mut waiting = Handshakes::default();
+    let mut held_off = HeldOff::new();
+    let mut look_around = tokio::time::interval(LOOK_AROUND_EVERY);
+
+    loop {
+        tokio::select! {
+            heard = events.recv() => match heard {
+                None => return,
+                Some(event) => {
+                    on_event(&ours, &mut links, &mut waiting, &mut held_off, event, now_ms());
+                }
+            },
+            _ = look_around.tick() => {
+                let _ = ours.radio.scan(spec::SERVICE);
+                dial::those_who_waited(&ours, &links, &mut held_off, now_ms());
+                for conn in waiting.gave_up_by(now_ms(), GIVE_UP_ON_A_HANDSHAKE_AFTER_MS) {
+                    ours.radio.disconnect(conn);
+                }
+            }
+        }
+    }
+}
+
+fn on_event(
+    ours: &Ours,
+    links: &mut Links,
+    waiting: &mut Handshakes,
+    held_off: &mut HeldOff,
+    event: RadioEvent,
+    now_ms: u64,
+) {
+    match event {
+        RadioEvent::Seen { address, name } => {
+            dial::on_seen(ours, links, held_off, address, name.as_deref(), now_ms);
+        }
+        RadioEvent::Connected {
+            conn,
+            address,
+            role,
+            ..
+        } => {
+            held_off.remove(&address);
+            let _ = waiting.began(ours.radio.as_ref(), conn, address, role, now_ms);
+        }
+        RadioEvent::Data {
+            conn,
+            characteristic,
+            value,
+        } => {
+            if waiting.is_waiting(conn) {
+                meet::on_handshake(ours, links, waiting, conn, characteristic, &value, now_ms);
+            } else {
+                links.hand_over(conn, value);
+            }
+        }
+        RadioEvent::Disconnected { conn } => {
+            waiting.forget(conn);
+            if let Some(peer) = links.part(conn) {
+                ours.field.gone(peer);
+            }
+        }
+        RadioEvent::WritableChanged { .. } => {}
+    }
+}

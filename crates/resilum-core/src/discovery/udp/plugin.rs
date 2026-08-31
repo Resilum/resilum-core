@@ -29,6 +29,7 @@ impl DiscoveryPlugin for UdpDiscovered {
             inner.engine.path_count(),
             &name,
             announced_by,
+            admit::Reached::OverTheNetwork,
         ) {
             Room::Yes => None,
             Room::OnceThisIsLetGo(gone) => Some(gone),

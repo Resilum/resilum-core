@@ -30,7 +30,13 @@ impl DiscoveryPlugin for TcpDiscovered {
             return;
         }
         let peer = admit::who_announced(announcer_pubkey.unwrap_or_default());
-        match admit::room_for(&self.attachments, self.engine.path_count(), &name, peer) {
+        match admit::room_for(
+            &self.attachments,
+            self.engine.path_count(),
+            &name,
+            peer,
+            admit::Reached::OverTheNetwork,
+        ) {
             Room::Yes => {}
             Room::OnceThisIsLetGo(gone) => self.cap_controller.detach(gone.interface),
             Room::No => return,

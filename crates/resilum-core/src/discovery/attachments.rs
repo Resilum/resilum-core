@@ -91,6 +91,7 @@ impl Attachments {
                     .announced_by
                     .and_then(|peer| self.coordinates.estimated_rtt(&peer)),
                 node: held.announced_by,
+                reached: quota::Reached::attached_as(&held.service),
             })
             .collect()
     }

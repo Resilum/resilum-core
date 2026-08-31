@@ -52,6 +52,8 @@ rustls = { version = "0.23", optional = true, default-features = false, features
 ] }
 yosemite = { version = "0.7", optional = true }
 tokio-smoltcp = { version = "0.6", optional = true }
+blew = { version = "0.3", optional = true }
+uuid = { version = "1", optional = true }
 iroh = { version = "=1.0.3", optional = true }
 iroh-base = { version = "=1.0.3", optional = true, default-features = false, features = [
   "key",
@@ -64,9 +66,13 @@ hickory-resolver = { version = "0.26", optional = true, default-features = false
 ] }
 violin = { version = "0.3.0", features = ["rand"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+dbus = { version = "0.9", features = ["vendored"], optional = true }
+
 [features]
 default = []
 arti = ["dep:arti-client", "dep:tokio-util", "dep:tor-rtcompat", "dep:rustls"]
+ble = ["dep:blew", "dep:uuid", "dep:dbus"]
 i2p = ["dep:yosemite"]
 ygg = ["dep:tokio-smoltcp"]
 iroh = ["dep:iroh", "dep:hickory-resolver"]

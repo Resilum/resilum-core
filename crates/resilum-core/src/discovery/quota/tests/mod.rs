@@ -1,3 +1,5 @@
+mod radio;
+
 use super::*;
 
 const A_MESH_OF: usize = 4096;
@@ -11,6 +13,7 @@ fn peer(nth: u8, estimate: Option<Duration>) -> Peer {
         attached_as: format!("tor[peer{nth}]:4242"),
         estimate,
         node: Some([nth; 16]),
+        reached: Reached::OverTheNetwork,
     }
 }
 
@@ -19,6 +22,16 @@ fn same_node_over(transport: &str, nth: u8) -> Peer {
         attached_as: format!("{transport}[peer{nth}]:4242"),
         estimate: None,
         node: Some([nth; 16]),
+        reached: Reached::OverTheNetwork,
+    }
+}
+
+fn met_over_the_radio(nth: u8) -> Peer {
+    Peer {
+        attached_as: format!("BleDiscovered[peer{nth}]"),
+        estimate: None,
+        node: Some([nth; 16]),
+        reached: Reached::OverTheRadio,
     }
 }
 

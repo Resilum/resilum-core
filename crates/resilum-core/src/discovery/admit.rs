@@ -1,6 +1,7 @@
 use crate::coordinates::PeerId;
 use crate::discovery::attachments::{Attached, Attachments};
 use crate::discovery::quota;
+pub(crate) use crate::discovery::quota::Reached;
 
 pub(crate) enum Room {
     Yes,
@@ -19,11 +20,13 @@ pub(crate) fn room_for(
     mesh: usize,
     name: &str,
     peer: Option<PeerId>,
+    reached: Reached,
 ) -> Room {
     let newcomer = quota::Peer {
         attached_as: name.to_owned(),
         estimate: peer.and_then(|peer| attachments.estimate_of(&peer)),
         node: peer,
+        reached,
     };
     match quota::judge(&attachments.kept(), newcomer, mesh) {
         quota::Verdict::Attach => Room::Yes,

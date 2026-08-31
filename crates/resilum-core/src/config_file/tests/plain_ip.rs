@@ -48,6 +48,41 @@ udp:
 }
 
 #[test]
+fn a_ble_section_says_whether_this_host_can_host_a_group() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+ble:
+  can_host_a_group: true
+",
+    )
+    .unwrap();
+
+    assert!(cfg.ble.expect("ble interface").can_host_a_group);
+}
+
+#[test]
+fn ble_is_its_own_medium_so_the_plain_ip_switch_leaves_it_alone() {
+    let cfg = from_yaml(
+        "
+instance_name: n
+plain_ip: false
+ble: {}
+",
+    )
+    .unwrap();
+
+    assert!(cfg.ble.is_some());
+}
+
+#[test]
+fn a_config_that_never_mentions_ble_does_not_open_a_radio() {
+    let cfg = from_yaml("instance_name: n").unwrap();
+
+    assert!(cfg.ble.is_none());
+}
+
+#[test]
 fn plain_ip_leaves_the_ygg_anchors_to_the_ygg_transport() {
     let cfg = from_yaml(
         "

@@ -2,6 +2,7 @@
 //! Opaque-pointer wrappers; every entry point catches panics (unwinding into C
 //! is undefined behaviour).
 
+mod ble;
 mod event;
 mod identity;
 mod interface;
@@ -17,6 +18,7 @@ mod vpn;
 #[cfg(unix)]
 mod ygg;
 
+pub use ble::*;
 pub use event::*;
 pub use interface::*;
 pub use iroh::*;

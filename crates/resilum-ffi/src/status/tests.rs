@@ -3,7 +3,7 @@
 
 use resilum_core::coordinates::Coordinates;
 
-use super::model::{CoordinatesStatus, LxmfStatus, NodeStatus};
+use super::model::{BleStatus, CoordinatesStatus, LxmfStatus, NodeStatus};
 
 fn bare_status() -> NodeStatus {
     NodeStatus {
@@ -21,6 +21,9 @@ fn bare_status() -> NodeStatus {
             peers: Vec::new(),
         },
         links: Vec::new(),
+        ble: BleStatus {
+            hosting_the_group: false,
+        },
     }
 }
 
