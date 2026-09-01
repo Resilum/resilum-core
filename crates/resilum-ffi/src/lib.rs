@@ -16,6 +16,8 @@ mod strings;
 #[cfg(unix)]
 mod vpn;
 #[cfg(unix)]
+mod wifi_group;
+#[cfg(unix)]
 mod ygg;
 
 pub use ble::*;
@@ -30,6 +32,8 @@ pub use status::*;
 pub use strings::*;
 #[cfg(unix)]
 pub use vpn::*;
+#[cfg(unix)]
+pub use wifi_group::*;
 #[cfg(unix)]
 pub use ygg::*;
 

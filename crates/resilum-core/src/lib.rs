@@ -34,6 +34,8 @@ pub mod supervisor;
 #[cfg(feature = "arti")]
 pub mod tor;
 mod wall_clock;
+#[cfg(unix)]
+pub mod wifi_group;
 #[cfg(feature = "ygg")]
 pub mod ygg;
 
