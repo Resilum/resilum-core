@@ -28,7 +28,7 @@ use crate::set_error;
 ///       "added_by": "autoconnect" | "bootstrap" | "other",
 ///       "kind": "tcp" | "udp" | "i2p" | "serial" | "rnode" | "...",
 ///       "discovered_via": "tor" | "i2p" | "yggdrasil" | "iroh" | "covert"
-///                       | "udp" | "ble" | "direct",
+///                       | "udp" | "ble" | "wifi" | "direct",
 ///       "online": true, "local_client": false,
 ///       "rx_bytes": 0, "tx_bytes": 0, "bitrate": 0 | null,
 ///       "peer_nodes": ["<32-hex>"], "peer_hashes": ["<32-hex>"] }
@@ -51,6 +51,7 @@ use crate::set_error;
 ///   "ble": { "hosting_the_group": false },
 ///   "links": [ { "identity_hash": "<32-hex>",
 ///                "transport": "tor" | "i2p" | "yggdrasil" | "udp" | "ble"
+///                            | "wifi"
 ///                            | "covert/icmp"
 ///                            | "...",
 ///                "interface_name": "<string>" | null,

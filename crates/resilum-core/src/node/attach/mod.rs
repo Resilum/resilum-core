@@ -1,5 +1,5 @@
-//! Data-plane attach points: the socket-protect hook, the L3 VPN routing hub,
-//! and the Yggdrasil transport.
+#[cfg(unix)]
+mod wifi_group;
 
 use leviculum_std::socket_hook::OutboundSocketHook;
 
