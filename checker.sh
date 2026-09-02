@@ -197,7 +197,8 @@ markdownlint-cli2 "${docs[@]}"
 step "docker build"
 if [ "$RUN_DOCKER" = true ]; then
     require docker 'https://docs.docker.com/engine/install/'
-    docker buildx build --load -f Dockerfile -t resilum-core:check .
+    read -ra also <<<"${DOCKER_BUILD_FLAGS:-}"
+    docker buildx build --load "${also[@]}" -f Dockerfile -t resilum-core:check .
 else
     printf '  not requested (pass --docker to build)\n'
 fi

@@ -19,17 +19,17 @@ jobs:
       - name: The toolchain rust-toolchain.toml pins, with its targets
         run: rustup show active-toolchain
       - uses: Swatinem/rust-cache@v2
-      - name: Tools the checker refuses to run without
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: taplo-cli,cargo-deny,gitleaks,hadolint
+      - name: The rest the checker refuses to run without
         run: |
           sudo apt-get install -qq -y musl-tools
-          cargo install --locked taplo-cli cargo-deny ast-grep
-          npm i -g markdownlint-cli2
+          npm i -g markdownlint-cli2 @ast-grep/cli
           pip install --break-system-packages yamllint
-          leaks=https://github.com/gitleaks/gitleaks/releases/download
-          curl -sSfL "$leaks/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin gitleaks
-          sudo curl -sSfL -o /usr/local/bin/hadolint \
-            https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
-          sudo chmod +x /usr/local/bin/hadolint
+      - uses: docker/setup-buildx-action@v3
       - name: The same gate that runs before a commit
         run: ./checker.sh --docker
+        env:
+          DOCKER_BUILD_FLAGS: >-
+            --cache-from type=gha --cache-to type=gha,mode=max

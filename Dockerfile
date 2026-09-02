@@ -2,16 +2,14 @@
 
 FROM --platform=$BUILDPLATFORM ghcr.io/rust-cross/cargo-zigbuild:0.23.2 AS build
 ARG TARGETPLATFORM
-ARG RUST_VERSION=1.97.1
 # PROFILE=quick trades an unoptimised binary for a far faster build when testing.
 ARG PROFILE=release
-ENV RUSTUP_TOOLCHAIN=${RUST_VERSION}
-RUN rustup toolchain install "$RUST_VERSION" --profile minimal \
-      --target x86_64-unknown-linux-musl \
-      --target aarch64-unknown-linux-musl
 WORKDIR /src
+COPY rust-toolchain.toml /src/
+RUN rustup toolchain install
 COPY . /src
 RUN --mount=type=cache,target=/root/.cargo/registry \
+    --mount=type=cache,target=/root/.cargo/git \
     --mount=type=cache,target=/src/target \
     case "$TARGETPLATFORM" in \
       linux/amd64) target=x86_64-unknown-linux-musl ;; \
