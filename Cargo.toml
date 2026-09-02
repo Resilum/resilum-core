@@ -9,7 +9,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 # AGPL-3.0 because the core links the leviculum Rust Reticulum stack, which is
 # AGPL-3.0.
