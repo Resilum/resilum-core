@@ -23,11 +23,11 @@ const HEADER_LEN: usize = 8; // type + code + checksum + id + seq
 
 fn checksum(data: &[u8]) -> u16 {
     let mut sum: u32 = 0;
-    let mut chunks = data.chunks_exact(2);
-    for c in &mut chunks {
-        sum = sum.wrapping_add(u16::from_be_bytes([c[0], c[1]]) as u32);
+    let (pairs, remainder) = data.as_chunks::<2>();
+    for pair in pairs {
+        sum = sum.wrapping_add(u16::from_be_bytes(*pair) as u32);
     }
-    if let &[last] = chunks.remainder() {
+    if let &[last] = remainder {
         sum = sum.wrapping_add(u16::from_be_bytes([last, 0]) as u32);
     }
     while sum >> 16 != 0 {

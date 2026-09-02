@@ -38,7 +38,7 @@ fn parse_hex16(hex: &str) -> Option<[u8; 16]> {
         return None;
     }
     let mut out = [0u8; 16];
-    for (byte, pair) in out.iter_mut().zip(hex.as_bytes().chunks_exact(2)) {
+    for (byte, pair) in out.iter_mut().zip(hex.as_bytes().as_chunks::<2>().0) {
         let hi = (pair[0] as char).to_digit(16)?;
         let lo = (pair[1] as char).to_digit(16)?;
         *byte = (hi * 16 + lo) as u8;

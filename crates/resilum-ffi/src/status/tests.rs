@@ -7,6 +7,7 @@ use super::model::{BleStatus, CoordinatesStatus, LxmfStatus, NodeStatus};
 
 fn bare_status() -> NodeStatus {
     NodeStatus {
+        version: env!("CARGO_PKG_VERSION"),
         running: false,
         socks_port: Some(0),
         identity_hash: None,

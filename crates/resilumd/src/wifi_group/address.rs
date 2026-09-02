@@ -3,6 +3,10 @@ use std::os::fd::AsRawFd;
 
 const A_FULL_24: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
 
+const fn as_wide_as_this_libc_wants(request: u64) -> libc::Ioctl {
+    request as libc::Ioctl
+}
+
 pub fn put_on(interface: &str, owner: Ipv4Addr) -> Result<(), String> {
     let socket = socket2::Socket::new(
         socket2::Domain::IPV4,
@@ -11,15 +15,25 @@ pub fn put_on(interface: &str, owner: Ipv4Addr) -> Result<(), String> {
     )
     .map_err(|e| format!("no socket to configure {interface}: {e}"))?;
     let fd = socket.as_raw_fd();
-    told(fd, interface, libc::SIOCSIFADDR, as_sockaddr(owner))?;
-    told(fd, interface, libc::SIOCSIFNETMASK, as_sockaddr(A_FULL_24))?;
+    told(
+        fd,
+        interface,
+        as_wide_as_this_libc_wants(libc::SIOCSIFADDR),
+        as_sockaddr(owner),
+    )?;
+    told(
+        fd,
+        interface,
+        as_wide_as_this_libc_wants(libc::SIOCSIFNETMASK),
+        as_sockaddr(A_FULL_24),
+    )?;
     brought_up(fd, interface)
 }
 
 fn told(
     fd: i32,
     interface: &str,
-    order: libc::c_ulong,
+    order: libc::Ioctl,
     address: libc::sockaddr,
 ) -> Result<(), String> {
     let mut request = named(interface)?;
@@ -35,7 +49,14 @@ fn told(
 
 fn brought_up(fd: i32, interface: &str) -> Result<(), String> {
     let mut request = named(interface)?;
-    if unsafe { libc::ioctl(fd, libc::SIOCGIFFLAGS, &raw mut request) } < 0 {
+    if unsafe {
+        libc::ioctl(
+            fd,
+            as_wide_as_this_libc_wants(libc::SIOCGIFFLAGS),
+            &raw mut request,
+        )
+    } < 0
+    {
         return Err(format!(
             "{interface} would not say how it stands: {}",
             std::io::Error::last_os_error()
@@ -44,7 +65,14 @@ fn brought_up(fd: i32, interface: &str) -> Result<(), String> {
     unsafe {
         request.ifr_ifru.ifru_flags |= (libc::IFF_UP | libc::IFF_RUNNING) as libc::c_short;
     }
-    if unsafe { libc::ioctl(fd, libc::SIOCSIFFLAGS, &raw mut request) } < 0 {
+    if unsafe {
+        libc::ioctl(
+            fd,
+            as_wide_as_this_libc_wants(libc::SIOCSIFFLAGS),
+            &raw mut request,
+        )
+    } < 0
+    {
         return Err(format!(
             "{interface} would not come up: {}",
             std::io::Error::last_os_error()

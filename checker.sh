@@ -1,53 +1,60 @@
 #!/usr/bin/env bash
-# Format (autofix), lint, typecheck, test, doc, supply-chain and config lint.
+# Run: ./checker.sh [--docker] [--check]
 # A missing tool fails the run: a skipped step reads like a passed one.
-#
-# Run: ./checker.sh [--docker]
+
 set -euo pipefail
 cd "$(dirname "$0")"
 
 RUN_DOCKER=false
-[ "${1:-}" = "--docker" ] && RUN_DOCKER=true
+FORMAT_IN_PLACE=true
+[ -n "${CI:-}" ] && FORMAT_IN_PLACE=false
+for argument in "$@"; do
+    case "$argument" in
+        --docker) RUN_DOCKER=true ;;
+        --check) FORMAT_IN_PLACE=false ;;
+        *)
+            printf '  ✗ unknown argument %s\n    run: ./checker.sh [--docker] [--check]\n' \
+                "$argument"
+            exit 1
+            ;;
+    esac
+done
 
 MAX_LINES=150
 MAX_COMMENT_PCT=15
 
 step() { printf '\n▶ %s\n' "$1"; }
 
-# require <command> <how to install it>
 require() {
     command -v "$1" >/dev/null 2>&1 && return 0
     printf '  ✗ %s is not installed\n    install: %s\n' "$1" "$2"
     exit 1
 }
 
-# Files git knows about plus new ones it does not ignore, so a file is linted
-# before it is ever staged.
+# So a file is linted before it is ever staged.
 tracked_and_new() {
     git ls-files --cached --others --exclude-standard "$@"
 }
 
 step "rustfmt"
-cargo fmt --all
+if $FORMAT_IN_PLACE; then cargo fmt --all; else cargo fmt --all --check; fi
 
 step "taplo (TOML)"
 require taplo 'cargo install taplo-cli --locked'
-RUST_LOG=warn taplo fmt
+if $FORMAT_IN_PLACE; then RUST_LOG=warn taplo fmt; else RUST_LOG=warn taplo fmt --check; fi
 
 step "file length (<= $MAX_LINES lines)"
 cargo run --quiet -p xtask -- file-length "$MAX_LINES" crates
 
 step "comment density (<= $MAX_COMMENT_PCT% of non-blank lines)"
-# Comments inside code only: `///` and `//!` document the API, and no threshold
-# separates a needed doc from prose — that is a review question. Counted off
-# the parse tree, so a `//` inside a string literal is not a comment.
+# Code comments only: no threshold separates a needed `///` from prose, and a
+# `//` inside a string literal is not a comment — both come off the parse tree.
 cargo run --quiet -p xtask -- comment-density "$MAX_COMMENT_PCT" crates
 
 step "gitleaks (staged and history)"
 require gitleaks 'https://github.com/gitleaks/gitleaks#installing'
-# Rules live in .gitleaks.toml; the baseline holds what is already published,
-# so only new findings fail. Staged first: that is what a commit is about to
-# carry, and the tree can hold local edits that never become one.
+# The baseline holds what is already published, so only new findings fail.
+# Staged first: that is what a commit is about to carry.
 gitleaks git --staged --no-banner --redact
 gitleaks git --baseline-path .gitleaks-baseline.json --no-banner --redact
 
@@ -69,6 +76,15 @@ rustup target list --installed | grep -qx "$ANDROID_TARGET" || {
 }
 cargo clippy --quiet -p resilum-core --target "$ANDROID_TARGET" -- -D warnings
 
+step "the daemon against the image's musl (deny warnings)"
+MUSL_TARGET=x86_64-unknown-linux-musl
+rustup target list --installed | grep -qx "$MUSL_TARGET" || {
+    printf '  ✗ target %s is not installed\n    install: rustup target add %s\n' \
+        "$MUSL_TARGET" "$MUSL_TARGET"
+    exit 1
+}
+cargo clippy --quiet -p resilumd --target "$MUSL_TARGET" -- -D warnings
+
 step "test"
 cargo test --workspace
 
@@ -76,9 +92,8 @@ step "doc (deny broken links)"
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --quiet
 
 step "the local [patch], if any, is in effect"
-# An ignored override means a run that reads as testing the integration
-# worktree tested the pinned revision. `-D warnings` does not catch it: this is
-# a cargo diagnostic, not a lint.
+# An ignored override means a run that reads as testing an override tested the
+# pinned revision instead. A cargo diagnostic, so `-D warnings` misses it.
 if [ -f .cargo/config.toml ]; then
     # Not `cargo metadata` — it resolves the same graph without reporting this.
     ignored=$(cargo check --workspace --all-targets 2>&1 >/dev/null |

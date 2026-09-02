@@ -19,6 +19,7 @@ use crate::set_error;
 /// `resilum_last_error`. Free with `resilum_string_free`. Shape:
 /// ```json
 /// {
+///   "version": "<semver of the library the caller linked>",
 ///   "running": true,
 ///   "socks_port": 0 | null,
 ///   "identity_hash": "<32-hex>" | null,

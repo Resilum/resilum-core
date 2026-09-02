@@ -99,6 +99,7 @@ fn log_startup(node: &Node) {
         .map(|h| resilum_core::hex::encode(h.iter().take(8)))
         .unwrap_or_default();
     tracing::info!(
+        version = env!("CARGO_PKG_VERSION"),
         instance = node.config().instance_name.as_str(),
         identity = %id_hash,
         "started"
