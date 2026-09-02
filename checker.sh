@@ -77,13 +77,15 @@ rustup target list --installed | grep -qx "$ANDROID_TARGET" || {
 cargo clippy --quiet -p resilum-core --target "$ANDROID_TARGET" -- -D warnings
 
 step "the daemon against the image's musl (deny warnings)"
+require musl-gcc 'pacman -S musl  |  apt install musl-tools  |  apk add musl-dev'
 MUSL_TARGET=x86_64-unknown-linux-musl
 rustup target list --installed | grep -qx "$MUSL_TARGET" || {
     printf '  ✗ target %s is not installed\n    install: rustup target add %s\n' \
         "$MUSL_TARGET" "$MUSL_TARGET"
     exit 1
 }
-cargo clippy --quiet -p resilumd --target "$MUSL_TARGET" -- -D warnings
+CC_x86_64_unknown_linux_musl=musl-gcc \
+    cargo clippy --quiet -p resilumd --target "$MUSL_TARGET" -- -D warnings
 
 step "test"
 cargo test --workspace

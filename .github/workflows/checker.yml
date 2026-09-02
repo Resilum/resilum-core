@@ -21,6 +21,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Tools the checker refuses to run without
         run: |
+          sudo apt-get install -qq -y musl-tools
           cargo install --locked taplo-cli cargo-deny ast-grep
           npm i -g markdownlint-cli2
           pip install --break-system-packages yamllint
