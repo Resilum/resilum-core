@@ -4944,7 +4944,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-core"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "arti-client",
  "blew",
@@ -4987,7 +4987,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-ffi"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "cbindgen",
  "ndk-context",
@@ -5000,7 +5000,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-nostr"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "bech32",
  "data-encoding",
@@ -5020,7 +5020,7 @@ dependencies = [
 
 [[package]]
 name = "resilumd"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "ctrlc",
  "data-encoding",
@@ -8623,7 +8623,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.0.0"
+version = "0.1.0"
 dependencies = [
  "tree-sitter",
  "tree-sitter-rust",

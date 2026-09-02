@@ -124,7 +124,7 @@ impl Node {
     }
 
     fn wait_for_tasks_to_let_go_of_the_engine(&mut self) {
-        let tasks: Vec<_> = self.tasks.drain(..).collect();
+        let tasks = std::mem::take(&mut self.tasks);
         for task in &tasks {
             task.abort();
         }

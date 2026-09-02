@@ -49,10 +49,7 @@ that closes them.
 
 ## Release
 
-- The image builds only from a local checkout; there is no reproducible path
 - No changelog, though the C ABI is consumed by a separate repository
-- No tags, and the version has never moved from `0.0.0`
 - No documented deploy or rollback path
 - Nothing verifies the published tree
 - The runtime image is Alpine 3.21, and its network daemons lag the build stage
-- The status section of the README contradicts the code

@@ -8,7 +8,7 @@ fn checksum_matches_known_ping() {
     assert_eq!(body[0], 8);
 
     let mut sum: u32 = 0;
-    for c in body.chunks_exact(2) {
+    for c in body.as_chunks::<2>().0 {
         sum = sum.wrapping_add(u16::from_be_bytes([c[0], c[1]]) as u32);
     }
     while sum >> 16 != 0 {

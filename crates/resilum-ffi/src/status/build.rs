@@ -16,6 +16,7 @@ type PeersByInterface = HashMap<usize, Vec<String>>;
 
 pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
     let mut status = NodeStatus {
+        version: env!("CARGO_PKG_VERSION"),
         running: node.0.is_running(),
         socks_port: node.0.socks_port(),
         identity_hash: None,
