@@ -84,7 +84,7 @@ announce re-establishes the path over another one and nothing above notices.
 | LoRa (RNode) | radio over USB; the stack drives it, the config here cannot name one yet | planned |
 | WebRTC | the meeting point for two peers both behind carrier NAT, where no side has an address the other can dial — and the only transport a browser could speak | planned |
 | BLE | GATT carrying BLE_PROTOCOL v2.2, the protocol Columba speaks, so a link works against any peer on it — no infrastructure, no pairing and no user interaction at all | feature `ble`, not yet run on a radio |
-| Wi-Fi Direct | Wi-Fi P2P — a group owner and the clients that joined it, tens of Mbps with no router present; links ride the group socket, while raising the group belongs to whoever owns the radio, which nothing here does yet | attaches a group socket, not yet run over a real group |
+| Wi-Fi Direct | Wi-Fi P2P — a group owner and the clients that joined it, tens of Mbps with no router present; the daemon raises the group through whichever of NetworkManager, iwd or wpa_supplicant holds the radio, serves it DHCP, and carries links over its socket | raises a group; nothing has joined one yet |
 | BPv7 bundles | store-and-forward as a carrier: a bundle waits for the next contact instead of needing a live path, with custody handed over hop by hop | planned |
 | RaptorQ coding | rides on top of another interface: send symbols until enough arrive, so a lossy or one-way path needs no round trip per gap — the fit for radio and for the covert carriers | planned |
 | Sphinx packets | rides on top: fixed length and layered encryption, so no hop can link what came in to what went out | planned |
@@ -144,6 +144,7 @@ The build is the same everywhere; the role follows from what the machine has.
 | VPS with a public address | anchor others dial, and a usable exit | `listen`, `egress` |
 | Board on a home LAN | bridge between the LAN and the overlays | overlay features, no `egress` |
 | Laptop or phone | plain client, joins and leaves | defaults, plus `ingress` to browse |
+| Anything with a Wi-Fi radio | group owner for the devices around it, when the election picks it | `ble`, `wifi_group` |
 
 Acting as an exit is opt-in for a reason: peers' traffic leaves through this
 host's address, with the same exposure as running any public exit.

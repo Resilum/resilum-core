@@ -1,5 +1,8 @@
 use std::path::Path;
 use std::sync::mpsc;
+use std::time::Duration;
+
+const FOLLOW_THE_ELECTION_EVERY: Duration = Duration::from_secs(5);
 
 use resilum_core::Node;
 use resilum_core::discovery::Service;
@@ -60,7 +63,13 @@ pub fn run(path: &Path) {
         tracing::error!(error = %e, "signal handler install failed");
         std::process::exit(1);
     }
-    let _ = rx.recv();
+    let mut group = crate::wifi_group::WhetherWeHostTheGroup::default();
+    let mut known = crate::radio_facts::WhatThisHostKnows::default();
+    while let Err(mpsc::RecvTimeoutError::Timeout) = rx.recv_timeout(FOLLOW_THE_ELECTION_EVERY) {
+        known.tell(&node);
+        group.follow_the_election(&node);
+    }
+    drop(group);
 
     tracing::info!("stopping");
     if let Err(e) = node.stop() {

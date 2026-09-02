@@ -15,6 +15,7 @@ impl Config {
             discover_interfaces: true,
             udp: None,
             ble: None,
+            wifi_group: None,
             i2p: None,
             iroh: None,
             lxmf: None,

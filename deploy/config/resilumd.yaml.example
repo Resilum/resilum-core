@@ -49,6 +49,16 @@ discover_interfaces: true
 # ble:
 #   can_host_a_group: false
 
+# The Wi-Fi group this node raises when the election picks it; absent means it
+# never raises one. The values match what a phone hosting the same group uses,
+# so change them only for a whole field at once.
+# wifi_group:
+#   ssid: DIRECT-RS-resilum
+#   passphrase: resilum-open-mesh
+#   interface: wlan0           # only needed where a host has several radios
+#   owner_address: 192.168.49.1
+#   port: 4242
+
 # Transport-discovery plugins: each attaches discovered peers over its
 # transport and (when it can determine our own reachable endpoint) announces
 # ours for others to attach. `iroh` is the exception: it resolves peers but
