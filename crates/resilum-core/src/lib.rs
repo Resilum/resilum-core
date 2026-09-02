@@ -41,7 +41,7 @@ pub mod ygg;
 
 pub use config::{
     BleInterface, Config, CovertDiscoveryService, DiscoveryService, EgressListen, EndpointFormat,
-    I2pInterface, IngressConfig, LxmfConfig, UdpInterface,
+    I2pInterface, IngressConfig, LxmfConfig, UdpInterface, WifiGroup,
 };
 pub use config_file::{from_json, from_yaml};
 pub use error::{Error, Result};

@@ -9,6 +9,7 @@ use serde::Deserialize;
 use crate::Config;
 use entries::{
     BleFile, CovertFile, DiscoveryFile, EgressFile, I2pFile, IngressFile, LxmfFile, UdpFile,
+    WifiGroupFile,
 };
 
 pub fn from_json(json: &str) -> Result<Config, String> {
@@ -49,6 +50,7 @@ struct FileConfig {
     udp: Option<UdpFile>,
     #[serde(default)]
     ble: Option<BleFile>,
+    wifi_group: Option<WifiGroupFile>,
     #[serde(default)]
     i2p: Option<I2pFile>,
     #[serde(default)]
@@ -100,6 +102,7 @@ impl FileConfig {
         }
         cfg.identity_private_base64 = self.identity_private_base64;
         cfg.ble = self.ble.map(Into::into);
+        cfg.wifi_group = self.wifi_group.map(Into::into);
         cfg.i2p = self.i2p.map(Into::into);
         cfg.egress = self.egress.into_iter().map(Into::into).collect();
         cfg.ingress = self.ingress.map(Into::into);

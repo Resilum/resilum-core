@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use crate::config::{BleInterface, UdpInterface};
+use crate::config::{BleInterface, UdpInterface, WifiGroup};
 use crate::{EgressListen, I2pInterface, IngressConfig};
 
 #[derive(Deserialize)]
@@ -17,6 +17,28 @@ impl From<BleFile> for BleInterface {
     fn from(f: BleFile) -> Self {
         Self {
             can_host_a_group: f.can_host_a_group,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub(in crate::config_file) struct WifiGroupFile {
+    pub ssid: Option<String>,
+    pub passphrase: Option<String>,
+    pub interface: Option<String>,
+    pub owner_address: Option<std::net::Ipv4Addr>,
+    pub port: Option<u16>,
+}
+
+impl From<WifiGroupFile> for WifiGroup {
+    fn from(f: WifiGroupFile) -> Self {
+        let fallback = Self::default();
+        Self {
+            ssid: f.ssid.unwrap_or(fallback.ssid),
+            passphrase: f.passphrase.unwrap_or(fallback.passphrase),
+            interface: f.interface,
+            owner_address: f.owner_address.unwrap_or(fallback.owner_address),
+            port: f.port.unwrap_or(fallback.port),
         }
     }
 }

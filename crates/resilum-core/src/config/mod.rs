@@ -6,6 +6,7 @@ mod how_a_node_starts;
 mod ingress;
 mod lxmf;
 mod udp;
+mod wifi_group;
 
 pub use ble::BleInterface;
 pub use covert_discovery::CovertDiscoveryService;
@@ -14,6 +15,7 @@ pub use egress::EgressListen;
 pub use ingress::IngressConfig;
 pub use lxmf::LxmfConfig;
 pub use udp::UdpInterface;
+pub use wifi_group::WifiGroup;
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -74,6 +76,7 @@ pub struct Config {
     pub discover_interfaces: bool,
     pub udp: Option<UdpInterface>,
     pub ble: Option<BleInterface>,
+    pub wifi_group: Option<WifiGroup>,
     pub i2p: Option<I2pInterface>,
     pub iroh: Option<IrohConfig>,
     pub lxmf: Option<LxmfConfig>,
