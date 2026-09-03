@@ -3,7 +3,7 @@ mod dhcp;
 mod hosting;
 mod iwd;
 mod network_manager;
-mod radio_interface;
+pub mod radio_interface;
 mod settings;
 mod supplicant;
 
@@ -15,20 +15,24 @@ pub use hosting::WhetherWeHostTheGroup;
 
 pub type Lowering = Box<dyn FnOnce() + Send>;
 
-pub trait RaisesAGroup: Send + Sync {
-    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Lowering, String>;
+pub struct Raised {
+    pub carried_on: String,
+    pub already_addressed: bool,
+    pub lower: Lowering,
+}
 
-    fn addresses_the_interface_itself(&self) -> bool;
+pub trait RaisesAGroup: Send + Sync {
+    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Raised, String>;
 }
 
 fn whoever_holds_the_radio() -> Option<Box<dyn RaisesAGroup>> {
+    if let Some(wpa) = supplicant::if_it_can_own_a_p2p_group() {
+        return Some(Box::new(wpa));
+    }
     if let Some(nm) = network_manager::if_it_is_running() {
         return Some(Box::new(nm));
     }
-    if let Some(iwd) = iwd::if_it_is_running() {
-        return Some(Box::new(iwd));
-    }
-    supplicant::if_it_is_running().map(|wpa| Box::new(wpa) as Box<dyn RaisesAGroup>)
+    iwd::if_it_is_running().map(|iwd| Box::new(iwd) as Box<dyn RaisesAGroup>)
 }
 
 fn owns_a_name_on_the_bus(name: &str) -> bool {

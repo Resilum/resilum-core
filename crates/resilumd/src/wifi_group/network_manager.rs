@@ -4,7 +4,7 @@ use dbus::Path;
 use dbus::blocking::Connection;
 use resilum_core::WifiGroup;
 
-use super::{Lowering, RaisesAGroup, settings};
+use super::{Raised, RaisesAGroup, settings};
 
 const NM: &str = "org.freedesktop.NetworkManager";
 const NM_PATH: &str = "/org/freedesktop/NetworkManager";
@@ -17,7 +17,7 @@ pub fn if_it_is_running() -> Option<NetworkManager> {
 }
 
 impl RaisesAGroup for NetworkManager {
-    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Lowering, String> {
+    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Raised, String> {
         let bus = Connection::new_system().map_err(|e| format!("no system bus: {e}"))?;
         let manager = bus.with_proxy(NM, NM_PATH, ANSWERS_WITHIN);
         let (device,): (Path,) = manager
@@ -35,11 +35,11 @@ impl RaisesAGroup for NetworkManager {
             )
             .map_err(|e| format!("NetworkManager would not raise the group: {e}"))?;
         let active = active.into_static();
-        Ok(Box::new(move || deactivate(&bus, &active)))
-    }
-
-    fn addresses_the_interface_itself(&self) -> bool {
-        true
+        Ok(Raised {
+            carried_on: interface.to_owned(),
+            already_addressed: true,
+            lower: Box::new(move || deactivate(&bus, &active)),
+        })
     }
 }
 

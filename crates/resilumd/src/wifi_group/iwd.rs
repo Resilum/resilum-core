@@ -7,7 +7,7 @@ use dbus::blocking::Connection;
 use dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
 use resilum_core::WifiGroup;
 
-use super::{Lowering, RaisesAGroup};
+use super::{Raised, RaisesAGroup};
 
 const IWD: &str = "net.connman.iwd";
 const DEVICE: &str = "net.connman.iwd.Device";
@@ -25,17 +25,17 @@ pub fn if_it_is_running() -> Option<Iwd> {
 }
 
 impl RaisesAGroup for Iwd {
-    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Lowering, String> {
+    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Raised, String> {
         let bus = Connection::new_system().map_err(|e| format!("no system bus: {e}"))?;
         let device = the_device_named(&bus, interface)?;
         mode(&bus, &device, AP)?;
         started(&bus, &device, group)?;
         let lowering = device.clone();
-        Ok(Box::new(move || stop(&lowering)))
-    }
-
-    fn addresses_the_interface_itself(&self) -> bool {
-        false
+        Ok(Raised {
+            carried_on: interface.to_owned(),
+            already_addressed: false,
+            lower: Box::new(move || stop(&lowering)),
+        })
     }
 }
 
