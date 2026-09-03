@@ -1,6 +1,8 @@
 mod command;
 mod drive;
 mod served;
+#[cfg(target_os = "android")]
+mod the_jvm;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -24,6 +26,8 @@ pub struct BlewRadio {
 
 impl BlewRadio {
     pub async fn open_or_say_why() -> Result<Self, RadioError> {
+        #[cfg(target_os = "android")]
+        the_jvm::hand_it_to_the_radio();
         let (commands, taking) = mpsc::channel(COMMANDS_IN_FLIGHT);
         let (outbound, waiting) = mpsc::channel(FRAGMENTS_IN_FLIGHT);
         let (telling, events) = mpsc::channel(EVENTS_IN_FLIGHT);
