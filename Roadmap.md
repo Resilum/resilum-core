@@ -21,7 +21,6 @@ that closes them.
 ## Concurrency
 
 - Blocking `fsync` runs inside the async task serving the announce bus
-- Peer connect spawns detached tasks: an interface can attach after teardown
 - The "already connected" check and the insert are split by an `.await`
 - `active` is read outside the `handles` mutex
 - `notify_waiters` during `announce_all` is lost rather than queued

@@ -70,6 +70,7 @@ pub(super) fn bring_up(
         cap_controller,
         events: node.events.clone(),
         origin_registry: node.origin_registry.clone(),
+        nursery: node.nursery.clone(),
     });
     #[cfg(all(unix, feature = "ygg"))]
     {
