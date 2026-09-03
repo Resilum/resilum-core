@@ -33,6 +33,7 @@ fn a_host_with_no_battery_of_its_own_counts_as_mains_powered() {
     let answered = answered_with(PowerHere::NoBatteryAtAll, told_it_is_running_down());
 
     assert!(answered.charging);
+    assert_eq!(answered.battery_percent, 100);
 }
 
 #[test]

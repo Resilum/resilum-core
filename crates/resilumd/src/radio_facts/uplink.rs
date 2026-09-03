@@ -3,14 +3,12 @@ use std::path::Path;
 const ROUTES: &str = "/proc/net/route";
 const NOWHERE_IN_PARTICULAR: &str = "00000000";
 
-pub fn this_host_can_reach_the_world() -> bool {
-    a_default_route_in(Path::new(ROUTES))
+pub fn whichever_interface_reaches_the_world() -> Option<String> {
+    the_way_out_in(Path::new(ROUTES))
 }
 
-fn a_default_route_in(routes: &Path) -> bool {
-    let Ok(table) = std::fs::read_to_string(routes) else {
-        return false;
-    };
+fn the_way_out_in(routes: &Path) -> Option<String> {
+    let table = std::fs::read_to_string(routes).ok()?;
     table
         .lines()
         .skip(1)
@@ -20,7 +18,10 @@ fn a_default_route_in(routes: &Path) -> bool {
             let destination = columns.next()?;
             Some((interface, destination))
         })
-        .any(|(interface, destination)| destination == NOWHERE_IN_PARTICULAR && interface != "lo")
+        .find(|(interface, destination)| {
+            *destination == NOWHERE_IN_PARTICULAR && *interface != "lo"
+        })
+        .map(|(interface, _)| interface.to_owned())
 }
 
 #[cfg(test)]

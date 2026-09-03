@@ -61,19 +61,20 @@ fn raised(node: &Node, group: &WifiGroup) -> Result<Held, String> {
     let interface = radio_interface::the_one_to_host_on(group.interface.as_deref())?;
     let radio = whoever_holds_the_radio()
         .ok_or_else(|| String::from("no daemon on this host holds the radio"))?;
-    let lower = radio.raise(group, &interface)?;
-    if !radio.addresses_the_interface_itself() {
-        address::put_on(&interface, group.owner_address)?;
+    let raised = radio.raise(group, &interface)?;
+    let carrying = raised.carried_on;
+    if !raised.already_addressed {
+        address::put_on(&carrying, group.owner_address)?;
     }
-    let serving = dhcp::on(&interface, group.owner_address, seconds_since_the_epoch)
-        .map_err(|e| format!("no dhcp on {interface}: {e}"))?;
+    let serving = dhcp::on(&carrying, group.owner_address, seconds_since_the_epoch)
+        .map_err(|e| format!("no dhcp on {carrying}: {e}"))?;
     let listening = TcpListener::bind((group.owner_address, group.port))
         .map_err(|e| format!("nothing listening on the group: {e}"))?;
     let links = node
         .wifi_group_hosting(listening.into_raw_fd())
         .map_err(|e| e.to_string())?;
     Ok(Held {
-        lower,
+        lower: raised.lower,
         dhcp: serving,
         links,
     })

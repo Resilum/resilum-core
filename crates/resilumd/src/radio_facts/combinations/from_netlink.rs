@@ -3,7 +3,7 @@ use wl_nl80211::{
     Nl80211InterfaceType,
 };
 
-use super::{Combination, Role};
+use super::{Combination, Limit, Role};
 
 pub fn heard_from_the_kernel(combinations: &[Nl80211IfaceComb]) -> Vec<Combination> {
     combinations.iter().map(one).collect()
@@ -11,14 +11,17 @@ pub fn heard_from_the_kernel(combinations: &[Nl80211IfaceComb]) -> Vec<Combinati
 
 fn one(combination: &Nl80211IfaceComb) -> Combination {
     let mut read = Combination {
-        each_limit_allows: Vec::new(),
+        each_limit: Vec::new(),
         interfaces_at_once: 1,
         channels_at_once: 1,
     };
     for attribute in &combination.attributes {
         match attribute {
             Nl80211IfaceCombAttribute::Limits(limits) => {
-                read.each_limit_allows = limits.iter().map(roles_in).collect();
+                read.each_limit = limits
+                    .iter()
+                    .map(|limit| one_limit(&limit.attributes))
+                    .collect();
             }
             Nl80211IfaceCombAttribute::Maxnum(most) => read.interfaces_at_once = *most,
             Nl80211IfaceCombAttribute::NumChannels(many) => read.channels_at_once = *many,
@@ -28,16 +31,21 @@ fn one(combination: &Nl80211IfaceComb) -> Combination {
     read
 }
 
-fn roles_in(limit: &wl_nl80211::Nl80211IfaceCombLimit) -> Vec<Role> {
-    limit
-        .attributes
-        .iter()
-        .filter_map(|attribute| match attribute {
-            Nl80211IfaceCombLimitAttribute::Iftypes(types) => Some(types.iter().map(role)),
-            _ => None,
-        })
-        .flatten()
-        .collect()
+fn one_limit(attributes: &[Nl80211IfaceCombLimitAttribute]) -> Limit {
+    let mut read = Limit {
+        allows: Vec::new(),
+        at_most: 1,
+    };
+    for attribute in attributes {
+        match attribute {
+            Nl80211IfaceCombLimitAttribute::Iftypes(types) => {
+                read.allows = types.iter().map(role).collect();
+            }
+            Nl80211IfaceCombLimitAttribute::Max(most) => read.at_most = *most,
+            _ => {}
+        }
+    }
+    read
 }
 
 fn role(kind: &Nl80211InterfaceType) -> Role {
@@ -47,3 +55,6 @@ fn role(kind: &Nl80211InterfaceType) -> Role {
         _ => Role::Something,
     }
 }
+
+#[cfg(test)]
+mod tests;
