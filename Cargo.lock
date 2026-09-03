@@ -3241,6 +3241,7 @@ dependencies = [
 [[package]]
 name = "leviculum-core"
 version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "aes",
  "cbc",
@@ -3258,6 +3259,7 @@ dependencies = [
 [[package]]
 name = "leviculum-lxmf"
 version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "leviculum-core",
  "rand_core 0.6.4",
@@ -3268,8 +3270,10 @@ dependencies = [
 [[package]]
 name = "leviculum-std"
 version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "clap",
+ "futures",
  "hmac",
  "if-addrs",
  "leviculum-core",

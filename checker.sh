@@ -110,29 +110,6 @@ else
     printf '  none\n'
 fi
 
-step "Cargo.lock matches the pins"
-# With the local [patch] active the lock loses the pinned revisions, so it is
-# moved aside: the committed lock is the one a fresh clone resolves.
-PATCH_CONFIG=.cargo/config.toml
-PATCH_STASH=
-
-restore_patch_config() {
-    [ -n "$PATCH_STASH" ] || return 0
-    mv "$PATCH_STASH" "$PATCH_CONFIG"
-    PATCH_STASH=
-}
-
-if [ -f "$PATCH_CONFIG" ]; then
-    PATCH_STASH=$(mktemp)
-    mv "$PATCH_CONFIG" "$PATCH_STASH"
-    trap restore_patch_config EXIT
-    printf '  [patch] moved aside for this step\n'
-fi
-cargo metadata --format-version 1 --offline --quiet >/dev/null
-cargo metadata --format-version 1 --offline --locked --quiet >/dev/null
-restore_patch_config
-trap - EXIT
-
 step "scripts stay shell"
 # A `python3 -c '...'` argument is just a string to the shell linter, so an
 # embedded language passes every gate here while being linted by none.
@@ -167,6 +144,27 @@ require cargo-deny 'cargo install cargo-deny --locked'
 # `-D warnings`, because cargo-deny exits 0 on them. `unmatched-source` fires
 # only under a local [patch] that replaced the git dependency with a path.
 cargo deny check advisories bans licenses sources -D warnings -A unmatched-source
+
+step "Cargo.lock matches the pins (last, so no cargo step rewrites it after)"
+PATCH_CONFIG=.cargo/config.toml
+PATCH_STASH=
+
+restore_patch_config() {
+    [ -n "$PATCH_STASH" ] || return 0
+    mv "$PATCH_STASH" "$PATCH_CONFIG"
+    PATCH_STASH=
+}
+
+if [ -f "$PATCH_CONFIG" ]; then
+    PATCH_STASH=$(mktemp)
+    mv "$PATCH_CONFIG" "$PATCH_STASH"
+    trap restore_patch_config EXIT
+    printf '  [patch] moved aside for this step\n'
+fi
+cargo metadata --format-version 1 --offline --quiet >/dev/null
+cargo metadata --format-version 1 --offline --locked --quiet >/dev/null
+restore_patch_config
+trap - EXIT
 
 step "hadolint (Dockerfiles)"
 mapfile -t dockerfiles < <(tracked_and_new -- 'Dockerfile' '*/Dockerfile' '*.dockerfile')
