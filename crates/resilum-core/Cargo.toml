@@ -66,13 +66,17 @@ hickory-resolver = { version = "0.26", optional = true, default-features = false
 ] }
 violin = { version = "0.3.0", features = ["rand"] }
 
+[target.'cfg(target_os = "android")'.dependencies]
+jni = { version = "0.22", optional = true }
+ndk-context = { version = "0.1", optional = true }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 dbus = { version = "0.9", features = ["vendored"], optional = true }
 
 [features]
 default = []
 arti = ["dep:arti-client", "dep:tokio-util", "dep:tor-rtcompat", "dep:rustls"]
-ble = ["dep:blew", "dep:uuid", "dep:dbus"]
+ble = ["dep:blew", "dep:uuid", "dep:dbus", "dep:jni", "dep:ndk-context"]
 i2p = ["dep:yosemite"]
 ygg = ["dep:tokio-smoltcp"]
 iroh = ["dep:iroh", "dep:hickory-resolver"]

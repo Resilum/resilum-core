@@ -1,3 +1,5 @@
+mod a_radio_here;
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -28,7 +30,7 @@ pub(super) fn bring_up(node: &mut Node, wiring: &Wiring) {
     }
     let mut ours = [0u8; spec::IDENTITY_LEN];
     ours.copy_from_slice(&wiring.identity.hash()[..spec::IDENTITY_LEN]);
-    speak_over(node, wiring, ours, a_radio_on_this_host());
+    speak_over(node, wiring, ours, a_radio_here::opened());
 }
 
 pub(crate) fn speak_over<R>(node: &mut Node, wiring: &Wiring, ours: PeerId, opening: R)
@@ -115,20 +117,4 @@ fn answer_other_candidates(node: &mut Node, wiring: &Wiring, field: &Field) {
             ours,
             ANNOUNCE_EVERY,
         )));
-}
-
-#[cfg(feature = "ble")]
-async fn a_radio_on_this_host() -> Option<Arc<dyn Radio>> {
-    match crate::ble::backend::BlewRadio::open_or_say_why().await {
-        Ok(radio) => Some(Arc::new(radio)),
-        Err(e) => {
-            tracing::warn!(error = ?e, "no ble radio on this host");
-            None
-        }
-    }
-}
-
-#[cfg(not(feature = "ble"))]
-async fn a_radio_on_this_host() -> Option<Arc<dyn Radio>> {
-    None
 }
