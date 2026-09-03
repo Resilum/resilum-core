@@ -48,7 +48,7 @@ COPY --chmod=755 docker/entrypoint.sh docker/healthcheck.sh /
 COPY deploy/config/*.example /usr/share/resilum/defaults/
 COPY --from=build /resilumd /usr/local/bin/resilumd
 RUN setcap cap_net_raw+ep /usr/local/bin/resilumd \
- && apk del libcap-setcap
+ && apk del --no-cache libcap-setcap
 USER 1000:1000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
     CMD ["/healthcheck.sh"]
