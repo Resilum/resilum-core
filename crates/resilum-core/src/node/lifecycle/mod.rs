@@ -128,10 +128,12 @@ impl Node {
         for task in &tasks {
             task.abort();
         }
+        let nursery = self.nursery.clone();
         self.runtime.block_on(async {
             for task in tasks {
                 let _ = task.await;
             }
+            nursery.everyone_home().await;
         });
     }
 }

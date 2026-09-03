@@ -7,7 +7,6 @@ use leviculum_std::api::{
 use leviculum_std::driver::ReticulumNode;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::task::JoinSet;
 
 use super::{Facts, Field, WhatThePlatformKnows};
 use crate::ble::links::PeerId;
@@ -56,12 +55,11 @@ pub async fn answer(
     mut arriving: UnboundedReceiver<Inbound>,
     known: WhatThePlatformKnows,
     field: Field,
+    nursery: Arc<crate::nursery::Nursery>,
 ) {
-    let mut serving = JoinSet::new();
     while let Some((link_id, _, from_link)) = arriving.recv().await {
-        while serving.try_join_next().is_some() {}
         let handle = engine.link_handle(&link_id);
-        serving.spawn(serve(
+        nursery.keep(serve(
             engine.clone(),
             link_id,
             handle,

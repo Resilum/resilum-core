@@ -37,7 +37,7 @@ COPY deploy/config/*.example /usr/share/resilum/defaults/
 COPY --from=build /resilumd /usr/local/bin/resilumd
 RUN setcap cap_net_raw+ep /usr/local/bin/resilumd \
  && apk del libcap-setcap
-USER resilum
+USER 1000:1000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
     CMD ["/healthcheck.sh"]
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

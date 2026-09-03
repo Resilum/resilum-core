@@ -44,6 +44,7 @@ where
     let hosting = node.ble_hosting.clone();
     let attachments = node.attachments.clone();
     let origins = node.origin_registry.clone();
+    let nursery = node.nursery.clone();
     node.tasks.push(node.runtime.handle().spawn(async move {
         let Some(radio) = opening.await else {
             return;
@@ -86,6 +87,7 @@ where
                     hosting,
                     us: ours,
                     beacon,
+                    nursery,
                 },
                 since,
             ) => {}
@@ -105,6 +107,7 @@ fn answer_other_candidates(node: &mut Node, wiring: &Wiring, field: &Field) {
             asked_of_us,
             node.ble_facts.clone(),
             field.clone(),
+            node.nursery.clone(),
         )));
     node.tasks
         .push(node.runtime.handle().spawn(crate::announce_ours::every(
