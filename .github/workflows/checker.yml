@@ -3,7 +3,7 @@ name: checker
 
 "on":
   push:
-    branches: [main]
+    branches: [main, stage]
   pull_request:
 
 env:
@@ -21,7 +21,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@v2
         with:
-          tool: taplo-cli,cargo-deny,gitleaks,hadolint
+          tool: taplo-cli,cargo-deny
+      - uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+          repo: gitleaks/gitleaks
+      - uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+          repo: hadolint/hadolint
+          extension-matching: disable
+          rename-to: hadolint
+          chmod: 0755
       - name: The rest the checker refuses to run without
         run: |
           sudo apt-get install -qq -y musl-tools
