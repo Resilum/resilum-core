@@ -16,7 +16,7 @@ fn the_neighbours_we_counted_are_ours_not_the_platforms_to_report() {
     let known = WhatThePlatformKnows::nothing_yet();
     known.report(
         Facts {
-            charging: true,
+            has_an_uplink: true,
             neighbours_heard: 99,
             ..Facts::default()
         },
@@ -25,7 +25,7 @@ fn the_neighbours_we_counted_are_ours_not_the_platforms_to_report() {
 
     let read = known.read(4);
 
-    assert!(read.charging);
+    assert!(read.has_an_uplink);
     assert_eq!(read.neighbours_heard, 4);
 }
 

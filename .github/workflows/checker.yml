@@ -28,6 +28,7 @@ jobs:
       - uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
           repo: hadolint/hadolint
+          tag: v2.14.0
           extension-matching: disable
           rename-to: hadolint
           chmod: 0755

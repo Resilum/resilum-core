@@ -4,7 +4,6 @@ use std::time::{Duration, Instant};
 
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
-use tokio::task::JoinSet;
 
 use crate::ble::beacon::Beacon;
 use crate::ble::election::{
@@ -30,17 +29,16 @@ pub struct Deciding {
     pub hosting: HostingTheGroup,
     pub us: PeerId,
     pub beacon: Beacon,
+    pub nursery: Arc<crate::nursery::Nursery>,
 }
 
 pub async fn keep_deciding(mut deciding: Deciding, since: Instant) {
     let now_ms = move || u64::try_from(since.elapsed().as_millis()).unwrap_or(u64::MAX);
     let mut election = Election::watching(deciding.us);
     let mut asked_at: HashMap<PeerId, u64> = HashMap::new();
-    let mut asking = JoinSet::new();
     loop {
         let now = now_ms();
-        while asking.try_join_next().is_some() {}
-        ask_whoever_has_not_answered_lately(&deciding, &mut asked_at, &mut asking, now);
+        ask_whoever_has_not_answered_lately(&deciding, &mut asked_at, now);
         decide_once_the_field_has_spoken(&mut deciding, &mut election, now);
         tokio::select! {
             () = tokio::time::sleep(CONSIDER_EVERY) => {}
@@ -73,7 +71,6 @@ fn decide_once_the_field_has_spoken(deciding: &mut Deciding, election: &mut Elec
 fn ask_whoever_has_not_answered_lately(
     deciding: &Deciding,
     asked_at: &mut HashMap<PeerId, u64>,
-    asking: &mut JoinSet<()>,
     now_ms: u64,
 ) {
     let ours = exchange::what_we_tell(&deciding.known, &deciding.field);
@@ -86,7 +83,7 @@ fn ask_whoever_has_not_answered_lately(
             continue;
         }
         asked_at.insert(*peer, now_ms);
-        asking.spawn(exchange::ask(
+        deciding.nursery.keep(exchange::ask(
             deciding.engine.clone(),
             deciding.router.clone(),
             deciding.field.clone(),
