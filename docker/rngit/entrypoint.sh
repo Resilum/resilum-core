@@ -25,8 +25,12 @@ fetch_whatever_was_asked_for() {
     [ -f /config/rngit/state/wanted ] || return 0
     self=$(cat /config/rngit/state/destination)
     while read -r repo source; do
-        [ -n "$repo" ] && [ -n "$source" ] || continue
-        [ -e "/config/rngit/repos/mirrors/$repo" ] && continue
+        if [ -z "$repo" ] || [ -z "$source" ]; then
+            continue
+        fi
+        if [ -e "/config/rngit/repos/mirrors/$repo" ]; then
+            continue
+        fi
         rngit mirror --config /config/rngit --rnsconfig /config/rngit/reticulum \
             "$source" "rns://$self/mirrors/$repo" || true
     done < /config/rngit/state/wanted
