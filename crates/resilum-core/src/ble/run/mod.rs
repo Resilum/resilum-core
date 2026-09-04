@@ -20,6 +20,7 @@ pub use rounds::{Deciding, keep_deciding};
 
 const LOOK_AROUND_EVERY: Duration = Duration::from_secs(5);
 const GIVE_UP_ON_A_HANDSHAKE_AFTER_MS: u64 = 5_000;
+const A_SCAN_THAT_HEARD_NOTHING_IS_RESTARTED_AFTER_MS: u64 = 120_000;
 
 pub struct Ours {
     pub engine: Arc<ReticulumNode>,
@@ -38,17 +39,24 @@ pub async fn run(ours: Ours, mut events: Receiver<RadioEvent>, since: std::time:
     let mut waiting = Handshakes::default();
     let mut held_off = HeldOff::new();
     let mut look_around = tokio::time::interval(LOOK_AROUND_EVERY);
+    let mut scanning_since = 0u64;
 
     loop {
         tokio::select! {
             heard = events.recv() => match heard {
                 None => return,
                 Some(event) => {
+                    if matches!(event, RadioEvent::Seen { .. }) {
+                        scanning_since = now_ms();
+                    }
                     on_event(&ours, &mut links, &mut waiting, &mut held_off, event, now_ms());
                 }
             },
             _ = look_around.tick() => {
-                let _ = ours.radio.scan(spec::SERVICE);
+                if a_scan_this_quiet_may_have_died(now_ms(), scanning_since) {
+                    scanning_since = now_ms();
+                    let _ = ours.radio.scan(spec::SERVICE);
+                }
                 ours.someone_elses_group.forget_it_if_it_has_gone_quiet(now_ms());
                 dial::those_who_waited(&ours, &links, &mut held_off, now_ms());
                 for conn in waiting.gave_up_by(now_ms(), GIVE_UP_ON_A_HANDSHAKE_AFTER_MS) {
@@ -57,6 +65,10 @@ pub async fn run(ours: Ours, mut events: Receiver<RadioEvent>, since: std::time:
             }
         }
     }
+}
+
+fn a_scan_this_quiet_may_have_died(now_ms: u64, scanning_since: u64) -> bool {
+    now_ms.saturating_sub(scanning_since) >= A_SCAN_THAT_HEARD_NOTHING_IS_RESTARTED_AFTER_MS
 }
 
 fn on_event(
@@ -100,3 +112,6 @@ fn on_event(
         RadioEvent::WritableChanged { .. } => {}
     }
 }
+
+#[cfg(test)]
+mod tests;
