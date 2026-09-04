@@ -10,8 +10,6 @@ use crate::writer::Writer;
 
 mod entry;
 mod store;
-#[cfg(test)]
-mod tests;
 
 pub use entry::{Direction, Entry, Handoff, Queued};
 
@@ -147,3 +145,6 @@ impl Queue {
 fn seconds(retention: Duration) -> i64 {
     i64::try_from(retention.as_secs()).unwrap_or(i64::MAX)
 }
+
+#[cfg(test)]
+mod tests;

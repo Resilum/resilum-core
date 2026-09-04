@@ -12,9 +12,6 @@ use crate::covert::carrier::{CarrierClient, CarrierServer};
 
 const CARRIER_BUF: usize = 65535;
 
-#[cfg(test)]
-mod tests;
-
 pub fn spawn_uplink(uplink: Receiver<Vec<u8>>, out: Sender<Msg>) {
     thread::spawn(move || {
         while let Ok(chunk) = uplink.recv() {
@@ -75,3 +72,6 @@ where
         }
     });
 }
+
+#[cfg(test)]
+mod tests;

@@ -1,9 +1,6 @@
 //! Which addresses are safe to hand a peer as our own, and which are safe to
 //! dial when a peer names one.
 
-#[cfg(test)]
-mod tests;
-
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 /// True if `ip` is safe to publish as our public address to other peers.
@@ -68,3 +65,6 @@ fn is_link_local_v6(ip: &Ipv6Addr) -> bool {
 fn is_unique_local_v6(ip: &Ipv6Addr) -> bool {
     (ip.segments()[0] & 0xfe00) == 0xfc00
 }
+
+#[cfg(test)]
+mod tests;

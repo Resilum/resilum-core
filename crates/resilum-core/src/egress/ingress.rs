@@ -75,9 +75,6 @@ async fn turn_away(mut tcp: TcpStream, why: u8) {
     let _ = socks5_tcp::reply(&mut tcp, why).await;
 }
 
-#[cfg(test)]
-mod tests;
-
 async fn session(
     engine: Arc<ReticulumNode>,
     router: Arc<LinkRouter>,
@@ -118,3 +115,6 @@ pub(super) async fn dial(
     }
     opened
 }
+
+#[cfg(test)]
+mod tests;

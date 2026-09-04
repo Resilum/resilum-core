@@ -3,9 +3,6 @@
 
 use leviculum_lxmf::router::RouterError;
 
-#[cfg(test)]
-mod tests;
-
 /// What the caller should do next. A token rather than a boolean: a boolean
 /// cannot tell "send it again" from "send it another way".
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,3 +74,6 @@ pub(super) fn refusal(error: &RouterError) -> Refusal {
 const fn refuse(reason: &'static str, retry: Retry) -> Refusal {
     Refusal { reason, retry }
 }
+
+#[cfg(test)]
+mod tests;

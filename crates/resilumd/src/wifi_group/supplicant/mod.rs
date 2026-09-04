@@ -105,9 +105,6 @@ fn named_under(directory: &Path, prefix: &str) -> Vec<String> {
         .collect()
 }
 
-#[cfg(test)]
-mod tests;
-
 fn lowering(device_name: String, network: String, carried_on: String) -> super::Lowering {
     Box::new(move || {
         let Ok(device) = Control::to(&device_name) else {
@@ -125,3 +122,6 @@ fn forget(device: &Control, network: &str) {
         tracing::warn!(%error, "wpa_supplicant kept the group network");
     }
 }
+
+#[cfg(test)]
+mod tests;

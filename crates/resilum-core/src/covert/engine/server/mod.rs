@@ -2,8 +2,6 @@
 //! same carrier. Bound to carriers whose reply address is an `IpAddr`.
 
 mod respond;
-#[cfg(test)]
-mod tests;
 
 use std::io;
 use std::net::IpAddr;
@@ -107,3 +105,6 @@ where
         self.table.count()
     }
 }
+
+#[cfg(test)]
+mod tests;
