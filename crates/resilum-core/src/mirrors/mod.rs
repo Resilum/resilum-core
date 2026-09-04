@@ -5,11 +5,13 @@
 //! sharing.
 
 mod consume;
+mod handover;
 mod payload;
 mod produce;
 mod registry;
 
 pub use consume::run_consume;
+pub use handover::SharedWithRngit;
 pub use payload::name_hash;
 pub use produce::run_produce;
 pub use registry::{Entry, Registry};

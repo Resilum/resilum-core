@@ -16,7 +16,7 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<ReticulumNode>, identity: &
     node.mirror_registry = Some(registry.clone());
 
     node.tasks.push(tokio::spawn(mirrors::run_consume(
-        registry,
+        registry.clone(),
         node.events.subscribe(),
     )));
 
@@ -29,6 +29,7 @@ pub(super) fn bring_up(node: &mut Node, engine: &Arc<ReticulumNode>, identity: &
             node.config.discovery_announce_interval,
             node.config.advertised_mirrors.clone(),
             rngit_file,
+            registry,
         )));
     }
 }

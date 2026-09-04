@@ -77,8 +77,8 @@ discovery:
 # fills these via `rngit mirror <upstream> rns://self/mirrors/<name>` in the
 # sidecar container.
 advertised_mirrors:
-  - REPLACE-WITH-A-REPO-NAME-YOU-MIRROR
-  # - another-repo-name
+  - resilum-core
+  - resilum-mobile
 rngit_destination_file: /config/rngit/state/destination
 
 # Optional native I2P interface (needs a local i2pd with SAM on 127.0.0.1:7656).
