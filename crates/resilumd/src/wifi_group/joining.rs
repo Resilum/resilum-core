@@ -23,7 +23,7 @@ struct Held {
 
 impl WhetherWeJoinTheGroup {
     pub fn follow_the_election(&mut self, node: &Node) {
-        match (node.ble_someone_else_hosts_a_group(), self.held.is_some()) {
+        match (worth_entering(node), self.held.is_some()) {
             (true, false) => self.join(node),
             (false, true) => self.leave(),
             _ => {}
@@ -57,6 +57,11 @@ impl Drop for WhetherWeJoinTheGroup {
     fn drop(&mut self) {
         self.leave();
     }
+}
+
+fn worth_entering(node: &Node) -> bool {
+    node.ble_someone_else_hosts_a_group()
+        && !crate::radio_facts::taking_part_would_cost_the_way_out(node)
 }
 
 fn joined(node: &Node, group: &WifiGroup) -> Result<Held, String> {

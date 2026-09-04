@@ -18,21 +18,39 @@ impl WhatThisHostKnows {
     pub fn tell(&mut self, node: &Node) {
         let radio = *self.radio.get_or_insert_with(what_the_radio_allows);
         let way_out = uplink::whichever_interface_reaches_the_world();
+        let group_radio = the_radio_we_would_host_on(node);
         let facts = Facts {
             has_an_uplink: way_out.is_some(),
             p2p_and_sta_at_once: whether_hosting_keeps_the_uplink(
                 radio,
                 way_out.as_deref(),
-                the_radio_we_would_host_on(node).as_deref(),
+                group_radio.as_deref(),
             ),
             ..Facts::default()
         };
-        let telling = (facts, radio.can_host_at_all);
+        let we_could_host = radio.can_host_at_all
+            && !the_group_would_take_our_way_out(way_out.as_deref(), group_radio.as_deref());
+        let telling = (facts, we_could_host);
         if self.told == Some(telling) {
             return;
         }
-        node.ble_facts_reported(facts, radio.can_host_at_all);
+        node.ble_facts_reported(facts, we_could_host);
         self.told = Some(telling);
+    }
+}
+
+pub fn taking_part_would_cost_the_way_out(node: &Node) -> bool {
+    the_group_would_take_our_way_out(
+        uplink::whichever_interface_reaches_the_world().as_deref(),
+        the_radio_we_would_host_on(node).as_deref(),
+    )
+}
+
+fn the_group_would_take_our_way_out(way_out: Option<&str>, we_would_use: Option<&str>) -> bool {
+    match (way_out, we_would_use) {
+        (None, _) => false,
+        (Some(_), None) => true,
+        (Some(out), Some(used)) => out == used,
     }
 }
 
