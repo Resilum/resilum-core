@@ -5,7 +5,9 @@ use std::time::Duration;
 use leviculum_std::api::{Destination, DestinationHash, DestinationType, Direction, Identity};
 use leviculum_std::driver::ReticulumNode;
 
+use super::handover::SharedWithRngit;
 use super::payload::{Advert, pack};
+use super::registry::Registry;
 use super::{APP_NAME, ASPECT};
 
 pub async fn run_produce(
@@ -14,8 +16,10 @@ pub async fn run_produce(
     interval: Duration,
     advertised_repos: Vec<String>,
     rngit_destination_file: PathBuf,
+    known: Arc<Registry>,
 ) {
     let dest_hash = register(&engine, identity);
+    let shared = SharedWithRngit::beside(&rngit_destination_file);
     let mut ticker = tokio::time::interval(interval);
     loop {
         ticker.tick().await;
@@ -26,7 +30,13 @@ pub async fn run_produce(
             );
             continue;
         };
-        let advert = Advert::new(rngit_dest, advertised_repos.clone());
+        shared.ask_for_what_we_lack(&advertised_repos, &known.snapshot());
+        let ours = shared.of_these_we_serve(&advertised_repos);
+        if ours.is_empty() {
+            tracing::debug!("no mirror is served here yet, nothing to announce");
+            continue;
+        }
+        let advert = Advert::new(rngit_dest, ours);
         match engine
             .announce_destination(&dest_hash, Some(&pack(&advert)))
             .await
