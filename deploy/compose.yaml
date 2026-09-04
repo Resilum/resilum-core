@@ -12,8 +12,12 @@ services:
       - NET_RAW
     devices:
       - /dev/net/tun:/dev/net/tun
+    # With `ble` or `wifi_group` set, uncomment this and the bus below: BlueZ
+    # and NetworkManager refuse everyone but root.
+    # user: "0:0"
     volumes:
       - ./config:/config
+      # - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
     environment:
       RUST_LOG: "info,resilum_core=debug,leviculum_std=debug"
 

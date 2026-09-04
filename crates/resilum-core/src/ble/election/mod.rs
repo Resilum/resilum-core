@@ -1,12 +1,14 @@
 pub mod exchange;
 mod field;
 mod hosting;
+mod on_the_air;
 mod read_here;
 mod reported;
 mod score;
 
 pub use field::Field;
 pub use hosting::HostingTheGroup;
+pub use on_the_air::SomeoneElsesGroup;
 pub use read_here::what_this_host_can_answer;
 pub use reported::WhatThePlatformKnows;
 pub use score::{Candidate, Facts, HostsWhileOnARouter, rank, the_one_to_host, worth_a_handover};

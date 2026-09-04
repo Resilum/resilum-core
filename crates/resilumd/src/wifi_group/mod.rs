@@ -2,6 +2,7 @@ mod address;
 mod dhcp;
 mod hosting;
 mod iwd;
+mod joining;
 mod network_manager;
 pub mod radio_interface;
 mod settings;
@@ -12,6 +13,7 @@ use std::time::Duration;
 use resilum_core::WifiGroup;
 
 pub use hosting::WhetherWeHostTheGroup;
+pub use joining::WhetherWeJoinTheGroup;
 
 pub type Lowering = Box<dyn FnOnce() + Send>;
 
