@@ -16,6 +16,11 @@ impl Node {
     }
 
     #[must_use]
+    pub fn ble_someone_else_hosts_a_group(&self) -> bool {
+        !self.ble_hosting.is_up() && self.ble_someone_elses_group.is_up()
+    }
+
+    #[must_use]
     pub fn ble_candidates(&self) -> Vec<crate::ble::election::Candidate> {
         self.ble_field.standing()
     }

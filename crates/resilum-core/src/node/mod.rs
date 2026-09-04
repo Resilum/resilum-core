@@ -51,6 +51,7 @@ pub struct Node {
     pub(crate) ble_facts: crate::ble::election::WhatThePlatformKnows,
     pub(crate) ble_hosting: crate::ble::election::HostingTheGroup,
     pub(crate) ble_field: crate::ble::election::Field,
+    pub(crate) ble_someone_elses_group: crate::ble::election::SomeoneElsesGroup,
     pub(crate) covert_listeners: Vec<leviculum_std::interfaces::ByteChannelHandle>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
@@ -95,6 +96,7 @@ impl Node {
             ),
             ble_hosting: crate::ble::election::HostingTheGroup::nobody_yet(),
             ble_field: crate::ble::election::Field::default(),
+            ble_someone_elses_group: crate::ble::election::SomeoneElsesGroup::none_heard_yet(),
             covert_listeners: Vec::new(),
             coordinates,
             #[cfg(all(unix, feature = "ygg"))]

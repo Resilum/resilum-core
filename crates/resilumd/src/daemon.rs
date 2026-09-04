@@ -64,11 +64,14 @@ pub fn run(path: &Path) {
         std::process::exit(1);
     }
     let mut group = crate::wifi_group::WhetherWeHostTheGroup::default();
+    let mut guest = crate::wifi_group::WhetherWeJoinTheGroup::default();
     let mut known = crate::radio_facts::WhatThisHostKnows::default();
     while let Err(mpsc::RecvTimeoutError::Timeout) = rx.recv_timeout(FOLLOW_THE_ELECTION_EVERY) {
         known.tell(&node);
         group.follow_the_election(&node);
+        guest.follow_the_election(&node);
     }
+    drop(guest);
     drop(group);
 
     tracing::info!("stopping");

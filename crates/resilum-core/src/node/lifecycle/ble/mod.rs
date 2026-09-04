@@ -47,6 +47,7 @@ where
     let attachments = node.attachments.clone();
     let origins = node.origin_registry.clone();
     let nursery = node.nursery.clone();
+    let someone_elses_group = node.ble_someone_elses_group.clone();
     node.tasks.push(node.runtime.handle().spawn(async move {
         let Some(radio) = opening.await else {
             return;
@@ -64,6 +65,7 @@ where
         }
         let since = Instant::now();
         let group_falls_with_the_radio = hosting.clone();
+        let nothing_is_on_the_air_without_a_radio = someone_elses_group.clone();
         tokio::select! {
             () = run::run(
                 Ours {
@@ -74,6 +76,7 @@ where
                     attachments,
                     origins,
                     field: field.clone(),
+                    someone_elses_group,
                 },
                 events,
                 since,
@@ -95,6 +98,7 @@ where
             ) => {}
         }
         group_falls_with_the_radio.stand_down();
+        nothing_is_on_the_air_without_a_radio.forget_it();
     }));
 }
 

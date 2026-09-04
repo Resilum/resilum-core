@@ -9,7 +9,7 @@ use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::Receiver;
 
 use super::beacon::Beacon;
-use super::election::Field;
+use super::election::{Field, SomeoneElsesGroup};
 use super::handshake::Handshakes;
 use super::links::{Links, PeerId};
 use super::radio::{Radio, RadioEvent};
@@ -29,6 +29,7 @@ pub struct Ours {
     pub attachments: Arc<crate::discovery::Attachments>,
     pub origins: Arc<crate::discovery::OriginRegistry>,
     pub field: Field,
+    pub someone_elses_group: SomeoneElsesGroup,
 }
 
 pub async fn run(ours: Ours, mut events: Receiver<RadioEvent>, since: std::time::Instant) {
@@ -48,6 +49,7 @@ pub async fn run(ours: Ours, mut events: Receiver<RadioEvent>, since: std::time:
             },
             _ = look_around.tick() => {
                 let _ = ours.radio.scan(spec::SERVICE);
+                ours.someone_elses_group.forget_it_if_it_has_gone_quiet(now_ms());
                 dial::those_who_waited(&ours, &links, &mut held_off, now_ms());
                 for conn in waiting.gave_up_by(now_ms(), GIVE_UP_ON_A_HANDSHAKE_AFTER_MS) {
                     ours.radio.disconnect(conn);
