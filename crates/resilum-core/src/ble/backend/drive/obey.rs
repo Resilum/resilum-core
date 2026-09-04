@@ -14,8 +14,11 @@ pub(super) async fn command(held: &mut Held, command: super::Command) {
             let config = AdvertisingConfig {
                 local_name,
                 service_uuids: vec![uuid::Uuid::from_u128(service)],
+                ..AdvertisingConfig::default()
             };
-            let _ = held.peripheral.start_advertising(&config).await;
+            if let Err(error) = held.peripheral.start_advertising(&config).await {
+                tracing::warn!(%error, "the radio refused to advertise us");
+            }
         }
         Command::StopAdvertising => {
             let _ = held.peripheral.stop_advertising().await;

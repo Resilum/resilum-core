@@ -5,9 +5,6 @@ mod parsing;
 mod regions;
 mod render;
 
-#[cfg(test)]
-mod tests;
-
 use std::path::Path;
 
 use parsing::{RNS_ENV, YGG_ENV};
@@ -65,3 +62,6 @@ fn render_file(
     tracing::info!(tag, path = %path.display(), "rendered");
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

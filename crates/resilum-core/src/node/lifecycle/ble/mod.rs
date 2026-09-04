@@ -1,3 +1,5 @@
+mod a_radio_here;
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -28,7 +30,7 @@ pub(super) fn bring_up(node: &mut Node, wiring: &Wiring) {
     }
     let mut ours = [0u8; spec::IDENTITY_LEN];
     ours.copy_from_slice(&wiring.identity.hash()[..spec::IDENTITY_LEN]);
-    speak_over(node, wiring, ours, a_radio_on_this_host());
+    speak_over(node, wiring, ours, a_radio_here::opened());
 }
 
 pub(crate) fn speak_over<R>(node: &mut Node, wiring: &Wiring, ours: PeerId, opening: R)
@@ -44,6 +46,8 @@ where
     let hosting = node.ble_hosting.clone();
     let attachments = node.attachments.clone();
     let origins = node.origin_registry.clone();
+    let nursery = node.nursery.clone();
+    let someone_elses_group = node.ble_someone_elses_group.clone();
     node.tasks.push(node.runtime.handle().spawn(async move {
         let Some(radio) = opening.await else {
             return;
@@ -61,6 +65,7 @@ where
         }
         let since = Instant::now();
         let group_falls_with_the_radio = hosting.clone();
+        let nothing_is_on_the_air_without_a_radio = someone_elses_group.clone();
         tokio::select! {
             () = run::run(
                 Ours {
@@ -71,6 +76,7 @@ where
                     attachments,
                     origins,
                     field: field.clone(),
+                    someone_elses_group,
                 },
                 events,
                 since,
@@ -86,11 +92,13 @@ where
                     hosting,
                     us: ours,
                     beacon,
+                    nursery,
                 },
                 since,
             ) => {}
         }
         group_falls_with_the_radio.stand_down();
+        nothing_is_on_the_air_without_a_radio.forget_it();
     }));
 }
 
@@ -105,6 +113,7 @@ fn answer_other_candidates(node: &mut Node, wiring: &Wiring, field: &Field) {
             asked_of_us,
             node.ble_facts.clone(),
             field.clone(),
+            node.nursery.clone(),
         )));
     node.tasks
         .push(node.runtime.handle().spawn(crate::announce_ours::every(
@@ -112,20 +121,4 @@ fn answer_other_candidates(node: &mut Node, wiring: &Wiring, field: &Field) {
             ours,
             ANNOUNCE_EVERY,
         )));
-}
-
-#[cfg(feature = "ble")]
-async fn a_radio_on_this_host() -> Option<Arc<dyn Radio>> {
-    match crate::ble::backend::BlewRadio::open_or_say_why().await {
-        Ok(radio) => Some(Arc::new(radio)),
-        Err(e) => {
-            tracing::warn!(error = ?e, "no ble radio on this host");
-            None
-        }
-    }
-}
-
-#[cfg(not(feature = "ble"))]
-async fn a_radio_on_this_host() -> Option<Arc<dyn Radio>> {
-    None
 }

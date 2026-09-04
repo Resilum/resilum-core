@@ -13,5 +13,5 @@ RUN apk add --no-cache --no-scripts \
  && chown rngit:rngit /config
 
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
-USER rngit
+USER 1000:1000
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

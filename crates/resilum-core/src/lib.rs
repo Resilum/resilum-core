@@ -27,6 +27,7 @@ pub mod lxmf;
 pub mod mirrors;
 pub mod net;
 mod node;
+mod nursery;
 pub mod pump;
 mod socks5_tcp;
 pub mod spec;

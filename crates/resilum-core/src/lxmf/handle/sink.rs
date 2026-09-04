@@ -1,8 +1,5 @@
 //! The processor's end of the event queue.
 
-#[cfg(test)]
-mod tests;
-
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
@@ -142,3 +139,6 @@ pub(super) fn new(events: mpsc::Sender<Queued>, depth: Arc<AtomicUsize>) -> Even
         dropped: 0,
     }
 }
+
+#[cfg(test)]
+mod tests;

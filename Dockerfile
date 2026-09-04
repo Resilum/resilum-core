@@ -7,10 +7,22 @@ ARG PROFILE=release
 WORKDIR /src
 COPY rust-toolchain.toml /src/
 RUN rustup toolchain install
+COPY Cargo.toml Cargo.lock /src/
+COPY crates/resilum-core/Cargo.toml /src/crates/resilum-core/
+COPY crates/resilum-nostr/Cargo.toml /src/crates/resilum-nostr/
+COPY crates/resilumd/Cargo.toml /src/crates/resilumd/
+COPY crates/resilum-ffi/Cargo.toml /src/crates/resilum-ffi/
+COPY crates/xtask/Cargo.toml /src/crates/xtask/
+RUN mkdir -p crates/resilum-core/src crates/resilum-nostr/src crates/resilumd/src \
+             crates/resilum-ffi/src crates/xtask/src \
+ && touch crates/resilum-core/src/lib.rs crates/resilum-nostr/src/lib.rs \
+          crates/resilum-ffi/src/lib.rs \
+ && echo 'fn main() {}' > crates/resilumd/src/main.rs \
+ && echo 'fn main() {}' > crates/xtask/src/main.rs \
+ && cargo fetch
+
 COPY . /src
-RUN --mount=type=cache,target=/root/.cargo/registry \
-    --mount=type=cache,target=/root/.cargo/git \
-    --mount=type=cache,target=/src/target \
+RUN --mount=type=cache,target=/src/target \
     case "$TARGETPLATFORM" in \
       linux/amd64) target=x86_64-unknown-linux-musl ;; \
       linux/arm64) target=aarch64-unknown-linux-musl ;; \
@@ -36,8 +48,8 @@ COPY --chmod=755 docker/entrypoint.sh docker/healthcheck.sh /
 COPY deploy/config/*.example /usr/share/resilum/defaults/
 COPY --from=build /resilumd /usr/local/bin/resilumd
 RUN setcap cap_net_raw+ep /usr/local/bin/resilumd \
- && apk del libcap-setcap
-USER resilum
+ && apk del --no-cache libcap-setcap
+USER 1000:1000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
     CMD ["/healthcheck.sh"]
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

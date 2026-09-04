@@ -42,6 +42,15 @@ impl Air {
         let mut wire = self.wire();
         wire.named.insert(at.clone(), name.to_owned());
         wire.listening.insert(at.clone(), to);
+        let arriving = RadioEvent::Seen {
+            address: at.clone(),
+            name: Some(name.to_owned()),
+        };
+        for (address, listener) in &wire.listening {
+            if address != at {
+                let _ = listener.try_send(arriving.clone());
+            }
+        }
     }
 
     pub fn seen_by(&self, scanner: &PeerAddress) -> Vec<RadioEvent> {

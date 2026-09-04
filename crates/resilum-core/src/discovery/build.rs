@@ -23,6 +23,7 @@ pub struct BuildParams<'a> {
     pub cap_controller: Arc<CapController>,
     pub events: crate::dispatch::Events,
     pub origin_registry: Arc<OriginRegistry>,
+    pub nursery: Arc<crate::nursery::Nursery>,
 }
 
 /// Builds the discovery plugin set, plus the yggdrasil plugin (if configured),
@@ -76,6 +77,7 @@ pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDisc
             p.events.clone(),
             p.origin_registry.clone(),
             attachments.clone(),
+            p.nursery.clone(),
         ));
         d.register(service, plugin);
     }

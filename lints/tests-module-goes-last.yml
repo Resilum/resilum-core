@@ -1,0 +1,20 @@
+---
+id: tests-module-goes-last
+language: Rust
+severity: error
+message: The tests module is not last in the file.
+note: |
+  Move `#[cfg(test)] mod tests;` to the bottom. Nothing belongs after it.
+rule:
+  kind: mod_item
+  inside:
+    kind: source_file
+  has:
+    field: name
+    regex: ^tests$
+  follows:
+    kind: attribute_item
+    regex: cfg\(test\)
+  precedes:
+    stopBy: end
+    regex: .

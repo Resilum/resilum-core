@@ -93,9 +93,6 @@ impl Handshakes {
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 fn tell_them_who_we_are(
     radio: &dyn Radio,
     conn: ConnectionId,
@@ -118,3 +115,6 @@ fn expected_from(role: Role) -> u128 {
         Role::Peripheral => spec::RX_WRITTEN_BY_THE_CENTRAL,
     }
 }
+
+#[cfg(test)]
+mod tests;

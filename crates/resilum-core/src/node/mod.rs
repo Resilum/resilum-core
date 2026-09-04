@@ -39,6 +39,7 @@ pub struct Node {
     pub(crate) protect: Option<OutboundSocketHook>,
     pub(crate) events: dispatch::Events,
     pub(crate) tasks: Vec<JoinHandle<()>>,
+    pub(crate) nursery: Arc<crate::nursery::Nursery>,
     pub(crate) event_queue: event::Queue,
     pub(crate) socks_port: Arc<AtomicU16>,
     pub(crate) discovery_trigger: Arc<Notify>,
@@ -50,6 +51,7 @@ pub struct Node {
     pub(crate) ble_facts: crate::ble::election::WhatThePlatformKnows,
     pub(crate) ble_hosting: crate::ble::election::HostingTheGroup,
     pub(crate) ble_field: crate::ble::election::Field,
+    pub(crate) ble_someone_elses_group: crate::ble::election::SomeoneElsesGroup,
     pub(crate) covert_listeners: Vec<leviculum_std::interfaces::ByteChannelHandle>,
     #[cfg(all(unix, feature = "ygg"))]
     pub(crate) ygg_discovery: Option<Arc<crate::discovery::TcpDiscovered>>,
@@ -79,6 +81,7 @@ impl Node {
             protect: None,
             events: dispatch::Events::new(1024),
             tasks: Vec::new(),
+            nursery: Arc::default(),
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             socks_port: Arc::new(AtomicU16::new(0)),
             discovery_trigger: Arc::new(Notify::new()),
@@ -93,6 +96,7 @@ impl Node {
             ),
             ble_hosting: crate::ble::election::HostingTheGroup::nobody_yet(),
             ble_field: crate::ble::election::Field::default(),
+            ble_someone_elses_group: crate::ble::election::SomeoneElsesGroup::none_heard_yet(),
             covert_listeners: Vec::new(),
             coordinates,
             #[cfg(all(unix, feature = "ygg"))]

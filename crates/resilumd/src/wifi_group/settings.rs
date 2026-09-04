@@ -12,7 +12,10 @@ fn text(value: &str) -> Variant<Box<dyn RefArg>> {
 
 pub(super) fn a_group_owned_by_us(group: &WifiGroup, interface: &str) -> Connection {
     HashMap::from([
-        (String::from("connection"), which_connection(interface)),
+        (
+            String::from("connection"),
+            which_connection("resilum-group", interface),
+        ),
         (String::from("802-11-wireless"), an_access_point(group)),
         (
             String::from("802-11-wireless-security"),
@@ -26,9 +29,28 @@ pub(super) fn a_group_owned_by_us(group: &WifiGroup, interface: &str) -> Connect
     ])
 }
 
-fn which_connection(interface: &str) -> Section {
+pub(super) fn a_group_someone_else_owns(group: &WifiGroup, interface: &str) -> Connection {
+    HashMap::from([
+        (
+            String::from("connection"),
+            which_connection("resilum-group-guest", interface),
+        ),
+        (String::from("802-11-wireless"), a_station_joining(group)),
+        (
+            String::from("802-11-wireless-security"),
+            locked_with(&group.passphrase),
+        ),
+        (String::from("ipv4"), told_by_whoever_owns_the_group()),
+        (
+            String::from("ipv6"),
+            Section::from([(String::from("method"), text("ignore"))]),
+        ),
+    ])
+}
+
+fn which_connection(id: &str, interface: &str) -> Section {
     Section::from([
-        (String::from("id"), text("resilum-group")),
+        (String::from("id"), text(id)),
         (String::from("type"), text("802-11-wireless")),
         (String::from("interface-name"), text(interface)),
         (
@@ -46,6 +68,26 @@ fn an_access_point(group: &WifiGroup) -> Section {
         ),
         (String::from("mode"), text("ap")),
         (String::from("band"), text("bg")),
+    ])
+}
+
+fn a_station_joining(group: &WifiGroup) -> Section {
+    Section::from([
+        (
+            String::from("ssid"),
+            Variant(Box::new(group.ssid.as_bytes().to_vec()) as Box<dyn RefArg>),
+        ),
+        (String::from("mode"), text("infrastructure")),
+    ])
+}
+
+fn told_by_whoever_owns_the_group() -> Section {
+    Section::from([
+        (String::from("method"), text("auto")),
+        (
+            String::from("never-default"),
+            Variant(Box::new(true) as Box<dyn RefArg>),
+        ),
     ])
 }
 
@@ -90,3 +132,6 @@ fn at_the_owner_address(group: &WifiGroup) -> Section {
         ),
     ])
 }
+
+#[cfg(test)]
+mod tests;

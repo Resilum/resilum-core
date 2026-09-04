@@ -1,19 +1,37 @@
 use resilum_core::ble::election::HostsWhileOnARouter;
 
-use super::{Combination, Role, read_from};
+use super::{Combination, Limit, Role, read_from};
+
+fn one_of(role: Role) -> Limit {
+    Limit {
+        allows: vec![role],
+        at_most: 1,
+    }
+}
 
 fn station_and_ap(channels_at_once: u32) -> Combination {
     Combination {
-        each_limit_allows: vec![vec![Role::OnARouter], vec![Role::Hosting]],
+        each_limit: vec![one_of(Role::OnARouter), one_of(Role::Hosting)],
         interfaces_at_once: 3,
         channels_at_once,
+    }
+}
+
+fn either_but_only_one(at_most: u32) -> Combination {
+    Combination {
+        each_limit: vec![Limit {
+            allows: vec![Role::OnARouter, Role::Hosting],
+            at_most,
+        }],
+        interfaces_at_once: 3,
+        channels_at_once: 2,
     }
 }
 
 #[test]
 fn a_radio_that_names_no_access_point_cannot_host() {
     let station_only = Combination {
-        each_limit_allows: vec![vec![Role::OnARouter]],
+        each_limit: vec![one_of(Role::OnARouter)],
         interfaces_at_once: 2,
         channels_at_once: 2,
     };
@@ -51,6 +69,22 @@ fn a_radio_with_room_for_one_interface_cannot_hold_both() {
 
     assert!(allows.can_host_at_all);
     assert_eq!(allows.while_on_a_router, HostsWhileOnARouter::Refused);
+}
+
+#[test]
+fn one_slot_shared_between_the_two_roles_holds_only_one_of_them() {
+    let allows = read_from(&[either_but_only_one(1)]);
+
+    assert!(allows.can_host_at_all);
+    assert_eq!(allows.while_on_a_router, HostsWhileOnARouter::Refused);
+}
+
+#[test]
+fn a_shared_slot_wide_enough_for_two_holds_both() {
+    let allows = read_from(&[either_but_only_one(2)]);
+
+    assert!(allows.can_host_at_all);
+    assert_eq!(allows.while_on_a_router, HostsWhileOnARouter::Confirmed);
 }
 
 #[test]

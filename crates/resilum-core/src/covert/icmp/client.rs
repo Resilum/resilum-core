@@ -1,17 +1,13 @@
-//! Portable ICMP client: `SOCK_DGRAM + IPPROTO_ICMP{,V6}`. No root, no raw.
-//! Works on Linux (subject to `net.ipv4.ping_group_range`), Android with a
-//! plain `INTERNET` permission and iOS without entitlements.
-//!
-//! The kernel writes the IP header on send and strips it on recv, and it
-//! matches replies to our socket by its bound identifier — foreign echoes
-//! from other pings never reach us.
+//! ICMP client. Foreign echoes are turned away by the marker.
 
 use std::io;
 use std::net::{IpAddr, SocketAddr};
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 
-use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+use socket2::{Domain, Protocol, SockAddr, Socket};
+
+use super::socket::HowTheKernelHandsItOver;
 
 use super::wake::{Ready, Wake};
 use super::wire;
@@ -29,6 +25,7 @@ pub struct IcmpClient {
     recv_marker: [u8; super::marker::MARKER_LEN],
     mtu: usize,
     sock: Socket,
+    arrives: HowTheKernelHandsItOver,
     wake: Wake,
 }
 
@@ -43,7 +40,8 @@ impl IcmpClient {
             IpAddr::V4(_) => (Domain::IPV4, Protocol::ICMPV4),
             IpAddr::V6(_) => (Domain::IPV6, Protocol::ICMPV6),
         };
-        let sock = Socket::new(domain, Type::DGRAM, Some(proto))?;
+        let (sock, arrives) =
+            super::socket::whichever_this_host_allows(domain, proto, server.is_ipv6())?;
         sock.set_nonblocking(false)?;
         Ok(Self {
             server,
@@ -51,6 +49,7 @@ impl IcmpClient {
             recv_marker: super::marker::reply_marker(server_pubkey),
             mtu,
             sock,
+            arrives,
             wake: Wake::new()?,
         })
     }
@@ -74,7 +73,7 @@ impl IcmpClient {
         }
         let cell = unsafe { std::slice::from_raw_parts_mut(buf.as_mut_ptr().cast(), buf.len()) };
         let (n, _addr) = self.sock.recv_from(cell)?;
-        let body = &buf[..n];
+        let body = self.arrives.icmp_within(&buf[..n]);
         let v6 = self.server.is_ipv6();
         Ok(wire::payload_of_reply(body, self.recv_marker, v6).map(<[u8]>::to_vec))
     }

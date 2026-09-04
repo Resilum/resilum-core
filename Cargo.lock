@@ -506,9 +506,8 @@ dependencies = [
 
 [[package]]
 name = "blew"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fc26017c8941f033a5555555e12a69cfd7c6eb0353c5bc012eb3cabaa8e5490"
+version = "0.4.0-beta.1"
+source = "git+https://github.com/Resilum/blew.git?rev=6d6a9a560cc10f971152b14da6201292694007ce#6d6a9a560cc10f971152b14da6201292694007ce"
 dependencies = [
  "bitflags 2.13.1",
  "bluer",
@@ -519,6 +518,7 @@ dependencies = [
  "ndk-context",
  "objc2",
  "objc2-core-bluetooth",
+ "objc2-core-foundation",
  "objc2-foundation",
  "parking_lot",
  "serde_json",
@@ -3241,6 +3241,7 @@ dependencies = [
 [[package]]
 name = "leviculum-core"
 version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "aes",
  "cbc",
@@ -3258,6 +3259,7 @@ dependencies = [
 [[package]]
 name = "leviculum-lxmf"
 version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "leviculum-core",
  "rand_core 0.6.4",
@@ -3268,8 +3270,10 @@ dependencies = [
 [[package]]
 name = "leviculum-std"
 version = "0.8.1"
+source = "git+https://codeberg.org/Lew_Palm/leviculum.git?rev=3ed9cac1084d911bf250a84c99e2c86a1bb4860c#3ed9cac1084d911bf250a84c99e2c86a1bb4860c"
 dependencies = [
  "clap",
+ "futures",
  "hmac",
  "if-addrs",
  "leviculum-core",
@@ -4944,7 +4948,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-core"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "arti-client",
  "blew",
@@ -4956,11 +4960,13 @@ dependencies = [
  "if-addrs",
  "iroh",
  "iroh-base",
+ "jni 0.22.4",
  "leviculum-core",
  "leviculum-lxmf",
  "leviculum-std",
  "libc",
  "n0-watcher",
+ "ndk-context",
  "netstack-smoltcp",
  "noq-udp",
  "proptest",
@@ -4987,7 +4993,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-ffi"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "cbindgen",
  "ndk-context",
@@ -5000,7 +5006,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-nostr"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "bech32",
  "data-encoding",
@@ -5020,7 +5026,7 @@ dependencies = [
 
 [[package]]
 name = "resilumd"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "ctrlc",
  "data-encoding",
@@ -8551,13 +8557,14 @@ dependencies = [
 
 [[package]]
 name = "wnaf"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab12e7090f27e2ffd9322651492942d50c2926094af30601e1964337db39daf1"
+checksum = "795ca18b3fdb5e62bf982199278341ddcf7ebf7d32e25e212ad05d496e95f6fa"
 dependencies = [
  "ff 0.14.0",
  "group 0.14.0",
  "hybrid-array",
+ "primefield",
 ]
 
 [[package]]
@@ -8623,7 +8630,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "tree-sitter",
  "tree-sitter-rust",

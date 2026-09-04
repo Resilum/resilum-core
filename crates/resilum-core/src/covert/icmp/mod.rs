@@ -7,6 +7,7 @@ pub mod marker;
 pub mod nftguard;
 #[cfg(target_os = "linux")]
 pub mod server;
+pub mod socket;
 #[cfg(unix)]
 pub mod wake;
 pub mod wire;

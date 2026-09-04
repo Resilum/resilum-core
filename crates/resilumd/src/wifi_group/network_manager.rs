@@ -4,7 +4,7 @@ use dbus::Path;
 use dbus::blocking::Connection;
 use resilum_core::WifiGroup;
 
-use super::{Lowering, RaisesAGroup, settings};
+use super::{Lowering, Raised, RaisesAGroup, settings};
 
 const NM: &str = "org.freedesktop.NetworkManager";
 const NM_PATH: &str = "/org/freedesktop/NetworkManager";
@@ -17,30 +17,38 @@ pub fn if_it_is_running() -> Option<NetworkManager> {
 }
 
 impl RaisesAGroup for NetworkManager {
-    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Lowering, String> {
-        let bus = Connection::new_system().map_err(|e| format!("no system bus: {e}"))?;
-        let manager = bus.with_proxy(NM, NM_PATH, ANSWERS_WITHIN);
-        let (device,): (Path,) = manager
-            .method_call(NM, "GetDeviceByIpIface", (interface,))
-            .map_err(|e| format!("no device named {interface}: {e}"))?;
-        let (_, active): (Path, Path) = manager
-            .method_call(
-                NM,
-                "AddAndActivateConnection",
-                (
-                    settings::a_group_owned_by_us(group, interface),
-                    device,
-                    Path::new("/").unwrap_or_default(),
-                ),
-            )
-            .map_err(|e| format!("NetworkManager would not raise the group: {e}"))?;
-        let active = active.into_static();
-        Ok(Box::new(move || deactivate(&bus, &active)))
+    fn raise(&self, group: &WifiGroup, interface: &str) -> Result<Raised, String> {
+        Ok(Raised {
+            carried_on: interface.to_owned(),
+            already_addressed: true,
+            lower: activate(
+                settings::a_group_owned_by_us(group, interface),
+                interface,
+                "raise the group",
+            )?,
+        })
     }
+}
 
-    fn addresses_the_interface_itself(&self) -> bool {
-        true
-    }
+pub(super) fn activate(
+    connection: settings::Connection,
+    interface: &str,
+    what_for: &str,
+) -> Result<Lowering, String> {
+    let bus = Connection::new_system().map_err(|e| format!("no system bus: {e}"))?;
+    let manager = bus.with_proxy(NM, NM_PATH, ANSWERS_WITHIN);
+    let (device,): (Path,) = manager
+        .method_call(NM, "GetDeviceByIpIface", (interface,))
+        .map_err(|e| format!("no device named {interface}: {e}"))?;
+    let (_, active): (Path, Path) = manager
+        .method_call(
+            NM,
+            "AddAndActivateConnection",
+            (connection, device, Path::new("/").unwrap_or_default()),
+        )
+        .map_err(|e| format!("NetworkManager would not {what_for}: {e}"))?;
+    let active = active.into_static();
+    Ok(Box::new(move || deactivate(&bus, &active)))
 }
 
 fn deactivate(bus: &Connection, active: &Path<'static>) {

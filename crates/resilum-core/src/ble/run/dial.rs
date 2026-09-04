@@ -18,10 +18,14 @@ pub(super) fn on_seen(
     name: Option<&str>,
     now_ms: u64,
 ) {
+    let theirs = name.and_then(Beacon::read);
+    if theirs.is_some_and(|theirs| theirs.group_is_up) {
+        ours.someone_elses_group.heard_at(now_ms);
+    }
     if !links.room_for_one_more() || held_off.contains_key(&address) {
         return;
     }
-    match toward(&ours.beacon, name.and_then(Beacon::read).as_ref()) {
+    match toward(&ours.beacon, theirs.as_ref()) {
         Toward::DialNow => {
             let _ = ours.radio.connect(&address);
         }

@@ -49,4 +49,7 @@ deny = [{ crate = "ndk-context", deny-multiple-versions = true }]
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-allow-git = ["https://codeberg.org/Lew_Palm/leviculum.git"]
+allow-git = [
+  "https://codeberg.org/Lew_Palm/leviculum.git",
+  "https://github.com/Resilum/blew.git",
+]

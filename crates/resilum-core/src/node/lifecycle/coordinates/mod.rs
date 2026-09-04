@@ -40,6 +40,7 @@ pub(super) fn bring_up(
         asked_of_us,
         node.coordinates.clone(),
         wall_clock::unix_now,
+        node.nursery.clone(),
     )));
     node.tasks.push(tokio::spawn(crate::announce_ours::every(
         engine.clone(),
