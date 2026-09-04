@@ -507,8 +507,7 @@ dependencies = [
 [[package]]
 name = "blew"
 version = "0.4.0-beta.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a98216da62cbd09349ae5472fd46c1a270d640df44cba24d6cbc4de776c794ba"
+source = "git+https://github.com/Resilum/blew.git?rev=6d6a9a560cc10f971152b14da6201292694007ce#6d6a9a560cc10f971152b14da6201292694007ce"
 dependencies = [
  "bitflags 2.13.1",
  "bluer",
