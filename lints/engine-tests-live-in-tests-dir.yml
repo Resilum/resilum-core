@@ -1,0 +1,16 @@
+---
+id: engine-tests-live-in-tests-dir
+language: Rust
+severity: error
+message: A unit test module stands up a real engine.
+note: |
+  Standing up a node or a core is integration work: move the test to the
+  crate's `tests/` directory, where it links against the public API.
+files:
+  - "crates/*/src/**/tests.rs"
+  - "crates/*/src/**/*_tests.rs"
+rule:
+  any:
+    - pattern: NodeCoreBuilder::new()
+    - pattern: Node::new($$$)
+    - pattern: NodeCore::new($$$)

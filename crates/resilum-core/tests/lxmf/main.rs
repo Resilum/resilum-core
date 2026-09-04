@@ -5,6 +5,7 @@
 //! interface, and the queue is written to disk. A unit test over the JSON
 //! mapping cannot tell whether any of that is wired up.
 
+mod announce;
 mod common;
 mod delivery;
 mod durability;

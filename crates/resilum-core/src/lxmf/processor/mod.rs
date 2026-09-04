@@ -13,8 +13,6 @@ mod absorb;
 mod commands;
 mod propagation;
 mod register;
-#[cfg(test)]
-mod tests;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -137,3 +135,6 @@ impl CoreProcessor for LxmfProcessor {
         out
     }
 }
+
+#[cfg(test)]
+mod tests;

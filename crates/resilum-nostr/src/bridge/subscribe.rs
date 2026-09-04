@@ -15,9 +15,6 @@ pub(in crate::bridge) use outcome::{Outcome, Refusal};
 
 mod outcome;
 
-#[cfg(test)]
-mod tests;
-
 pub(super) fn accept(state: &Arc<State>, data: &Value, source: [u8; 16]) {
     deliver::subscription_answered(state, source, decide(state, data));
 }
@@ -86,3 +83,6 @@ fn refused(refusal: Refusal, detail: &str) -> Outcome {
     tracing::warn!(detail, "a subscription request was refused");
     Outcome::Refused(refusal)
 }
+
+#[cfg(test)]
+mod tests;

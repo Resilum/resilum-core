@@ -9,9 +9,6 @@ mod payload;
 mod produce;
 mod registry;
 
-#[cfg(test)]
-mod tests;
-
 pub use consume::run_consume;
 pub use payload::name_hash;
 pub use produce::run_produce;
@@ -19,3 +16,6 @@ pub use registry::{Entry, Registry};
 
 pub(crate) const APP_NAME: &str = "resilum";
 pub(crate) const ASPECT: &[&str] = &["mirrors", "list"];
+
+#[cfg(test)]
+mod tests;

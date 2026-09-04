@@ -5,8 +5,6 @@
 mod build;
 mod lxmf;
 mod model;
-#[cfg(test)]
-mod tests;
 
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -130,3 +128,6 @@ pub unsafe extern "C" fn resilum_node_status(node: *const ResilumNode) -> *mut c
         }
     })
 }
+
+#[cfg(test)]
+mod tests;

@@ -14,8 +14,6 @@ use crate::lxmf::handle::{Command, EventSink};
 
 mod requeue;
 mod stamp;
-#[cfg(test)]
-mod tests;
 
 impl LxmfProcessor {
     /// Non-blocking by construction: this runs with the core mutex held.
@@ -98,3 +96,6 @@ fn report_enqueue_error(events: &mut EventSink, message_id: &[u8; 32], error: Ro
     tracing::warn!(error = ?error, "lxmf enqueue rejected");
     events.push(crate::lxmf::poll::failed(message_id, &error));
 }
+
+#[cfg(test)]
+mod tests;

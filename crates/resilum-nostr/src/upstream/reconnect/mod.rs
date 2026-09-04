@@ -2,8 +2,6 @@
 
 mod connected;
 mod pump;
-#[cfg(test)]
-mod tests;
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -135,3 +133,6 @@ impl UpstreamRunner {
         while self.outbox_rx.try_recv().is_ok() {}
     }
 }
+
+#[cfg(test)]
+mod tests;

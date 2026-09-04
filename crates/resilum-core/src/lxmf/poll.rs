@@ -5,12 +5,8 @@
 //! upstream added after they were written by silently picking whichever label
 //! it happened to land on. Failing to compile is the cheaper answer.
 
-#[cfg(test)]
-mod announce_tests;
 mod reason;
 mod refusal;
-#[cfg(test)]
-mod tests;
 
 use data_encoding::{BASE64, HEXLOWER};
 use leviculum_core::DestinationHash;
@@ -139,3 +135,6 @@ fn verification_name(verification: Verification) -> &'static str {
         Verification::Invalid => "invalid",
     }
 }
+
+#[cfg(test)]
+mod tests;
