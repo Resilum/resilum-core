@@ -33,10 +33,18 @@ jobs:
           rename-to: hadolint
           chmod: 0755
       - name: The rest the checker refuses to run without
+        env:
+          SHELLCHECK: v0.11.0
         run: |
           sudo apt-get install -qq -y musl-tools
           npm i -g markdownlint-cli2 @ast-grep/cli
           pip install --break-system-packages yamllint
+          release=https://github.com/koalaman/shellcheck/releases/download
+          name="shellcheck-${SHELLCHECK}"
+          curl -fsSL "${release}/${SHELLCHECK}/${name}.linux.x86_64.tar.xz" |
+            sudo tar -xJ --strip-components=1 -C /usr/local/bin \
+              "${name}/shellcheck"
+          shellcheck --version | grep version:
       - uses: docker/setup-buildx-action@v3
         if: github.base_ref == 'main'
       - name: The same gate that runs before a commit
