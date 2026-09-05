@@ -4,6 +4,10 @@ A multi-transport Reticulum node: peers stay reachable over whichever
 [interface](#interfaces) still works, and everything the node
 [carries](#services) rides across it.
 
+It speaks the Reticulum wire protocol and joins the same public network as the
+Python reference implementation — the anchors it dials by default are ordinary
+RNS hubs, and a node here is an ordinary peer to them.
+
 **Just want to run one?** → [Quick start](#quick-start).
 
 ## How it works
