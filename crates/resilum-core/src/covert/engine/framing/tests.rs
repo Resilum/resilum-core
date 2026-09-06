@@ -47,3 +47,45 @@ fn ready_retransmits_after_rto() {
     let out = s.ready(rto + 0.01);
     assert_eq!(out, vec![(1, b"X".to_vec())]);
 }
+
+#[test]
+fn an_ack_for_what_was_never_sent_is_refused() {
+    let mut s = SendBuffer::new(1, 2);
+    s.write(b"AB");
+    s.ready(0.0);
+
+    s.ack(u32::MAX, 0.1);
+
+    let rto = s.rto().as_secs_f64();
+    assert_eq!(
+        s.ready(rto + 0.01),
+        vec![(1, b"A".to_vec()), (2, b"B".to_vec())]
+    );
+}
+
+#[test]
+fn an_ack_one_past_the_last_chunk_is_refused() {
+    let mut s = SendBuffer::new(1, 4);
+    s.write(b"AB");
+    s.ready(0.0);
+
+    s.ack(3, 0.1);
+
+    let rto = s.rto().as_secs_f64();
+    assert_eq!(
+        s.ready(rto + 0.01),
+        vec![(1, b"A".to_vec()), (2, b"B".to_vec())]
+    );
+}
+
+#[test]
+fn the_last_chunk_sent_is_still_acknowledgeable() {
+    let mut s = SendBuffer::new(1, 4);
+    s.write(b"AB");
+    s.ready(0.0);
+
+    s.ack(2, 0.1);
+
+    let rto = s.rto().as_secs_f64();
+    assert!(s.ready(rto + 0.01).is_empty());
+}
