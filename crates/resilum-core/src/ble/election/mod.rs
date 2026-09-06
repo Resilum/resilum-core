@@ -52,6 +52,9 @@ impl Election {
     }
 
     pub fn consider(&mut self, field: &[Candidate], now_ms: u64) -> Verdict {
+        if self.nobody_but_us(field) {
+            return self.step_down_if_hosting(now_ms);
+        }
         let Some(winner) = the_one_to_host(field) else {
             return self.step_down_if_hosting(now_ms);
         };
@@ -62,6 +65,10 @@ impl Election {
             return self.step_down_if_hosting(now_ms);
         }
         Verdict::CarryOn
+    }
+
+    fn nobody_but_us(&self, field: &[Candidate]) -> bool {
+        !field.iter().any(|candidate| candidate.who != self.us)
     }
 
     fn win(&mut self, now_ms: u64) -> Verdict {
