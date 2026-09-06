@@ -1,6 +1,6 @@
 use resilum_core::WifiGroup;
 
-use super::{Connection, a_group_owned_by_us, a_group_someone_else_owns};
+use super::{Connection, a_group_owned_by_us, a_group_someone_else_owns, id_of};
 
 fn text_in(connection: &Connection, section: &str, key: &str) -> Option<String> {
     connection
@@ -42,6 +42,17 @@ fn the_two_never_answer_to_the_same_name() {
         text_in(&ours, "connection", "id"),
         text_in(&theirs, "connection", "id")
     );
+}
+
+#[test]
+fn a_profile_answers_to_the_name_we_sweep_by() {
+    let ours = a_group_owned_by_us(&WifiGroup::default(), "wlan0");
+
+    assert_eq!(
+        id_of(&ours).as_deref(),
+        text_in(&ours, "connection", "id").as_deref()
+    );
+    assert!(id_of(&ours).is_some());
 }
 
 #[test]
