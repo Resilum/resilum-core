@@ -52,7 +52,7 @@ rustls = { version = "0.23", optional = true, default-features = false, features
 ] }
 yosemite = { version = "0.7", optional = true }
 tokio-smoltcp = { version = "0.6", optional = true }
-blew = { git = "https://github.com/Resilum/blew.git", rev = "6d6a9a560cc10f971152b14da6201292694007ce", optional = true }
+blew = { git = "https://github.com/Resilum/blew.git", rev = "b55fad66dbaa34e36e7f0d0856ae15cf5ab6646f", optional = true }
 uuid = { version = "1", optional = true }
 iroh = { version = "=1.0.3", optional = true }
 iroh-base = { version = "=1.0.3", optional = true, default-features = false, features = [
