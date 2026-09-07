@@ -9,7 +9,7 @@ jobs:
   image:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@v4
@@ -35,9 +35,55 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
       - uses: docker/build-push-action@v6
+        id: built
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.named.outputs.tags }}
           labels: ${{ steps.named.outputs.labels }}
+      - uses: docker/metadata-action@v5
+        id: named-rngit
+        with:
+          images: ghcr.io/${{ github.repository }}-rngit
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+      - uses: docker/build-push-action@v6
+        id: built-rngit
+        with:
+          context: docker/rngit
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.named-rngit.outputs.tags }}
+          labels: ${{ steps.named-rngit.outputs.labels }}
+      - name: Say on the release where the images went
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAGS: ${{ steps.named.outputs.tags }}
+          DIGEST: ${{ steps.built.outputs.digest }}
+          TAGS_RNGIT: ${{ steps.named-rngit.outputs.tags }}
+          DIGEST_RNGIT: ${{ steps.built-rngit.outputs.digest }}
+        run: |
+          heading="## The images this tag built"
+          body=$(gh release view "$GITHUB_REF_NAME" --json body -q .body) \
+              || exit 0
+          case "$body" in *"$heading"*) exit 0 ;; esac
+          version=${GITHUB_REF_NAME#v}
+          repo=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          pinned=$(printf '%s\n' "$TAGS" | grep -F ":$version")
+          pinned_rngit=$(printf '%s\n' "$TAGS_RNGIT" | grep -F ":$version")
+          cat > release-body.md <<EOF
+          $body
+
+          $heading
+
+          ~~~
+          $pinned
+          ghcr.io/$repo@$DIGEST
+
+          $pinned_rngit
+          ghcr.io/$repo-rngit@$DIGEST_RNGIT
+          ~~~
+          EOF
+          gh release edit "$GITHUB_REF_NAME" --notes-file release-body.md

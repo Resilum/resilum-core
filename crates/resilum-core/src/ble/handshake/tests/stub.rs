@@ -37,7 +37,7 @@ impl Radio for Stub {
     fn events_taken_once(&self) -> Option<mpsc::Receiver<RadioEvent>> {
         None
     }
-    fn advertise(&self, _: &str, _: u128) -> Result<(), RadioError> {
+    fn advertise(&self, _: &str, _: &[u8], _: u128) -> Result<(), RadioError> {
         Ok(())
     }
     fn stop_advertising(&self) {}

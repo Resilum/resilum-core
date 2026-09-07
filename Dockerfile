@@ -19,7 +19,7 @@ RUN mkdir -p crates/resilum-core/src crates/resilum-nostr/src crates/resilumd/sr
           crates/resilum-ffi/src/lib.rs \
  && echo 'fn main() {}' > crates/resilumd/src/main.rs \
  && echo 'fn main() {}' > crates/xtask/src/main.rs \
- && cargo fetch
+ && CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fetch
 
 COPY . /src
 RUN --mount=type=cache,target=/src/target \
@@ -28,7 +28,8 @@ RUN --mount=type=cache,target=/src/target \
       linux/arm64) target=aarch64-unknown-linux-musl ;; \
       *) echo "no rust target mapped for $TARGETPLATFORM" >&2; exit 1 ;; \
     esac \
- && RUSTFLAGS="-C strip=symbols" cargo zigbuild --profile "$PROFILE" --target "$target" -p resilumd \
+ && RUSTFLAGS="-C strip=symbols" CARGO_NET_GIT_FETCH_WITH_CLI=true \
+    cargo zigbuild --profile "$PROFILE" --target "$target" -p resilumd \
  && cp "target/$target/$PROFILE/resilumd" /resilumd
 
 FROM alpine:3.21 AS runtime

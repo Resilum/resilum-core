@@ -15,7 +15,7 @@ pub struct Endpoint {
 #[derive(Default)]
 pub struct Wire {
     listening: HashMap<PeerAddress, mpsc::Sender<RadioEvent>>,
-    named: HashMap<PeerAddress, String>,
+    announced: HashMap<PeerAddress, (String, Vec<u8>)>,
     identities: HashMap<PeerAddress, [u8; spec::IDENTITY_LEN]>,
     ends: HashMap<ConnectionId, [Endpoint; 2]>,
     next_conn: u64,
@@ -38,13 +38,21 @@ impl Air {
         self.0.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    pub fn advertise(&self, at: &PeerAddress, name: &str, to: mpsc::Sender<RadioEvent>) {
+    pub fn advertise(
+        &self,
+        at: &PeerAddress,
+        name: &str,
+        beacon: &[u8],
+        to: mpsc::Sender<RadioEvent>,
+    ) {
         let mut wire = self.wire();
-        wire.named.insert(at.clone(), name.to_owned());
+        wire.announced
+            .insert(at.clone(), (name.to_owned(), beacon.to_vec()));
         wire.listening.insert(at.clone(), to);
         let arriving = RadioEvent::Seen {
             address: at.clone(),
             name: Some(name.to_owned()),
+            beacon: beacon.to_vec(),
         };
         for (address, listener) in &wire.listening {
             if address != at {
@@ -55,12 +63,13 @@ impl Air {
 
     pub fn seen_by(&self, scanner: &PeerAddress) -> Vec<RadioEvent> {
         self.wire()
-            .named
+            .announced
             .iter()
             .filter(|(address, _)| *address != scanner)
-            .map(|(address, name)| RadioEvent::Seen {
+            .map(|(address, (name, beacon))| RadioEvent::Seen {
                 address: address.clone(),
                 name: Some(name.clone()),
+                beacon: beacon.clone(),
             })
             .collect()
     }

@@ -16,9 +16,13 @@ fn candidate(who: [u8; 16], battery_percent: u8, has_an_uplink: bool) -> Candida
     }
 }
 
+fn someone_to_host_for() -> Candidate {
+    candidate(THEM, 1, false)
+}
+
 fn hosting_since(now_ms: u64) -> Election {
     let mut election = Election::watching(US);
-    let field = [candidate(US, 50, false)];
+    let field = [candidate(US, 50, false), someone_to_host_for()];
     election.consider(&field, now_ms);
     election.consider(&field, now_ms + super::CLAIM_DELAY_MS + 1);
     election
@@ -27,11 +31,31 @@ fn hosting_since(now_ms: u64) -> Election {
 #[test]
 fn a_winner_waits_out_the_claim_delay_before_raising_anything() {
     let mut election = Election::watching(US);
-    let field = [candidate(US, 50, false)];
+    let field = [candidate(US, 50, false), someone_to_host_for()];
 
     assert_eq!(election.consider(&field, 0), Verdict::CarryOn);
     assert_eq!(election.consider(&field, 1_000), Verdict::CarryOn);
     assert_eq!(election.consider(&field, 9_000), Verdict::RaiseTheGroup);
+}
+
+#[test]
+fn a_node_that_has_met_nobody_raises_nothing() {
+    let mut election = Election::watching(US);
+    let only_us = [candidate(US, 100, true)];
+
+    assert_eq!(election.consider(&only_us, 0), Verdict::CarryOn);
+    assert_eq!(election.consider(&only_us, 9_000), Verdict::CarryOn);
+    assert_eq!(election.standing(), Standing::Watching);
+}
+
+#[test]
+fn a_host_left_alone_stands_down() {
+    let mut election = hosting_since(0);
+
+    assert_eq!(
+        election.consider(&[candidate(US, 50, false)], WELL_PAST_THE_HOLD_DOWN),
+        Verdict::StandDown
+    );
 }
 
 #[test]

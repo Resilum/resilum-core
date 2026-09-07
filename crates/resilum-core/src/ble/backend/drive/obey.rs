@@ -9,12 +9,14 @@ pub(super) async fn command(held: &mut Held, command: super::Command) {
     match command {
         Command::Advertise {
             local_name,
+            beacon,
             service,
         } => {
+            let ours = uuid::Uuid::from_u128(service);
             let config = AdvertisingConfig {
                 local_name,
-                service_uuids: vec![uuid::Uuid::from_u128(service)],
-                ..AdvertisingConfig::default()
+                service_uuids: vec![ours],
+                service_data: [(ours, beacon)].into_iter().collect(),
             };
             if let Err(error) = held.peripheral.start_advertising(&config).await {
                 tracing::warn!(%error, "the radio refused to advertise us");
@@ -53,13 +55,19 @@ async fn connect(held: &mut Held, address: PeerAddress) {
     if held.central.connect(&device).await.is_err() {
         return;
     }
-    let conn = held.peers.joined(address.clone(), Role::Central);
+    let notified = uuid::Uuid::from_u128(super::super::spec::TX_NOTIFIED_BY_THE_PERIPHERAL);
+    if let Err(error) = held
+        .central
+        .subscribe_characteristic(&device, notified)
+        .await
+    {
+        tracing::warn!(%error, "the peer let us in but not to its notifications");
+    }
+    let conn = held.told.peers.joined(address.clone(), Role::Central);
     let carried = usize::from(held.central.mtu(&device).await).saturating_sub(ATT_HEADER);
-    held.carried
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .insert(conn, carried);
+    held.told.now_carries(conn, carried);
     let _ = held
+        .told
         .telling
         .send(RadioEvent::Connected {
             conn,
@@ -71,22 +79,28 @@ async fn connect(held: &mut Held, address: PeerAddress) {
 }
 
 async fn disconnect(held: &mut Held, conn: ConnectionId) {
-    let Some(address) = held.peers.parted(conn) else {
+    let Some(address) = held.told.peers.parted(conn) else {
         return;
     };
+    held.told.forget_what_it_carried(conn);
     let device = blew::DeviceId::from(address.0);
     let _ = held.central.disconnect(&device).await;
-    let _ = held.telling.send(RadioEvent::Disconnected { conn }).await;
+    let _ = held
+        .told
+        .telling
+        .send(RadioEvent::Disconnected { conn })
+        .await;
 }
 
 async fn read(held: &Held, conn: ConnectionId, characteristic: u128) {
-    let Some(address) = held.peers.address_of(conn) else {
+    let Some(address) = held.told.peers.address_of(conn) else {
         return;
     };
     let device = blew::DeviceId::from(address.0);
     let want = uuid::Uuid::from_u128(characteristic);
     if let Ok(value) = held.central.read_characteristic(&device, want).await {
         let _ = held
+            .told
             .telling
             .send(RadioEvent::Data {
                 conn,
@@ -99,9 +113,10 @@ async fn read(held: &Held, conn: ConnectionId, characteristic: u128) {
 
 pub(super) async fn put_on_the_air(held: &Held, piece: Outbound) {
     let Some((address, role)) = held
+        .told
         .peers
         .address_of(piece.conn)
-        .zip(held.peers.role_on(piece.conn))
+        .zip(held.told.peers.role_on(piece.conn))
     else {
         return;
     };

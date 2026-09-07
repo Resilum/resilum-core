@@ -48,6 +48,15 @@ pub(super) fn a_group_someone_else_owns(group: &WifiGroup, interface: &str) -> C
     ])
 }
 
+pub(super) fn id_of(connection: &Connection) -> Option<String> {
+    connection
+        .get("connection")?
+        .get("id")?
+        .0
+        .as_str()
+        .map(str::to_owned)
+}
+
 fn which_connection(id: &str, interface: &str) -> Section {
     Section::from([
         (String::from("id"), text(id)),

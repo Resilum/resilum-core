@@ -57,7 +57,7 @@ where
         };
         let beacon = Beacon::fresh(known.can_host_at_all(), hosting.is_up());
         radio.serve_identity(ours);
-        if let Err(e) = radio.advertise(&beacon.name(), spec::SERVICE) {
+        if let Err(e) = radio.advertise(&beacon.name(), &beacon.on_the_air(), spec::SERVICE) {
             tracing::warn!(error = ?e, "ble advertise refused");
         }
         if let Err(e) = radio.scan(spec::SERVICE) {

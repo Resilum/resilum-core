@@ -45,6 +45,7 @@ pub enum RadioEvent {
     Seen {
         address: PeerAddress,
         name: Option<String>,
+        beacon: Vec<u8>,
     },
     Connected {
         conn: ConnectionId,
@@ -85,7 +86,7 @@ pub enum RadioError {
 pub trait Radio: Send + Sync + 'static {
     fn events_taken_once(&self) -> Option<mpsc::Receiver<RadioEvent>>;
 
-    fn advertise(&self, local_name: &str, service: u128) -> Result<(), RadioError>;
+    fn advertise(&self, local_name: &str, beacon: &[u8], service: u128) -> Result<(), RadioError>;
     fn stop_advertising(&self);
 
     fn scan(&self, service: u128) -> Result<(), RadioError>;

@@ -8,6 +8,7 @@ name: checker
 
 env:
   CARGO_TERM_COLOR: never
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 jobs:
   checker:

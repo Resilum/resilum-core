@@ -59,23 +59,27 @@ impl SendBuffer {
     }
 
     pub fn ack(&mut self, ack_seq: u32, now: f64) {
-        if ack_seq <= self.acked {
+        if !self.is_something_we_sent_and_await(ack_seq) {
             return;
         }
-        // Only fresh (non-retransmitted) samples update RTT.
-        let mut sample: Option<f64> = None;
-        for seq in (self.acked + 1)..=ack_seq {
-            if let Some(chunk) = self.unacked.get(&seq)
-                && !chunk.retransmitted
-            {
-                sample = Some(now - chunk.sent_at);
-            }
-        }
+        let sample = self.freshest_round_trip_up_to(ack_seq, now);
         self.acked = ack_seq;
         self.unacked.retain(|&seq, _| seq > ack_seq);
         if let Some(r) = sample {
             self.observe_rtt(r);
         }
+    }
+
+    fn is_something_we_sent_and_await(&self, ack_seq: u32) -> bool {
+        ack_seq > self.acked && ack_seq < self.next_seq
+    }
+
+    fn freshest_round_trip_up_to(&self, ack_seq: u32, now: f64) -> Option<f64> {
+        self.unacked
+            .range((self.acked + 1)..=ack_seq)
+            .filter(|(_, chunk)| !chunk.retransmitted)
+            .map(|(_, chunk)| now - chunk.sent_at)
+            .next_back()
     }
 
     fn observe_rtt(&mut self, r: f64) {

@@ -506,8 +506,8 @@ dependencies = [
 
 [[package]]
 name = "blew"
-version = "0.4.0-beta.1"
-source = "git+https://github.com/Resilum/blew.git?rev=6d6a9a560cc10f971152b14da6201292694007ce#6d6a9a560cc10f971152b14da6201292694007ce"
+version = "0.4.0-beta.3"
+source = "git+https://github.com/Resilum/blew.git?rev=2acda2a578edbca8eb65cfaaba78fa1519346cf8#2acda2a578edbca8eb65cfaaba78fa1519346cf8"
 dependencies = [
  "bitflags 2.13.1",
  "bluer",
@@ -4948,7 +4948,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "arti-client",
  "blew",
@@ -4993,7 +4993,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-ffi"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "cbindgen",
  "ndk-context",
@@ -5006,7 +5006,7 @@ dependencies = [
 
 [[package]]
 name = "resilum-nostr"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "bech32",
  "data-encoding",
@@ -5026,7 +5026,7 @@ dependencies = [
 
 [[package]]
 name = "resilumd"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "ctrlc",
  "data-encoding",
@@ -8630,7 +8630,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "tree-sitter",
  "tree-sitter-rust",

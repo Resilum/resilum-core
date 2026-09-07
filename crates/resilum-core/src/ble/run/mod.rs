@@ -80,8 +80,19 @@ fn on_event(
     now_ms: u64,
 ) {
     match event {
-        RadioEvent::Seen { address, name } => {
-            dial::on_seen(ours, links, held_off, address, name.as_deref(), now_ms);
+        RadioEvent::Seen {
+            address,
+            name,
+            beacon,
+        } => {
+            dial::on_seen(
+                ours,
+                links,
+                held_off,
+                address,
+                Beacon::heard(&beacon, name.as_deref()),
+                now_ms,
+            );
         }
         RadioEvent::Connected {
             conn,

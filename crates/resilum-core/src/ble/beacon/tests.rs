@@ -40,6 +40,39 @@ fn a_peer_that_is_not_one_of_ours_is_not_read_as_one() {
 }
 
 #[test]
+fn service_data_carries_both_switches_back() {
+    for (can_host, group_is_up) in [(false, false), (true, false), (false, true), (true, true)] {
+        let ours = beacon([1, 2, 3], can_host, group_is_up);
+
+        assert_eq!(Beacon::read_on_the_air(&ours.on_the_air()), Some(ours));
+    }
+}
+
+#[test]
+fn service_data_is_taken_over_the_name_when_both_are_there() {
+    let in_service_data = beacon([1, 2, 3], true, true);
+    let in_the_name = beacon([4, 5, 6], false, false);
+
+    assert_eq!(
+        Beacon::heard(&in_service_data.on_the_air(), Some(&in_the_name.name())),
+        Some(in_service_data)
+    );
+}
+
+#[test]
+fn a_peer_still_announcing_in_its_name_alone_is_heard() {
+    let theirs = beacon([7, 8, 9], true, true);
+
+    assert_eq!(Beacon::heard(&[], Some(&theirs.name())), Some(theirs));
+}
+
+#[test]
+fn a_peer_that_announces_neither_is_no_one_of_ours() {
+    assert_eq!(Beacon::heard(&[], None), None);
+    assert_eq!(Beacon::heard(&[1, 2], Some("Columba")), None);
+}
+
+#[test]
 fn two_nodes_advertising_at_once_do_not_share_a_tiebreak() {
     let ours = Beacon::fresh(true, false);
     let theirs = Beacon::fresh(true, false);
@@ -77,5 +110,21 @@ proptest! {
     #[test]
     fn no_name_at_all_makes_this_panic(name in ".{0,40}") {
         let _ = Beacon::read(&name);
+    }
+
+    #[test]
+    fn any_beacon_survives_the_service_data_it_is_written_into(
+        tiebreak in any::<[u8; 3]>(),
+        can_host in any::<bool>(),
+        group_is_up in any::<bool>(),
+    ) {
+        let ours = beacon(tiebreak, can_host, group_is_up);
+
+        prop_assert_eq!(Beacon::read_on_the_air(&ours.on_the_air()), Some(ours));
+    }
+
+    #[test]
+    fn no_service_data_at_all_makes_this_panic(raw in prop::collection::vec(any::<u8>(), 0..40)) {
+        let _ = Beacon::read_on_the_air(&raw);
     }
 }

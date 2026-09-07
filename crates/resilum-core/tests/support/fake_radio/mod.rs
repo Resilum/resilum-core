@@ -49,9 +49,9 @@ impl Radio for FakeRadio {
         self.ours.lock().unwrap_or_else(|e| e.into_inner()).take()
     }
 
-    fn advertise(&self, local_name: &str, _service: u128) -> Result<(), RadioError> {
+    fn advertise(&self, local_name: &str, beacon: &[u8], _service: u128) -> Result<(), RadioError> {
         self.air
-            .advertise(&self.address, local_name, self.to_us.clone());
+            .advertise(&self.address, local_name, beacon, self.to_us.clone());
         Ok(())
     }
 

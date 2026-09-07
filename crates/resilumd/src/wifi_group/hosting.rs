@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use resilum_core::wifi_group::GroupHandle;
 use resilum_core::{Node, WifiGroup};
 
-use super::{Lowering, address, dhcp, radio_interface, whoever_holds_the_radio};
+use super::{Lowering, Raised, address, dhcp, radio_interface, whoever_holds_the_radio};
 
 #[derive(Default)]
 pub struct WhetherWeHostTheGroup {
@@ -62,22 +62,36 @@ fn raised(node: &Node, group: &WifiGroup) -> Result<Held, String> {
     let radio = whoever_holds_the_radio()
         .ok_or_else(|| String::from("no daemon on this host holds the radio"))?;
     let raised = radio.raise(group, &interface)?;
-    let carrying = raised.carried_on;
-    if !raised.already_addressed {
-        address::put_on(&carrying, group.owner_address)?;
+    match carried_over(node, group, &raised) {
+        Ok((serving, links)) => Ok(Held {
+            lower: raised.lower,
+            dhcp: serving,
+            links,
+        }),
+        Err(refused) => {
+            (raised.lower)();
+            Err(refused)
+        }
     }
-    let serving = dhcp::on(&carrying, group.owner_address, seconds_since_the_epoch)
+}
+
+fn carried_over(
+    node: &Node,
+    group: &WifiGroup,
+    raised: &Raised,
+) -> Result<(dhcp::Serving, GroupHandle), String> {
+    let carrying = &raised.carried_on;
+    if !raised.already_addressed {
+        address::put_on(carrying, group.owner_address)?;
+    }
+    let serving = dhcp::on(carrying, group.owner_address, seconds_since_the_epoch)
         .map_err(|e| format!("no dhcp on {carrying}: {e}"))?;
     let listening = TcpListener::bind((group.owner_address, group.port))
         .map_err(|e| format!("nothing listening on the group: {e}"))?;
     let links = node
         .wifi_group_hosting(listening.into_raw_fd())
         .map_err(|e| e.to_string())?;
-    Ok(Held {
-        lower: raised.lower,
-        dhcp: serving,
-        links,
-    })
+    Ok((serving, links))
 }
 
 fn seconds_since_the_epoch() -> u64 {
