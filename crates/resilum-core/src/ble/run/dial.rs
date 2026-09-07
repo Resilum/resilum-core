@@ -15,10 +15,9 @@ pub(super) fn on_seen(
     links: &Links,
     held_off: &mut HeldOff,
     address: PeerAddress,
-    name: Option<&str>,
+    theirs: Option<Beacon>,
     now_ms: u64,
 ) {
-    let theirs = name.and_then(Beacon::read);
     if theirs.is_some_and(|theirs| theirs.group_is_up) {
         ours.someone_elses_group.heard_at(now_ms);
     }

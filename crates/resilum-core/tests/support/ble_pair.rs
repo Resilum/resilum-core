@@ -24,7 +24,9 @@ pub async fn joined(air: &Air, tag: &str) -> Pair {
     let mut heard_by_dialer = dialer.events_taken_once().expect("stream");
     let mut heard_by_answerer = answerer.events_taken_once().expect("stream");
 
-    answerer.advertise("Rtest", spec::SERVICE).expect("advert");
+    answerer
+        .advertise("Rtest", &[], spec::SERVICE)
+        .expect("advert");
     answerer.serve_identity(SERVED_IDENTITY);
     dialer
         .connect(&resilum_core::ble::radio::PeerAddress(format!("bb:{tag}")))

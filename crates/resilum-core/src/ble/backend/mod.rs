@@ -54,9 +54,10 @@ impl Radio for BlewRadio {
         self.events.lock().unwrap_or_else(|e| e.into_inner()).take()
     }
 
-    fn advertise(&self, local_name: &str, service: u128) -> Result<(), RadioError> {
+    fn advertise(&self, local_name: &str, beacon: &[u8], service: u128) -> Result<(), RadioError> {
         self.ask(Command::Advertise {
             local_name: local_name.to_owned(),
+            beacon: beacon.to_vec(),
             service,
         })
     }

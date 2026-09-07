@@ -105,7 +105,10 @@ fn say_on_the_air_what_we_became(deciding: &mut Deciding) {
         return;
     }
     deciding.beacon = now;
-    if let Err(error) = deciding.radio.advertise(&now.name(), spec::SERVICE) {
+    if let Err(error) = deciding
+        .radio
+        .advertise(&now.name(), &now.on_the_air(), spec::SERVICE)
+    {
         tracing::warn!(?error, "ble re-advertise refused");
     }
 }

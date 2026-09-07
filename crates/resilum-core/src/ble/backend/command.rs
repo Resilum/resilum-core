@@ -4,6 +4,7 @@ use crate::ble::spec;
 pub(super) enum Command {
     Advertise {
         local_name: String,
+        beacon: Vec<u8>,
         service: u128,
     },
     StopAdvertising,

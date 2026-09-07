@@ -9,12 +9,14 @@ pub(super) async fn command(held: &mut Held, command: super::Command) {
     match command {
         Command::Advertise {
             local_name,
+            beacon,
             service,
         } => {
+            let ours = uuid::Uuid::from_u128(service);
             let config = AdvertisingConfig {
                 local_name,
-                service_uuids: vec![uuid::Uuid::from_u128(service)],
-                ..AdvertisingConfig::default()
+                service_uuids: vec![ours],
+                service_data: [(ours, beacon)].into_iter().collect(),
             };
             if let Err(error) = held.peripheral.start_advertising(&config).await {
                 tracing::warn!(%error, "the radio refused to advertise us");
