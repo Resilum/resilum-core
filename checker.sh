@@ -88,7 +88,8 @@ CC_x86_64_unknown_linux_musl=musl-gcc \
     cargo clippy --quiet -p resilumd --target "$MUSL_TARGET" -- -D warnings
 
 step "test"
-cargo test --workspace
+require cargo-nextest 'cargo install cargo-nextest --locked  |  cargo binstall cargo-nextest'
+cargo nextest run --workspace
 
 step "doc (deny broken links)"
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --quiet
@@ -197,6 +198,7 @@ if [ "$RUN_DOCKER" = true ]; then
     require docker 'https://docs.docker.com/engine/install/'
     read -ra also <<<"${DOCKER_BUILD_FLAGS:-}"
     docker buildx build --load "${also[@]}" -f Dockerfile -t resilum-core:check .
+    docker buildx build --load "${also[@]}" -t resilum-core-rngit:check docker/rngit
 else
     printf '  not requested (pass --docker to build)\n'
 fi

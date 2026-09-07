@@ -9,6 +9,8 @@ use crate::fake_radio::{Air, CARRIED_PER_WRITE, FakeRadio};
 
 pub const SERVED_IDENTITY: [u8; spec::IDENTITY_LEN] = [0x5A; spec::IDENTITY_LEN];
 
+const BEFORE_A_PAIR_IS_GIVEN_UP_ON: std::time::Duration = std::time::Duration::from_secs(10);
+
 pub struct Pair {
     pub dialer: Arc<FakeRadio>,
     pub answerer: Arc<FakeRadio>,
@@ -44,12 +46,15 @@ pub async fn joined(air: &Air, tag: &str) -> Pair {
     }
 }
 
-async fn next_connection(events: &mut Receiver<RadioEvent>) -> ConnectionId {
-    loop {
-        if let RadioEvent::Connected { conn, .. } = events.recv().await.expect("an event") {
-            return conn;
+pub async fn next_connection(events: &mut Receiver<RadioEvent>) -> ConnectionId {
+    let waited = tokio::time::timeout(BEFORE_A_PAIR_IS_GIVEN_UP_ON, async {
+        loop {
+            if let RadioEvent::Connected { conn, .. } = events.recv().await.expect("an event") {
+                return conn;
+            }
         }
-    }
+    });
+    waited.await.expect("the pair never connected")
 }
 
 pub async fn put_on_the_air(

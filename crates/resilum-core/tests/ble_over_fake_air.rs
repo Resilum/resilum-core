@@ -99,3 +99,11 @@ async fn a_central_reads_the_identity_the_peripheral_serves() {
 
     assert_eq!(value, SERVED_IDENTITY.to_vec());
 }
+
+#[tokio::test(start_paused = true)]
+#[should_panic(expected = "the pair never connected")]
+async fn a_pair_that_never_joins_gives_up_rather_than_waiting_forever() {
+    let (_never_sends, mut heard) = tokio::sync::mpsc::channel(1);
+
+    ble_pair::next_connection(&mut heard).await;
+}

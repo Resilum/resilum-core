@@ -13,6 +13,7 @@ env:
 jobs:
   checker:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,7 +23,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@v2
         with:
-          tool: taplo-cli,cargo-deny
+          tool: taplo-cli,cargo-deny,cargo-nextest
       - uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
           repo: gitleaks/gitleaks
