@@ -21,6 +21,10 @@ impl Peers {
         conn
     }
 
+    pub(super) fn conn_at(&self, address: &PeerAddress) -> Option<ConnectionId> {
+        self.by_address.get(address).copied()
+    }
+
     pub(super) fn address_of(&self, conn: ConnectionId) -> Option<PeerAddress> {
         self.by_conn.get(&conn).map(|(address, _)| address.clone())
     }
@@ -72,6 +76,7 @@ mod tests {
 
         assert_eq!(peers.parted(conn), Some(at("aa")));
         assert_eq!(peers.address_of(conn), None);
+        assert_eq!(peers.conn_at(&at("aa")), None);
         assert_ne!(peers.joined(at("aa"), Role::Central), conn);
     }
 

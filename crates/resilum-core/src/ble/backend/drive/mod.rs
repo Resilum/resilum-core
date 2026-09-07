@@ -1,11 +1,13 @@
+mod listen;
 mod obey;
 mod peers;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use blew::central::Central;
-use blew::peripheral::Peripheral;
+use blew::central::{Central, CentralEvent};
+use blew::peripheral::{Peripheral, PeripheralRequest, PeripheralStateEvent};
+use futures::StreamExt as _;
 use tokio::sync::mpsc;
 
 use super::command::Command;
@@ -13,6 +15,8 @@ use crate::ble::radio::{ConnectionId, Outbound, RadioError, RadioEvent};
 use peers::Peers;
 
 const ATT_HEADER: usize = 3;
+
+type Arriving<T> = Box<dyn futures::Stream<Item = T> + Unpin + Send + Sync>;
 
 pub(super) async fn spawn(
     commands: mpsc::Receiver<Command>,
@@ -22,16 +26,48 @@ pub(super) async fn spawn(
 ) -> Result<(), RadioError> {
     let central = Central::new().await.map_err(cannot)?;
     let peripheral = Peripheral::new().await.map_err(cannot)?;
+    let heard = Box::new(central.events());
+    let watched = Box::new(peripheral.state_events());
+    let asked = peripheral
+        .take_requests()
+        .ok_or_else(|| RadioError::Backend("the radio hands its requests out once".into()))?;
     tokio::spawn(run(Held {
         central,
         peripheral,
         commands,
         outbound,
-        telling,
-        carried,
-        peers: Peers::default(),
+        told: Reporting {
+            telling,
+            carried,
+            peers: Peers::default(),
+        },
+        heard,
+        watched,
+        asked: Box::new(asked),
     }));
     Ok(())
+}
+
+pub(super) struct Reporting {
+    telling: mpsc::Sender<RadioEvent>,
+    carried: Arc<Mutex<HashMap<ConnectionId, usize>>>,
+    peers: Peers,
+}
+
+impl Reporting {
+    fn now_carries(&self, conn: ConnectionId, bytes: usize) {
+        self.carried
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(conn, bytes);
+    }
+
+    fn forget_what_it_carried(&self, conn: ConnectionId) {
+        self.carried
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&conn);
+    }
 }
 
 struct Held {
@@ -39,9 +75,10 @@ struct Held {
     peripheral: Peripheral,
     commands: mpsc::Receiver<Command>,
     outbound: mpsc::Receiver<Outbound>,
-    telling: mpsc::Sender<RadioEvent>,
-    carried: Arc<Mutex<HashMap<ConnectionId, usize>>>,
-    peers: Peers,
+    told: Reporting,
+    heard: Arriving<CentralEvent>,
+    watched: Arriving<PeripheralStateEvent>,
+    asked: Arriving<PeripheralRequest>,
 }
 
 async fn run(mut held: Held) {
@@ -55,8 +92,24 @@ async fn run(mut held: Held) {
                 None => return,
                 Some(piece) => obey::put_on_the_air(&held, piece).await,
             },
+            event = held.heard.next() => match event {
+                None => held.heard = nothing_more(),
+                Some(event) => listen::what_the_central_heard(&mut held.told, event).await,
+            },
+            event = held.watched.next() => match event {
+                None => held.watched = nothing_more(),
+                Some(event) => listen::what_the_peripheral_saw(&mut held.told, event).await,
+            },
+            request = held.asked.next() => match request {
+                None => held.asked = nothing_more(),
+                Some(request) => listen::what_a_central_asked(&mut held.told, request).await,
+            },
         }
     }
+}
+
+fn nothing_more<T: Send + Sync + 'static>() -> Arriving<T> {
+    Box::new(futures::stream::pending())
 }
 
 fn cannot(why: impl std::fmt::Display) -> RadioError {
