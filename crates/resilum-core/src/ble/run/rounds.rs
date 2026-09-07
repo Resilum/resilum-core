@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 
-use crate::ble::beacon::Beacon;
+use crate::ble::beacon::{Beacon, WE_TAKE_NO_NAME};
 use crate::ble::election::{
     Election, Field, HostingTheGroup, Verdict, WhatThePlatformKnows, exchange,
 };
@@ -107,7 +107,7 @@ fn say_on_the_air_what_we_became(deciding: &mut Deciding) {
     deciding.beacon = now;
     if let Err(error) = deciding
         .radio
-        .advertise(&now.name(), &now.on_the_air(), spec::SERVICE)
+        .advertise(WE_TAKE_NO_NAME, &now.on_the_air(), spec::SERVICE)
     {
         tracing::warn!(?error, "ble re-advertise refused");
     }

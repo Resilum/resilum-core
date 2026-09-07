@@ -8,6 +8,8 @@ const GROUP_IS_UP: u8 = 0b0000_0010;
 
 pub const ON_THE_AIR_LEN: usize = TIEBREAK_LEN + 1;
 
+pub const WE_TAKE_NO_NAME: &str = "";
+
 pub type RandomEachAdvertisingSession = [u8; TIEBREAK_LEN];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
