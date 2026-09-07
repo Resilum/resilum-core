@@ -507,7 +507,7 @@ dependencies = [
 [[package]]
 name = "blew"
 version = "0.4.0-beta.3"
-source = "git+https://github.com/Resilum/blew.git?rev=b55fad66dbaa34e36e7f0d0856ae15cf5ab6646f#b55fad66dbaa34e36e7f0d0856ae15cf5ab6646f"
+source = "git+https://github.com/Resilum/blew.git?rev=2acda2a578edbca8eb65cfaaba78fa1519346cf8#2acda2a578edbca8eb65cfaaba78fa1519346cf8"
 dependencies = [
  "bitflags 2.13.1",
  "bluer",
