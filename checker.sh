@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
-# Run: ./checker.sh [--docker] [--check]
+# Run: ./checker.sh [--docker | --images-only] [--check]
 # A missing tool fails the run: a skipped step reads like a passed one.
 
 set -euo pipefail
 cd "$(dirname "$0")"
 
+USAGE='  run: ./checker.sh [--docker | --images-only] [--check]\n'
 RUN_DOCKER=false
+IMAGES_ONLY=false
 FORMAT_IN_PLACE=true
 [ -n "${CI:-}" ] && FORMAT_IN_PLACE=false
 for argument in "$@"; do
     case "$argument" in
         --docker) RUN_DOCKER=true ;;
+        --images-only)
+            RUN_DOCKER=true
+            IMAGES_ONLY=true
+            ;;
         --check) FORMAT_IN_PLACE=false ;;
         *)
-            printf '  ✗ unknown argument %s\n    run: ./checker.sh [--docker] [--check]\n' \
-                "$argument"
+            printf "  ✗ unknown argument %s\n$USAGE" "$argument"
             exit 1
             ;;
     esac
@@ -30,6 +35,20 @@ require() {
     printf '  ✗ %s is not installed\n    install: %s\n' "$1" "$2"
     exit 1
 }
+
+build_the_images() {
+    require docker 'https://docs.docker.com/engine/install/'
+    read -ra also <<<"${DOCKER_BUILD_FLAGS:-}"
+    docker buildx build --load "${also[@]}" -f Dockerfile -t resilum-core:check .
+    docker buildx build --load "${also[@]}" -t resilum-core-rngit:check docker/rngit
+}
+
+if $IMAGES_ONLY; then
+    step "docker build"
+    build_the_images
+    printf '\n✓ the images build\n'
+    exit 0
+fi
 
 # So a file is linted before it is ever staged.
 tracked_and_new() {
@@ -195,10 +214,7 @@ markdownlint-cli2 "${docs[@]}"
 
 step "docker build"
 if [ "$RUN_DOCKER" = true ]; then
-    require docker 'https://docs.docker.com/engine/install/'
-    read -ra also <<<"${DOCKER_BUILD_FLAGS:-}"
-    docker buildx build --load "${also[@]}" -f Dockerfile -t resilum-core:check .
-    docker buildx build --load "${also[@]}" -t resilum-core-rngit:check docker/rngit
+    build_the_images
 else
     printf '  not requested (pass --docker to build)\n'
 fi

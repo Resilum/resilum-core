@@ -40,6 +40,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
           tags: ${{ steps.named.outputs.tags }}
           labels: ${{ steps.named.outputs.labels }}
       - uses: docker/metadata-action@v5
@@ -55,6 +56,7 @@ jobs:
           context: docker/rngit
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
           tags: ${{ steps.named-rngit.outputs.tags }}
           labels: ${{ steps.named-rngit.outputs.labels }}
       - name: Say on the release where the images went
