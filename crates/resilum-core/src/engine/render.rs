@@ -4,7 +4,7 @@ use std::fmt::Write as _;
 
 use crate::Config;
 
-pub(crate) fn render_config(config: &Config) -> String {
+pub(crate) fn render_config(config: &Config, data_port: u16) -> String {
     let discover = config.discover_interfaces;
     let mut out = String::new();
     let _ = writeln!(out, "[reticulum]");
@@ -23,7 +23,8 @@ pub(crate) fn render_config(config: &Config) -> String {
     if discover {
         let _ = write!(
             out,
-            "\n  [[LAN AutoDiscovery]]\n    type = AutoInterface\n    enabled = yes\n"
+            "\n  [[LAN AutoDiscovery]]\n    type = AutoInterface\n    enabled = yes\n    \
+             data_port = {data_port}\n"
         );
     }
     if let Some(listen) = &config.listen {
