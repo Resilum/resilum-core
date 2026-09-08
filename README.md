@@ -84,11 +84,11 @@ announce re-establishes the path over another one and nothing above notices.
 | Tor (embedded) | in-process Tor client, no daemon on the host, outbound only | ready, feature `arti` |
 | I2P | announce carries a `.b32.i2p` address, SAM bridge | ready, feature `i2p` |
 | iroh | QUIC with hole-punching; relays only to introduce | ready, feature `iroh` |
-| ICMP echo | frames ride inside echo payloads; the client needs no privileges, only a listening node wants a raw socket | ready |
+| ICMP echo | frames ride inside echo payloads; the client takes an unprivileged socket where the host opens `ping_group_range` and a raw one otherwise, and a listening node always wants the raw one | ready |
 | LoRa (RNode) | radio over USB; the stack drives it, the config here cannot name one yet | planned |
 | WebRTC | the meeting point for two peers both behind carrier NAT, where no side has an address the other can dial — and the only transport a browser could speak | planned |
-| BLE | GATT carrying BLE_PROTOCOL v2.2, the protocol Columba speaks, so a link works against any peer on it — no infrastructure, no pairing and no user interaction at all | feature `ble`, not yet run on a radio |
-| Wi-Fi Direct | Wi-Fi P2P — a group owner and the clients that joined it, tens of Mbps with no router present; the daemon raises the group through whichever of NetworkManager, iwd or wpa_supplicant holds the radio, serves it DHCP, and carries links over its socket | raises a group; nothing has joined one yet |
+| BLE | GATT carrying BLE_PROTOCOL v2.2, the protocol Columba speaks, so a link works against any peer on it — no infrastructure, no pairing and no user interaction at all | ready, feature `ble` |
+| Wi-Fi Direct | Wi-Fi P2P — a group owner and the clients that joined it, tens of Mbps with no router present; the daemon raises the group through whichever of NetworkManager, iwd or wpa_supplicant holds the radio, serves it DHCP, and carries links over its socket | raises a group and joins one; not yet run between two radios |
 | BPv7 bundles | store-and-forward as a carrier: a bundle waits for the next contact instead of needing a live path, with custody handed over hop by hop | planned |
 | RaptorQ coding | rides on top of another interface: send symbols until enough arrive, so a lossy or one-way path needs no round trip per gap — the fit for radio and for the covert carriers | planned |
 | Sphinx packets | rides on top: fixed length and layered encryption, so no hop can link what came in to what went out | planned |
