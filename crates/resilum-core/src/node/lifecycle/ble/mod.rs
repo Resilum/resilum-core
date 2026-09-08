@@ -6,7 +6,8 @@ use std::time::{Duration, Instant};
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 
-use crate::ble::beacon::{self, Beacon};
+use crate::ble::announcing::put_us_on_the_air;
+use crate::ble::beacon::Beacon;
 use crate::ble::election::{Field, exchange};
 use crate::ble::links::PeerId;
 use crate::ble::radio::Radio;
@@ -57,9 +58,7 @@ where
         };
         let beacon = Beacon::fresh(known.can_host_at_all(), hosting.is_up());
         radio.serve_identity(ours);
-        if let Err(e) =
-            radio.advertise(beacon::WE_TAKE_NO_NAME, &beacon.on_the_air(), spec::SERVICE)
-        {
+        if let Err(e) = put_us_on_the_air(radio.as_ref(), &beacon) {
             tracing::warn!(error = ?e, "ble advertise refused");
         }
         if let Err(e) = radio.scan(spec::SERVICE) {

@@ -1,3 +1,4 @@
+pub mod announcing;
 #[cfg(feature = "ble")]
 pub mod backend;
 pub mod beacon;

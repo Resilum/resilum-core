@@ -41,6 +41,9 @@ impl Radio for Stub {
         Ok(())
     }
     fn stop_advertising(&self) {}
+    fn the_local_name_is_ours_to_spend(&self) -> bool {
+        true
+    }
     fn scan(&self, _: u128) -> Result<(), RadioError> {
         Ok(())
     }

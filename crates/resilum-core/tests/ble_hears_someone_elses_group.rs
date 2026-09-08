@@ -98,7 +98,7 @@ fn a_neighbour_that_raised_nothing_is_not_a_group_to_join() {
 }
 
 #[test]
-fn what_we_put_on_the_air_takes_no_name_and_carries_the_beacon() {
+fn a_radio_whose_name_is_ours_announces_us_in_it() {
     let air = Air::new(CARRIED_PER_WRITE);
     let mut node = a_node_looking_around("nameless");
     let us = resilum_core::ble::radio::PeerAddress("gg:air".to_owned());
@@ -123,9 +123,11 @@ fn what_we_put_on_the_air_takes_no_name_and_carries_the_beacon() {
         unreachable!("the search above matched on this variant")
     };
     assert_eq!(
-        name.as_deref(),
-        Some(""),
-        "a name of ours takes the phone's own and overflows the scan response"
+        Beacon::read(name.as_deref().expect("a name")).map(|read| read.can_host),
+        Some(true)
     );
-    assert_eq!(beacon.len(), resilum_core::ble::beacon::ON_THE_AIR_LEN);
+    assert!(
+        beacon.is_empty(),
+        "a name and service data together overflow the scan response"
+    );
 }
