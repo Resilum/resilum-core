@@ -21,3 +21,9 @@ all = "warn"
 # A custom name, so its output dir matches — unlike `dev`, which lands in debug/.
 [profile.quick]
 inherits = "dev"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
