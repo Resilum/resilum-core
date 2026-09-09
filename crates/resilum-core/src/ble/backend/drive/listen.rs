@@ -17,10 +17,11 @@ pub(super) async fn what_the_central_heard(told: &mut Reporting, event: CentralE
             let BleDevice {
                 id,
                 name,
+                services,
                 service_data,
                 ..
             } = device;
-            seen(told, at(&id), name, &service_data).await;
+            seen(told, at(&id), name, &services, &service_data).await;
         }
         CentralEvent::CharacteristicNotification {
             device_id,
@@ -78,9 +79,13 @@ async fn seen(
     told: &Reporting,
     address: PeerAddress,
     name: Option<String>,
+    services: &[Uuid],
     service_data: &HashMap<Uuid, Vec<u8>>,
 ) {
     let ours = Uuid::from_u128(spec::SERVICE);
+    if !services.contains(&ours) {
+        return;
+    }
     let beacon = service_data.get(&ours).cloned().unwrap_or_default();
     let _ = told
         .telling
