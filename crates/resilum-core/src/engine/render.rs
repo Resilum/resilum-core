@@ -47,7 +47,7 @@ pub(crate) fn render_config(config: &Config, data_port: u16) -> String {
         let _ = write!(
             out,
             "\n  [[Bootstrap {i}]]\n    type = TCPClientInterface\n    enabled = yes\n    \
-             target_host = {host}\n    target_port = {port}\n"
+             target_host = {host}\n    target_port = {port}\n    mode = boundary\n"
         );
     }
     for (i, anchor) in config.bootstrap_only.iter().enumerate() {
@@ -55,7 +55,8 @@ pub(crate) fn render_config(config: &Config, data_port: u16) -> String {
         let _ = write!(
             out,
             "\n  [[Bootstrap-only {i}]]\n    type = TCPClientInterface\n    enabled = yes\n    \
-             target_host = {host}\n    target_port = {port}\n    bootstrap_only = yes\n"
+             target_host = {host}\n    target_port = {port}\n    bootstrap_only = yes\n    \
+             mode = boundary\n"
         );
     }
     if let Some(udp) = config.udp.as_ref().filter(|udp| !udp.carries_nothing()) {
@@ -70,7 +71,7 @@ pub(crate) fn render_config(config: &Config, data_port: u16) -> String {
     if let Some(i2p) = &config.i2p {
         let _ = write!(
             out,
-            "\n  [[I2P]]\n    type = I2PInterface\n    enabled = yes\n"
+            "\n  [[I2P]]\n    type = I2PInterface\n    enabled = yes\n    mode = boundary\n"
         );
         if i2p.connectable {
             let _ = writeln!(out, "    connectable = yes");

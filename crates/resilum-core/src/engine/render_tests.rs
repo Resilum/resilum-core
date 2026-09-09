@@ -99,3 +99,40 @@ fn covert_spec_renders_a_pipe_interface() {
     assert!(ini.contains("type = PipeInterface"));
     assert!(ini.contains("command = rns-over-icmp --peer x"));
 }
+
+fn under(ini: &str, heading: &str) -> String {
+    let from = ini.find(heading).expect("the section was rendered");
+    let section = &ini[from + heading.len()..];
+    let to = section.find("\n  [[").unwrap_or(section.len());
+    section[..to].to_owned()
+}
+
+#[test]
+fn every_way_out_to_the_wider_network_is_a_boundary() {
+    let mut cfg = Config {
+        listen: Some("[::]:4242".into()),
+        bootstrap: vec!["anchor.example:4343".into()],
+        bootstrap_only: vec!["only.example:4242".into()],
+        i2p: Some(crate::config::I2pInterface {
+            connectable: false,
+            peers: Vec::new(),
+        }),
+        ..Config::minimal("modes")
+    };
+    cfg.specs = crate::spec::load("covert:\n  - carrier: icmp\n    command: c\n").unwrap();
+
+    let ini = render_config(&cfg, A_PORT_WE_CHOSE);
+
+    assert!(under(&ini, "[[Bootstrap 0]]").contains("mode = boundary"));
+    assert!(under(&ini, "[[Bootstrap-only 0]]").contains("mode = boundary"));
+    assert!(under(&ini, "[[I2P]]").contains("mode = boundary"));
+    assert!(under(&ini, "[[Public TCP listener]]").contains("mode = gateway"));
+    assert!(
+        !under(&ini, "[[LAN AutoDiscovery]]").contains("mode ="),
+        "the LAN is well connected and stays full"
+    );
+    assert!(
+        !under(&ini, "[[covert/icmp]]").contains("mode ="),
+        "a slow carrier is capped, not cut off from transit announces"
+    );
+}
