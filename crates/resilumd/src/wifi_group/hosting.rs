@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use resilum_core::wifi_group::GroupHandle;
 use resilum_core::{Node, WifiGroup};
 
-use super::{Lowering, Raised, address, dhcp, radio_interface, whoever_holds_the_radio};
+use super::{Lowering, Raised, address, dhcp, radio_interface, settling, whoever_holds_the_radio};
 
 #[derive(Default)]
 pub struct WhetherWeHostTheGroup {
@@ -84,6 +84,7 @@ fn carried_over(
     if !raised.already_addressed {
         address::put_on(carrying, group.owner_address)?;
     }
+    settling::settles_on(carrying, group.owner_address)?;
     let serving = dhcp::on(carrying, group.owner_address, seconds_since_the_epoch)
         .map_err(|e| format!("no dhcp on {carrying}: {e}"))?;
     let listening = TcpListener::bind((group.owner_address, group.port))

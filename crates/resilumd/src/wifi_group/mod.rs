@@ -6,6 +6,7 @@ mod joining;
 mod network_manager;
 pub mod radio_interface;
 mod settings;
+mod settling;
 mod supplicant;
 
 use std::time::Duration;
