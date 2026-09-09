@@ -6,6 +6,8 @@ use resilum_core::WifiGroup;
 pub(super) type Section = HashMap<String, Variant<Box<dyn RefArg>>>;
 pub(super) type Connection = HashMap<String, Section>;
 
+const PROTECTED_MANAGEMENT_FRAMES_OFFERED_NOT_DEMANDED: u32 = 2;
+
 fn text(value: &str) -> Variant<Box<dyn RefArg>> {
     Variant(Box::new(String::from(value)))
 }
@@ -100,21 +102,20 @@ fn told_by_whoever_owns_the_group() -> Section {
     ])
 }
 
+fn only(value: &str) -> Variant<Box<dyn RefArg>> {
+    Variant(Box::new(vec![String::from(value)]))
+}
+
 fn locked_with(passphrase: &str) -> Section {
     Section::from([
         (String::from("key-mgmt"), text("wpa-psk")),
         (String::from("psk"), text(passphrase)),
+        (String::from("proto"), only("rsn")),
+        (String::from("pairwise"), only("ccmp")),
+        (String::from("group"), only("ccmp")),
         (
-            String::from("proto"),
-            Variant(Box::new(vec![String::from("rsn")]) as Box<dyn RefArg>),
-        ),
-        (
-            String::from("pairwise"),
-            Variant(Box::new(vec![String::from("ccmp")]) as Box<dyn RefArg>),
-        ),
-        (
-            String::from("group"),
-            Variant(Box::new(vec![String::from("ccmp")]) as Box<dyn RefArg>),
+            String::from("pmf"),
+            Variant(Box::new(PROTECTED_MANAGEMENT_FRAMES_OFFERED_NOT_DEMANDED)),
         ),
     ])
 }
