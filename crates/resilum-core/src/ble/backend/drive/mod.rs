@@ -1,18 +1,21 @@
+mod dialling;
 mod listen;
 mod obey;
 mod peers;
 mod sending;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use blew::central::{Central, CentralEvent};
 use blew::peripheral::{Peripheral, PeripheralRequest, PeripheralStateEvent};
 use futures::StreamExt as _;
 use tokio::sync::mpsc;
+use tokio::task::JoinSet;
 
 use super::command::Command;
-use crate::ble::radio::{ConnectionId, Outbound, RadioError, RadioEvent};
+use crate::ble::radio::{ConnectionId, Outbound, PeerAddress, RadioError, RadioEvent};
+use dialling::Dialled;
 use peers::Peers;
 
 const ATT_HEADER: usize = 3;
@@ -33,7 +36,7 @@ pub(super) async fn spawn(
         .take_requests()
         .ok_or_else(|| RadioError::Backend("the radio hands its requests out once".into()))?;
     tokio::spawn(run(Held {
-        central,
+        central: Arc::new(central),
         peripheral,
         commands,
         outbound,
@@ -45,6 +48,8 @@ pub(super) async fn spawn(
         heard,
         watched,
         asked: Box::new(asked),
+        already_dialling: HashSet::new(),
+        dials_in_flight: JoinSet::new(),
     }));
     Ok(())
 }
@@ -72,7 +77,7 @@ impl Reporting {
 }
 
 struct Held {
-    central: Central,
+    central: Arc<Central>,
     peripheral: Peripheral,
     commands: mpsc::Receiver<Command>,
     outbound: mpsc::Receiver<Outbound>,
@@ -80,6 +85,8 @@ struct Held {
     heard: Arriving<CentralEvent>,
     watched: Arriving<PeripheralStateEvent>,
     asked: Arriving<PeripheralRequest>,
+    already_dialling: HashSet<PeerAddress>,
+    dials_in_flight: JoinSet<Dialled>,
 }
 
 async fn run(mut held: Held) {
@@ -100,6 +107,11 @@ async fn run(mut held: Held) {
             event = held.watched.next() => match event {
                 None => held.watched = nothing_more(),
                 Some(event) => listen::what_the_peripheral_saw(&mut held.told, event).await,
+            },
+            reached = held.dials_in_flight.join_next(), if !held.dials_in_flight.is_empty() => match reached {
+                Some(Ok(reached)) => dialling::dialled(&mut held, reached).await,
+                Some(Err(error)) => tracing::error!(%error, "a dial died on the way"),
+                None => {}
             },
             request = held.asked.next() => match request {
                 None => held.asked = nothing_more(),

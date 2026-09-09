@@ -1,8 +1,9 @@
 use blew::central::ScanFilter;
 use blew::peripheral::AdvertisingConfig;
 
-use super::{ATT_HEADER, Held};
-use crate::ble::radio::{ConnectionId, PeerAddress, RadioEvent, Role};
+use super::Held;
+use super::dialling;
+use crate::ble::radio::{ConnectionId, RadioEvent};
 
 pub(super) async fn command(held: &mut Held, command: super::Command) {
     use super::Command;
@@ -32,7 +33,7 @@ pub(super) async fn command(held: &mut Held, command: super::Command) {
         }
         Command::Scan { service } => look_around(held, service).await,
         Command::StopScan => stop_looking(held).await,
-        Command::Connect(address) => connect(held, address).await,
+        Command::Connect(address) => dialling::connect(held, address),
         Command::Disconnect(conn) => disconnect(held, conn).await,
         Command::Read {
             conn,
@@ -64,35 +65,6 @@ async fn stop_looking(held: &Held) {
     if let Err(error) = held.central.stop_scan().await {
         tracing::warn!(%error, "the radio kept looking around");
     }
-}
-
-async fn connect(held: &mut Held, address: PeerAddress) {
-    let device = blew::DeviceId::from(address.0.clone());
-    if let Err(error) = held.central.connect(&device).await {
-        tracing::debug!(%error, peer = %address.0, "the peer would not let us in");
-        return;
-    }
-    let notified = uuid::Uuid::from_u128(super::super::spec::TX_NOTIFIED_BY_THE_PERIPHERAL);
-    if let Err(error) = held
-        .central
-        .subscribe_characteristic(&device, notified)
-        .await
-    {
-        tracing::warn!(%error, "the peer let us in but not to its notifications");
-    }
-    let conn = held.told.peers.joined(address.clone(), Role::Central);
-    let carried = usize::from(held.central.mtu(&device).await).saturating_sub(ATT_HEADER);
-    held.told.now_carries(conn, carried);
-    let _ = held
-        .told
-        .telling
-        .send(RadioEvent::Connected {
-            conn,
-            address,
-            role: Role::Central,
-            bytes_one_write_carries: carried,
-        })
-        .await;
 }
 
 async fn disconnect(held: &mut Held, conn: ConnectionId) {
