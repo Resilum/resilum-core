@@ -2,6 +2,7 @@ pub(crate) mod ble;
 mod coordinates;
 mod discovery;
 mod egress;
+mod holders;
 mod mirrors;
 
 use std::sync::Arc;
@@ -109,12 +110,7 @@ impl Node {
         }
         self.directories.clear();
         if let Some(leviculum) = self.engine.take() {
-            let mut leviculum = Arc::try_unwrap(leviculum).map_err(|still_shared| {
-                Error::Engine(format!(
-                    "{} holders of the engine outlived stop; its ports stay bound",
-                    Arc::strong_count(&still_shared)
-                ))
-            })?;
+            let mut leviculum = holders::wait_until_only_ours(&self.runtime, leviculum)?;
             self.runtime
                 .block_on(leviculum.stop())
                 .map_err(|e| Error::Engine(e.to_string()))?;

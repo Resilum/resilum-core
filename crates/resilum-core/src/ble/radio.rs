@@ -89,6 +89,8 @@ pub trait Radio: Send + Sync + 'static {
     fn advertise(&self, local_name: &str, beacon: &[u8], service: u128) -> Result<(), RadioError>;
     fn stop_advertising(&self);
 
+    fn the_local_name_is_ours_to_spend(&self) -> bool;
+
     fn scan(&self, service: u128) -> Result<(), RadioError>;
     fn stop_scan(&self);
 

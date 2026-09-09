@@ -12,7 +12,7 @@ use tokio::task::JoinHandle;
 use super::run;
 use super::state::{self, InFlight, MeshSender, Wiring};
 use crate::config::NostrConfig;
-use crate::upstream::{Upstream, UpstreamRunner, proto};
+use crate::upstream::{Deadlines, Upstream, UpstreamRunner, proto};
 
 /// Why the bridge did not start.
 #[derive(Debug)]
@@ -116,7 +116,7 @@ fn upstream_pairs(
     incoming: &mpsc::UnboundedSender<proto::Incoming>,
 ) -> (Vec<Upstream>, Vec<UpstreamRunner>) {
     urls.iter()
-        .map(|url| Upstream::pair(url.clone(), incoming.clone()))
+        .map(|url| Upstream::pair(url.clone(), incoming.clone(), Deadlines::default()))
         .unzip()
 }
 

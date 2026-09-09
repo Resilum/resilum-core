@@ -1,11 +1,12 @@
 mod a_radio_here;
 
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 
+use crate::ble::announcing::put_us_on_the_air;
 use crate::ble::beacon::Beacon;
 use crate::ble::election::{Field, exchange};
 use crate::ble::links::PeerId;
@@ -14,8 +15,6 @@ use crate::ble::run::{self, Deciding, Ours};
 use crate::ble::spec;
 use crate::link::{Inbox, LinkRouter};
 use crate::node::Node;
-
-const ANNOUNCE_EVERY: Duration = Duration::from_secs(600);
 
 pub(crate) struct Wiring<'a> {
     pub engine: &'a Arc<ReticulumNode>,
@@ -57,7 +56,7 @@ where
         };
         let beacon = Beacon::fresh(known.can_host_at_all(), hosting.is_up());
         radio.serve_identity(ours);
-        if let Err(e) = radio.advertise(&beacon.name(), &beacon.on_the_air(), spec::SERVICE) {
+        if let Err(e) = put_us_on_the_air(radio.as_ref(), &beacon) {
             tracing::warn!(error = ?e, "ble advertise refused");
         }
         if let Err(e) = radio.scan(spec::SERVICE) {
@@ -119,6 +118,6 @@ fn answer_other_candidates(node: &mut Node, wiring: &Wiring, field: &Field) {
         .push(node.runtime.handle().spawn(crate::announce_ours::every(
             wiring.engine.clone(),
             ours,
-            ANNOUNCE_EVERY,
+            spec::WE_SAY_WHERE_WE_ANSWER_EVERY,
         )));
 }

@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use crate::upstream::Upstream;
-
 /// The first gap is checked against the documented one second from both
 /// sides, not just against the second gap: a loop that doubles the wait
 /// before sleeping it (the bug this guards against) still produces a growing
@@ -27,8 +25,7 @@ async fn a_relay_that_closes_immediately_gets_backed_off_more_each_time() {
         }
     });
 
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (_handle, runner) = Upstream::pair(format!("ws://127.0.0.1:{port}"), tx);
+    let (_handle, runner, _arriving) = super::a_relay_on(port);
     let task = tokio::spawn(runner.run(Vec::new));
 
     let (t0, t1, t2) = tokio::time::timeout(std::time::Duration::from_secs(15), async {

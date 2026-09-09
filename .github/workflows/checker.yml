@@ -6,6 +6,10 @@ name: checker
     branches-ignore: [main]
   pull_request:
 
+concurrency:
+  group: checker-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: never
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -13,6 +17,7 @@ env:
 jobs:
   checker:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,9 +25,14 @@ jobs:
       - name: The toolchain rust-toolchain.toml pins, with its targets
         run: rustup show active-toolchain
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: gate
+          save-if: >-
+            ${{ github.ref == 'refs/heads/main'
+                || github.ref == 'refs/heads/stage' }}
       - uses: taiki-e/install-action@v2
         with:
-          tool: taplo-cli,cargo-deny
+          tool: taplo-cli,cargo-deny,cargo-nextest
       - uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
           repo: gitleaks/gitleaks
@@ -46,14 +56,18 @@ jobs:
             sudo tar -xJ --strip-components=1 -C /usr/local/bin \
               "${name}/shellcheck"
           shellcheck --version | grep version:
-      - uses: docker/setup-buildx-action@v3
-        if: github.base_ref == 'main'
       - name: The same gate that runs before a commit
-        if: github.base_ref != 'main'
         run: ./checker.sh
-      - name: The same gate, and the image this would put on main still builds
-        if: github.base_ref == 'main'
-        run: ./checker.sh --docker
+
+  image:
+    if: github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: The image this would put on main still builds
+        run: ./checker.sh --images-only
         env:
           DOCKER_BUILD_FLAGS: >-
             --cache-from type=gha --cache-to type=gha,mode=max

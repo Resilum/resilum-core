@@ -21,6 +21,7 @@ pub struct FakeRadio {
     to_us: mpsc::Sender<RadioEvent>,
     ours: Mutex<Option<mpsc::Receiver<RadioEvent>>>,
     outbound: mpsc::Sender<Outbound>,
+    the_name_is_ours: bool,
 }
 
 impl FakeRadio {
@@ -40,6 +41,7 @@ impl FakeRadio {
             to_us,
             ours: Mutex::new(Some(ours)),
             outbound,
+            the_name_is_ours: true,
         }
     }
 }
@@ -56,6 +58,10 @@ impl Radio for FakeRadio {
     }
 
     fn stop_advertising(&self) {}
+
+    fn the_local_name_is_ours_to_spend(&self) -> bool {
+        self.the_name_is_ours
+    }
 
     fn scan(&self, _service: u128) -> Result<(), RadioError> {
         for seen in self.air.seen_by(&self.address) {

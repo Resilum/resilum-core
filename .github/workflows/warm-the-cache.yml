@@ -1,0 +1,50 @@
+---
+name: warm the cache a pull request and a release will read
+
+"on":
+  push:
+    branches: [main]
+
+concurrency:
+  group: warm-the-cache
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: never
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: The toolchain rust-toolchain.toml pins, with its targets
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: gate
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: What the musl and Android steps of the gate need
+        run: sudo apt-get install -qq -y musl-tools
+      - name: Everything the gate compiles
+        run: |
+          cargo clippy --workspace --all-targets
+          cargo clippy --quiet -p resilum-core --target aarch64-linux-android
+          CC_x86_64_unknown_linux_musl=musl-gcc \
+            cargo clippy --quiet -p resilumd \
+              --target x86_64-unknown-linux-musl
+          cargo nextest run --workspace --no-run
+          cargo doc --workspace --no-deps --quiet
+      - uses: docker/setup-buildx-action@v3
+      - name: The layers a release will want, for both architectures
+        run: |
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            --cache-from type=gha --cache-to type=gha,mode=max \
+            -f Dockerfile .
+          docker buildx build --platform linux/amd64,linux/arm64 \
+            --cache-from type=gha --cache-to type=gha,mode=max \
+            docker/rngit

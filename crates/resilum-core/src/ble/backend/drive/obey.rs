@@ -1,8 +1,9 @@
-use blew::central::{ScanFilter, WriteType};
+use blew::central::ScanFilter;
 use blew::peripheral::AdvertisingConfig;
 
-use super::{ATT_HEADER, Held};
-use crate::ble::radio::{ConnectionId, Outbound, PeerAddress, RadioEvent, Role};
+use super::Held;
+use super::dialling;
+use crate::ble::radio::{ConnectionId, RadioEvent};
 
 pub(super) async fn command(held: &mut Held, command: super::Command) {
     use super::Command;
@@ -16,66 +17,54 @@ pub(super) async fn command(held: &mut Held, command: super::Command) {
             let config = AdvertisingConfig {
                 local_name,
                 service_uuids: vec![ours],
-                service_data: [(ours, beacon)].into_iter().collect(),
+                service_data: (!beacon.is_empty())
+                    .then_some((ours, beacon))
+                    .into_iter()
+                    .collect(),
             };
             if let Err(error) = held.peripheral.start_advertising(&config).await {
                 tracing::warn!(%error, "the radio refused to advertise us");
             }
         }
         Command::StopAdvertising => {
-            let _ = held.peripheral.stop_advertising().await;
+            if let Err(error) = held.peripheral.stop_advertising().await {
+                tracing::warn!(%error, "the radio kept advertising us");
+            }
         }
-        Command::Scan { service } => {
-            let filter = ScanFilter {
-                services: vec![uuid::Uuid::from_u128(service)],
-                ..ScanFilter::default()
-            };
-            let _ = held.central.start_scan(filter).await;
-        }
-        Command::StopScan => {
-            let _ = held.central.stop_scan().await;
-        }
-        Command::Connect(address) => connect(held, address).await,
+        Command::Scan { service } => look_around(held, service).await,
+        Command::StopScan => stop_looking(held).await,
+        Command::Connect(address) => dialling::connect(held, address),
         Command::Disconnect(conn) => disconnect(held, conn).await,
         Command::Read {
             conn,
             characteristic,
         } => read(held, conn, characteristic).await,
         Command::ServeIdentity(identity) => {
-            let _ = held
+            if let Err(error) = held
                 .peripheral
                 .add_service(&super::super::served::service(identity))
-                .await;
+                .await
+            {
+                tracing::error!(%error, "the radio serves nothing: no peer can reach us");
+            }
         }
     }
 }
 
-async fn connect(held: &mut Held, address: PeerAddress) {
-    let device = blew::DeviceId::from(address.0.clone());
-    if held.central.connect(&device).await.is_err() {
-        return;
+async fn look_around(held: &Held, service: u128) {
+    let filter = ScanFilter {
+        services: vec![uuid::Uuid::from_u128(service)],
+        ..ScanFilter::default()
+    };
+    if let Err(error) = held.central.start_scan(filter).await {
+        tracing::warn!(%error, "the radio refused to look around");
     }
-    let notified = uuid::Uuid::from_u128(super::super::spec::TX_NOTIFIED_BY_THE_PERIPHERAL);
-    if let Err(error) = held
-        .central
-        .subscribe_characteristic(&device, notified)
-        .await
-    {
-        tracing::warn!(%error, "the peer let us in but not to its notifications");
+}
+
+async fn stop_looking(held: &Held) {
+    if let Err(error) = held.central.stop_scan().await {
+        tracing::warn!(%error, "the radio kept looking around");
     }
-    let conn = held.told.peers.joined(address.clone(), Role::Central);
-    let carried = usize::from(held.central.mtu(&device).await).saturating_sub(ATT_HEADER);
-    held.told.now_carries(conn, carried);
-    let _ = held
-        .told
-        .telling
-        .send(RadioEvent::Connected {
-            conn,
-            address,
-            role: Role::Central,
-            bytes_one_write_carries: carried,
-        })
-        .await;
 }
 
 async fn disconnect(held: &mut Held, conn: ConnectionId) {
@@ -84,7 +73,9 @@ async fn disconnect(held: &mut Held, conn: ConnectionId) {
     };
     held.told.forget_what_it_carried(conn);
     let device = blew::DeviceId::from(address.0);
-    let _ = held.central.disconnect(&device).await;
+    if let Err(error) = held.central.disconnect(&device).await {
+        tracing::debug!(%error, "the radio had already let the peer go");
+    }
     let _ = held
         .told
         .telling
@@ -108,40 +99,5 @@ async fn read(held: &Held, conn: ConnectionId, characteristic: u128) {
                 value: value.to_vec(),
             })
             .await;
-    }
-}
-
-pub(super) async fn put_on_the_air(held: &Held, piece: Outbound) {
-    let Some((address, role)) = held
-        .told
-        .peers
-        .address_of(piece.conn)
-        .zip(held.told.peers.role_on(piece.conn))
-    else {
-        return;
-    };
-    let want = uuid::Uuid::from_u128(piece.characteristic);
-    let device = blew::DeviceId::from(address.0);
-    match role {
-        Role::Central => {
-            let _ = held
-                .central
-                .write_characteristic(&device, want, piece.value, how(piece.acknowledged))
-                .await;
-        }
-        Role::Peripheral => {
-            let _ = held
-                .peripheral
-                .notify_characteristic(&device, want, piece.value)
-                .await;
-        }
-    }
-}
-
-fn how(acknowledged: bool) -> WriteType {
-    if acknowledged {
-        WriteType::WithResponse
-    } else {
-        WriteType::WithoutResponse
     }
 }

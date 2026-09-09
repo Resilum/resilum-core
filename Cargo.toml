@@ -9,7 +9,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 # AGPL-3.0 because the core links the leviculum Rust Reticulum stack, which is
 # AGPL-3.0.
@@ -21,3 +21,9 @@ all = "warn"
 # A custom name, so its output dir matches — unlike `dev`, which lands in debug/.
 [profile.quick]
 inherits = "dev"
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

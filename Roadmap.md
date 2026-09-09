@@ -13,7 +13,6 @@ that closes them.
 ## Correctness
 
 - Reassembly buffer is not bounded by the window
-- `SendBuffer::ack` loops on an ack value taken from the packet
 - FakeDNS name map grows without eviction; the pool exhausts permanently
 - FakeDNS decodes DNS labels lossily, so non-UTF-8 names lose bytes
 - `.onion` and `.i2p` suffix checks are case-sensitive, DNS names are not
@@ -30,7 +29,6 @@ that closes them.
 
 ## Testing
 
-- No per-test timeout: one hung test hangs the run
 - `resilum-ffi` has 34 C ABI entry points and three smoke tests
 - The tor, ygg and i2p transports and the shared SOCKS5 client have no tests
 - Test parallelism is unbounded

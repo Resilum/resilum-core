@@ -4,8 +4,10 @@ mod hosting;
 mod iwd;
 mod joining;
 mod network_manager;
+mod patience;
 pub mod radio_interface;
 mod settings;
+mod settling;
 mod supplicant;
 
 use std::time::Duration;

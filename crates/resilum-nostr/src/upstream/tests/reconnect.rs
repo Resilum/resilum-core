@@ -1,9 +1,5 @@
-use crate::upstream::Upstream;
-
 const REQ: &str = r#"["REQ","aabb",{"kinds":[1059]}]"#;
 
-/// A dropped connection is normal on a public relay; what must not happen
-/// is a bridge that stays silent afterwards.
 #[tokio::test]
 async fn a_dropped_connection_comes_back_and_reissues_its_requests() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -24,8 +20,7 @@ async fn a_dropped_connection_comes_back_and_reissues_its_requests() {
         }
     });
 
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (_handle, runner) = Upstream::pair(format!("ws://127.0.0.1:{port}"), tx);
+    let (_handle, runner, _arriving) = super::a_relay_on(port);
     tokio::spawn(runner.run(|| vec![REQ.to_owned()]));
 
     let (first, second) = tokio::time::timeout(std::time::Duration::from_secs(10), async {

@@ -3,7 +3,7 @@ use std::os::fd::AsRawFd;
 
 const A_FULL_24: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
 
-const fn as_wide_as_this_libc_wants(request: u64) -> libc::Ioctl {
+pub(super) const fn as_wide_as_this_libc_wants(request: u64) -> libc::Ioctl {
     request as libc::Ioctl
 }
 
@@ -81,7 +81,7 @@ fn brought_up(fd: i32, interface: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn named(interface: &str) -> Result<libc::ifreq, String> {
+pub(super) fn named(interface: &str) -> Result<libc::ifreq, String> {
     let mut request: libc::ifreq = unsafe { std::mem::zeroed() };
     let room = request.ifr_name.len() - 1;
     if interface.len() > room {

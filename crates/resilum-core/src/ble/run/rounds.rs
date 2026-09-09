@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 
+use crate::ble::announcing::put_us_on_the_air;
 use crate::ble::beacon::Beacon;
 use crate::ble::election::{
     Election, Field, HostingTheGroup, Verdict, WhatThePlatformKnows, exchange,
@@ -16,7 +17,6 @@ use crate::link::LinkRouter;
 
 const CONSIDER_EVERY: Duration = Duration::from_secs(5);
 const ASK_A_CANDIDATE_EVERY_MS: u64 = 10_000;
-const HEAR_A_NEIGHBOUR_OUT_MS: u64 = 30_000;
 const LOOK_AROUND_BEFORE_JUDGING_MS: u64 = 15_000;
 
 pub struct Deciding {
@@ -49,7 +49,7 @@ pub async fn keep_deciding(mut deciding: Deciding, since: Instant) {
 
 fn the_field_is_not_known_yet(field: &Field, now_ms: u64) -> bool {
     now_ms < LOOK_AROUND_BEFORE_JUDGING_MS
-        || field.someone_met_is_still_worth_hearing_out(now_ms, HEAR_A_NEIGHBOUR_OUT_MS)
+        || field.someone_met_is_still_worth_hearing_out(now_ms, spec::HEAR_A_NEIGHBOUR_OUT_MS)
 }
 
 fn decide_once_the_field_has_spoken(deciding: &mut Deciding, election: &mut Election, now_ms: u64) {
@@ -105,10 +105,7 @@ fn say_on_the_air_what_we_became(deciding: &mut Deciding) {
         return;
     }
     deciding.beacon = now;
-    if let Err(error) = deciding
-        .radio
-        .advertise(&now.name(), &now.on_the_air(), spec::SERVICE)
-    {
+    if let Err(error) = put_us_on_the_air(deciding.radio.as_ref(), &now) {
         tracing::warn!(?error, "ble re-advertise refused");
     }
 }

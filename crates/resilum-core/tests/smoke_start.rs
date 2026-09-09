@@ -78,3 +78,22 @@ fn tcp_listener_from_config_binds() {
     node.stop().expect("stop");
     let _ = std::fs::remove_dir_all(dir);
 }
+
+#[test]
+fn a_node_whose_anchor_name_will_not_resolve_still_starts() {
+    let dir = temp_dir("nameless");
+    let cfg = Config {
+        storage_path: Some(dir.clone()),
+        discover_interfaces: false,
+        bootstrap: vec!["there-is-no-such-host.invalid:9034".into()],
+        ..Config::minimal(format!("smoke-nameless-{}", std::process::id()))
+    };
+
+    let mut node = Node::new(cfg).expect("new");
+
+    node.start()
+        .expect("a name that will not resolve costs its own anchor, not the node");
+
+    node.stop().expect("stop");
+    let _ = std::fs::remove_dir_all(dir);
+}

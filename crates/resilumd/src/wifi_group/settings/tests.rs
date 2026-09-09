@@ -1,6 +1,9 @@
 use resilum_core::WifiGroup;
 
-use super::{Connection, a_group_owned_by_us, a_group_someone_else_owns, id_of};
+use super::{
+    Connection, PROTECTED_MANAGEMENT_FRAMES_OFFERED_NOT_DEMANDED, a_group_owned_by_us,
+    a_group_someone_else_owns, id_of,
+};
 
 fn text_in(connection: &Connection, section: &str, key: &str) -> Option<String> {
     connection
@@ -9,6 +12,26 @@ fn text_in(connection: &Connection, section: &str, key: &str) -> Option<String> 
         .0
         .as_str()
         .map(str::to_owned)
+}
+
+fn number_in(connection: &Connection, section: &str, key: &str) -> Option<u64> {
+    connection.get(section)?.get(key)?.0.as_u64()
+}
+
+#[test]
+fn neither_side_demands_protected_management_frames() {
+    let group = WifiGroup::default();
+
+    for connection in [
+        a_group_owned_by_us(&group, "wlan0"),
+        a_group_someone_else_owns(&group, "wlan0"),
+    ] {
+        assert_eq!(
+            number_in(&connection, "802-11-wireless-security", "pmf"),
+            Some(u64::from(PROTECTED_MANAGEMENT_FRAMES_OFFERED_NOT_DEMANDED)),
+            "left to its default a station that does not negotiate them is refused"
+        );
+    }
 }
 
 #[test]

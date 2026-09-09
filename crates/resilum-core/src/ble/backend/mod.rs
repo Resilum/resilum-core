@@ -66,6 +66,10 @@ impl Radio for BlewRadio {
         let _ = self.ask(Command::StopAdvertising);
     }
 
+    fn the_local_name_is_ours_to_spend(&self) -> bool {
+        !cfg!(target_os = "android")
+    }
+
     fn scan(&self, service: u128) -> Result<(), RadioError> {
         self.ask(Command::Scan { service })
     }

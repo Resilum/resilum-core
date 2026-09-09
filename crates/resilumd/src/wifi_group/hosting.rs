@@ -1,21 +1,26 @@
 use std::net::TcpListener;
 use std::os::fd::IntoRawFd;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use resilum_core::wifi_group::GroupHandle;
 use resilum_core::{Node, WifiGroup};
 
-use super::{Lowering, Raised, address, dhcp, radio_interface, whoever_holds_the_radio};
+use super::{
+    Lowering, Raised, address, dhcp, patience, radio_interface, settling, whoever_holds_the_radio,
+};
 
 #[derive(Default)]
 pub struct WhetherWeHostTheGroup {
     held: Option<Held>,
+    not_before: Option<Instant>,
+    turned_away: u32,
 }
 
 struct Held {
     lower: Lowering,
     dhcp: dhcp::Serving,
     links: GroupHandle,
+    raised_at: Instant,
 }
 
 impl WhetherWeHostTheGroup {
@@ -23,11 +28,36 @@ impl WhetherWeHostTheGroup {
         match (node.ble_hosting_the_group(), self.held.is_some()) {
             (true, false) => self.raise(node),
             (false, true) => self.stand_down(),
-            _ => {}
+            (true, true) => self.give_the_radio_back_if_nobody_came(),
+            (false, false) => {}
         }
     }
 
+    fn give_the_radio_back_if_nobody_came(&mut self) {
+        let Some(held) = self.held.as_ref() else {
+            return;
+        };
+        if held.links.how_many_it_carries() > 0 {
+            self.turned_away = 0;
+            return;
+        }
+        if !patience::it_carried_nobody(0, held.raised_at.elapsed()) {
+            return;
+        }
+        self.turned_away = self.turned_away.saturating_add(1);
+        let waiting = patience::before_trying_again(self.turned_away);
+        self.not_before = Some(Instant::now() + waiting);
+        tracing::info!(
+            ?waiting,
+            "nobody joined the group; giving the radio back for now"
+        );
+        self.stand_down();
+    }
+
     fn raise(&mut self, node: &Node) {
+        if self.not_before.is_some_and(|when| Instant::now() < when) {
+            return;
+        }
         let Some(group) = node.config().wifi_group.clone() else {
             return;
         };
@@ -41,7 +71,10 @@ impl WhetherWeHostTheGroup {
     }
 
     fn stand_down(&mut self) {
-        let Some(Held { lower, dhcp, links }) = self.held.take() else {
+        let Some(Held {
+            lower, dhcp, links, ..
+        }) = self.held.take()
+        else {
             return;
         };
         links.detach();
@@ -67,6 +100,7 @@ fn raised(node: &Node, group: &WifiGroup) -> Result<Held, String> {
             lower: raised.lower,
             dhcp: serving,
             links,
+            raised_at: Instant::now(),
         }),
         Err(refused) => {
             (raised.lower)();
@@ -84,6 +118,7 @@ fn carried_over(
     if !raised.already_addressed {
         address::put_on(carrying, group.owner_address)?;
     }
+    settling::settles_on(carrying, group.owner_address)?;
     let serving = dhcp::on(carrying, group.owner_address, seconds_since_the_epoch)
         .map_err(|e| format!("no dhcp on {carrying}: {e}"))?;
     let listening = TcpListener::bind((group.owner_address, group.port))

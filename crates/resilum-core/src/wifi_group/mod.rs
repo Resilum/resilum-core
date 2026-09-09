@@ -30,6 +30,14 @@ pub struct GroupHandle {
 }
 
 impl GroupHandle {
+    #[must_use]
+    pub fn how_many_it_carries(&self) -> usize {
+        self.links
+            .lock()
+            .unwrap_or_else(|held| held.into_inner())
+            .len()
+    }
+
     pub fn detach(mut self) {
         self.teardown();
     }

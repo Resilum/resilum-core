@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use fake_radio::{Air, CARRIED_PER_WRITE, FakeRadio};
 use resilum_core::ble::beacon::Beacon;
-use resilum_core::ble::radio::Radio;
+use resilum_core::ble::radio::{Radio, RadioEvent};
 use resilum_core::ble::spec;
 use resilum_core::{BleInterface, Config, Node};
 
@@ -94,5 +94,40 @@ fn a_neighbour_that_raised_nothing_is_not_a_group_to_join() {
     assert!(
         !node.ble_someone_else_hosts_a_group(),
         "a neighbour that hosts nothing was read as a group"
+    );
+}
+
+#[test]
+fn a_radio_whose_name_is_ours_announces_us_in_it() {
+    let air = Air::new(CARRIED_PER_WRITE);
+    let mut node = a_node_looking_around("nameless");
+    let us = resilum_core::ble::radio::PeerAddress("gg:air".to_owned());
+    let ours: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "gg:air"));
+    node.ble_attach_a_radio_the_caller_owns(ours)
+        .expect("the node takes the radio");
+
+    let listener = resilum_core::ble::radio::PeerAddress("hh:air".to_owned());
+    let heard = (0..300)
+        .find_map(|_| {
+            air.seen_by(&listener)
+                .into_iter()
+                .find(|seen| matches!(seen, RadioEvent::Seen { address, .. } if *address == us))
+                .or_else(|| {
+                    std::thread::sleep(Duration::from_millis(50));
+                    None
+                })
+        })
+        .expect("the node never went on the air");
+
+    let RadioEvent::Seen { name, beacon, .. } = heard else {
+        unreachable!("the search above matched on this variant")
+    };
+    assert_eq!(
+        Beacon::read(name.as_deref().expect("a name")).map(|read| read.can_host),
+        Some(true)
+    );
+    assert!(
+        beacon.is_empty(),
+        "a name and service data together overflow the scan response"
     );
 }

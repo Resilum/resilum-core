@@ -1,0 +1,16 @@
+---
+id: the-radio-never-fails-in-silence
+language: Rust
+severity: error
+message: A result from the radio is thrown away.
+note: |
+  A radio operation that fails and says nothing leaves the node advertising,
+  reporting health, and unable to carry anything — the state that has cost us
+  the most to find. Match the error and say what was lost, even if the answer
+  is only a debug line.
+rule:
+  any:
+    - pattern: let _ = $X.central.$M($$$ARGS).await;
+    - pattern: let _ = $X.peripheral.$M($$$ARGS).await;
+    - pattern: let _ = $X.central.$M($$$ARGS);
+    - pattern: let _ = $X.peripheral.$M($$$ARGS);

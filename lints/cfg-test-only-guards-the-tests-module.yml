@@ -1,0 +1,21 @@
+---
+id: cfg-test-only-guards-the-tests-module
+language: Rust
+severity: error
+message: A `#[cfg(test)]` item other than the tests module.
+note: |
+  `#[cfg(test)]` belongs to the trailing `mod tests;` and nothing else. An
+  export, a helper or a constant that exists only so a test can reach it is
+  test scaffolding in production code: move the test to where the thing
+  already is, or move the thing to where it belongs for its own sake.
+rule:
+  kind: attribute_item
+  regex: cfg\(test\)
+  inside:
+    kind: source_file
+  not:
+    precedes:
+      stopBy:
+        not:
+          kind: attribute_item
+      kind: mod_item

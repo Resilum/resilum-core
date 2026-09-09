@@ -1,8 +1,4 @@
-use crate::upstream::Upstream;
-
-/// Aborting (or otherwise dropping) `run` mid-connection must still clear
-/// `is_up`, or a handle left over from a shutdown reports "connected"
-/// forever and `send` keeps filling an outbox nobody will ever drain.
+/// Left set, `is_up` has `send` filling an outbox nobody will ever drain.
 #[tokio::test]
 async fn is_up_clears_even_when_run_is_cancelled_mid_connection() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -18,8 +14,7 @@ async fn is_up_clears_even_when_run_is_cancelled_mid_connection() {
         std::future::pending::<()>().await; // hold the connection open
     });
 
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (handle, runner) = Upstream::pair(format!("ws://127.0.0.1:{port}"), tx);
+    let (handle, runner, _arriving) = super::a_relay_on(port);
     let task = tokio::spawn(runner.run(Vec::new));
 
     tokio::time::timeout(std::time::Duration::from_secs(10), async {
