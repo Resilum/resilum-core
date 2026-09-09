@@ -1,6 +1,7 @@
 mod listen;
 mod obey;
 mod peers;
+mod sending;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -90,7 +91,7 @@ async fn run(mut held: Held) {
             },
             piece = held.outbound.recv() => match piece {
                 None => return,
-                Some(piece) => obey::put_on_the_air(&held, piece).await,
+                Some(piece) => sending::put_on_the_air(&held, piece).await,
             },
             event = held.heard.next() => match event {
                 None => held.heard = nothing_more(),
