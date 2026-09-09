@@ -9,6 +9,7 @@ use leviculum_std::driver::ReticulumNodeBuilder;
 use crate::{Config, Error, Result, identity};
 
 mod a_data_port;
+mod names;
 mod render;
 use render::render_config;
 
@@ -24,7 +25,8 @@ pub(crate) fn build_node(
     fs::create_dir_all(&dir).map_err(|e| Error::Config(format!("config dir: {e}")))?;
     let config_path: PathBuf = dir.join("config");
     let data_port = a_data_port::nobody_else_holds(a_data_port::WHAT_RETICULUM_EXPECTS);
-    fs::write(&config_path, render_config(config, data_port))
+    let reachable = names::only_those_that_resolve(config);
+    fs::write(&config_path, render_config(&reachable, data_port))
         .map_err(|e| Error::Config(format!("write config: {e}")))?;
     let identity = match &config.identity_private_base64 {
         Some(b64) => identity::from_base64(b64)
