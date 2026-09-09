@@ -12,11 +12,11 @@ use crate::ble::election::{
 };
 use crate::ble::links::PeerId;
 use crate::ble::radio::Radio;
+use crate::ble::spec;
 use crate::link::LinkRouter;
 
 const CONSIDER_EVERY: Duration = Duration::from_secs(5);
 const ASK_A_CANDIDATE_EVERY_MS: u64 = 10_000;
-const HEAR_A_NEIGHBOUR_OUT_MS: u64 = 30_000;
 const LOOK_AROUND_BEFORE_JUDGING_MS: u64 = 15_000;
 
 pub struct Deciding {
@@ -49,7 +49,7 @@ pub async fn keep_deciding(mut deciding: Deciding, since: Instant) {
 
 fn the_field_is_not_known_yet(field: &Field, now_ms: u64) -> bool {
     now_ms < LOOK_AROUND_BEFORE_JUDGING_MS
-        || field.someone_met_is_still_worth_hearing_out(now_ms, HEAR_A_NEIGHBOUR_OUT_MS)
+        || field.someone_met_is_still_worth_hearing_out(now_ms, spec::HEAR_A_NEIGHBOUR_OUT_MS)
 }
 
 fn decide_once_the_field_has_spoken(deciding: &mut Deciding, election: &mut Election, now_ms: u64) {

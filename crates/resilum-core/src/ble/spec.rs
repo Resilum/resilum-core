@@ -21,3 +21,10 @@ pub const PEERS_AT_ONCE: usize = 7;
 pub const KEEPALIVE_PACKET: [u8; 1] = [0x00];
 pub const KEEPALIVE_EVERY_MS: u64 = 15_000;
 pub const ABANDON_REASSEMBLY_AFTER_MS: u64 = 30_000;
+
+pub const HEAR_A_NEIGHBOUR_OUT_MS: u64 = 30_000;
+pub const WE_SAY_WHERE_WE_ANSWER_EVERY: std::time::Duration =
+    std::time::Duration::from_millis(HEAR_A_NEIGHBOUR_OUT_MS);
+
+#[cfg(test)]
+mod tests;

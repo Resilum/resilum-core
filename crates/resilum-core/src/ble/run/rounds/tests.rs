@@ -1,7 +1,6 @@
-use super::{
-    Field, HEAR_A_NEIGHBOUR_OUT_MS, LOOK_AROUND_BEFORE_JUDGING_MS, the_field_is_not_known_yet,
-};
+use super::{Field, LOOK_AROUND_BEFORE_JUDGING_MS, the_field_is_not_known_yet};
 use crate::ble::election::Facts;
+use crate::ble::spec::HEAR_A_NEIGHBOUR_OUT_MS;
 
 const A_NEIGHBOUR: [u8; 16] = [3; 16];
 
