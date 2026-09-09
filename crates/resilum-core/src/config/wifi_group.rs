@@ -16,7 +16,7 @@ impl Default for WifiGroup {
             passphrase: String::from("resilum-open-mesh"),
             interface: None,
             owner_address: Ipv4Addr::new(192, 168, 49, 1),
-            port: 4242,
+            port: 4243,
         }
     }
 }

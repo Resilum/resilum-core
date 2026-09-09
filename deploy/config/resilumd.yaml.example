@@ -57,7 +57,7 @@ discover_interfaces: true
 #   passphrase: resilum-open-mesh
 #   interface: wlan0           # only needed where a host has several radios
 #   owner_address: 192.168.49.1
-#   port: 4242
+#   port: 4243
 
 # Transport-discovery plugins: each attaches discovered peers over its
 # transport and (when it can determine our own reachable endpoint) announces
