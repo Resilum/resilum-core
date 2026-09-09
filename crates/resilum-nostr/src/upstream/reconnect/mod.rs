@@ -17,7 +17,6 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 use connected::Connected;
 use pump::AfterPump;
 
-#[cfg(test)]
 pub(crate) use pump::Deadlines;
 
 use super::{proto, tls};
@@ -42,7 +41,7 @@ pub struct UpstreamRunner {
     incoming: mpsc::UnboundedSender<proto::Incoming>,
     outbox_rx: mpsc::UnboundedReceiver<Utf8Bytes>,
     up: Arc<AtomicBool>,
-    deadlines: pump::Deadlines,
+    deadlines: Deadlines,
 }
 
 impl UpstreamRunner {
@@ -51,20 +50,15 @@ impl UpstreamRunner {
         incoming: mpsc::UnboundedSender<proto::Incoming>,
         outbox_rx: mpsc::UnboundedReceiver<Utf8Bytes>,
         up: Arc<AtomicBool>,
+        deadlines: Deadlines,
     ) -> Self {
         Self {
             url,
             incoming,
             outbox_rx,
             up,
-            deadlines: pump::Deadlines::default(),
+            deadlines,
         }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn with_deadlines(mut self, deadlines: Deadlines) -> Self {
-        self.deadlines = deadlines;
-        self
     }
 
     pub async fn run(mut self, on_connect: impl Fn() -> Vec<String> + Send + 'static) {

@@ -1,12 +1,8 @@
 use futures_util::SinkExt;
 use tokio_tungstenite::tungstenite::Message;
 
-use crate::upstream::Upstream;
-
-/// `run` owns its own clone of the shared state, so nothing else stops it;
-/// the caller's only lever is dropping the `incoming` receiver. A relay
-/// that keeps talking after that must not keep the task alive forever,
-/// parsing and discarding frames nobody can read.
+/// `run` owns its own clone of the shared state, so nothing else stops it:
+/// this receiver is the caller's only lever.
 #[tokio::test]
 async fn dropping_the_incoming_receiver_ends_the_reconnect_loop() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -23,9 +19,8 @@ async fn dropping_the_incoming_receiver_ends_the_reconnect_loop() {
         std::future::pending::<()>().await; // keep the socket open; `run` must exit on its own
     });
 
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-    drop(rx);
-    let (_handle, runner) = Upstream::pair(format!("ws://127.0.0.1:{port}"), tx);
+    let (_handle, runner, arriving) = super::a_relay_on(port);
+    drop(arriving);
     let task = tokio::spawn(runner.run(Vec::new));
 
     let outcome = tokio::time::timeout(std::time::Duration::from_secs(10), task)

@@ -1,9 +1,7 @@
 use std::time::Duration;
 
-use crate::upstream::{Deadlines, Upstream};
+use crate::upstream::Deadlines;
 
-/// The server here is a socket that reads as open for ever: it completes the
-/// handshake and then never speaks, never answers a ping and never closes.
 #[tokio::test]
 async fn a_relay_that_stops_speaking_is_dropped_and_redialled() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -29,12 +27,13 @@ async fn a_relay_that_stops_speaking_is_dropped_and_redialled() {
         std::future::pending::<()>().await;
     });
 
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (_handle, runner) = Upstream::pair(format!("ws://127.0.0.1:{port}"), tx);
-    let runner = runner.with_deadlines(Deadlines {
-        idle: Duration::from_millis(100),
-        answer: Duration::from_millis(100),
-    });
+    let (_handle, runner, _arriving) = super::a_relay_at(
+        format!("ws://127.0.0.1:{port}"),
+        Deadlines {
+            idle: Duration::from_millis(100),
+            answer: Duration::from_millis(100),
+        },
+    );
     tokio::spawn(runner.run(Vec::new));
 
     let rounds = tokio::time::timeout(Duration::from_secs(10), async {
@@ -74,12 +73,13 @@ async fn a_quiet_relay_that_answers_its_pings_keeps_the_same_connection() {
         }
     });
 
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (handle, runner) = Upstream::pair(format!("ws://127.0.0.1:{port}"), tx);
-    let runner = runner.with_deadlines(Deadlines {
-        idle: Duration::from_millis(50),
-        answer: Duration::from_millis(50),
-    });
+    let (handle, runner, _arriving) = super::a_relay_at(
+        format!("ws://127.0.0.1:{port}"),
+        Deadlines {
+            idle: Duration::from_millis(50),
+            answer: Duration::from_millis(50),
+        },
+    );
     tokio::spawn(runner.run(Vec::new));
 
     let rounds = tokio::time::timeout(Duration::from_secs(10), async {

@@ -16,8 +16,6 @@ mod query;
 mod store;
 
 pub(crate) use admit::AcceptError;
-#[cfg(test)]
-pub(crate) use admit::FILTERS_PER_REQUEST;
 pub(crate) use batch::BatchId;
 pub(crate) use query::LiveMark;
 

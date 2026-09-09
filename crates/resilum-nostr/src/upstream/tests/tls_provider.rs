@@ -1,7 +1,5 @@
 use tokio::io::AsyncReadExt;
 
-use crate::upstream::Upstream;
-
 /// `wss://` builds a `rustls::ClientConfig` as soon as the TCP handshake
 /// completes, before any TLS bytes are exchanged. The proof is a byte: a
 /// ClientHello can only be written by a dial that got past it. The server
@@ -25,8 +23,10 @@ async fn a_wss_dial_writes_tls_bytes_instead_of_panicking_for_want_of_a_provider
         let _ = hello_tx.send(read);
     });
 
-    let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let (_handle, runner) = Upstream::pair(format!("wss://127.0.0.1:{port}"), tx);
+    let (_handle, runner, _arriving) = super::a_relay_at(
+        format!("wss://127.0.0.1:{port}"),
+        crate::upstream::Deadlines::default(),
+    );
 
     let read = tokio::time::timeout(std::time::Duration::from_secs(10), async {
         tokio::select! {

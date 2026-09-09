@@ -23,7 +23,6 @@ use tokio_tungstenite::tungstenite::protocol::frame::Utf8Bytes;
 
 pub use reconnect::UpstreamRunner;
 
-#[cfg(test)]
 pub(crate) use reconnect::Deadlines;
 
 #[derive(Clone)]
@@ -37,6 +36,7 @@ impl Upstream {
     pub fn pair(
         url: String,
         incoming: mpsc::UnboundedSender<proto::Incoming>,
+        deadlines: Deadlines,
     ) -> (Self, UpstreamRunner) {
         let (outbox_tx, outbox_rx) = mpsc::unbounded_channel();
         let up = Arc::new(AtomicBool::new(false));
@@ -44,7 +44,7 @@ impl Upstream {
             outbox_tx,
             up: Arc::clone(&up),
         };
-        let runner = UpstreamRunner::new(url, incoming, outbox_rx, up);
+        let runner = UpstreamRunner::new(url, incoming, outbox_rx, up, deadlines);
         (handle, runner)
     }
 
