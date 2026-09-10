@@ -1,13 +1,13 @@
 //! Serialization contract for the JSON snapshot — the consumer decodes this
 //! shape, so a field renamed or dropped here is a silent breakage for it.
 
-use resilum_core::coordinates::Coordinates;
+use crate::coordinates::Coordinates;
 
 use super::model::{BleStatus, CoordinatesStatus, LxmfStatus, NodeStatus};
 
 fn bare_status() -> NodeStatus {
     NodeStatus {
-        version: env!("CARGO_PKG_VERSION"),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
         running: false,
         socks_port: Some(0),
         identity_hash: None,

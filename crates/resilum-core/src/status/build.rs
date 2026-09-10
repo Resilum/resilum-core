@@ -5,8 +5,8 @@ use super::model::{
     BleStatus, CoordinatesStatus, Interface, Link, NodeStatus, PlacedPeer, TorStatus, Transport,
     added_by, hex,
 };
-use crate::node::ResilumNode;
-use resilum_core::discovery::Service;
+
+use crate::discovery::Service;
 
 /// Filled under `PathTableEntry::interface_index`, read back under
 /// `InterfaceStats::interface_id.0` — two engine APIs naming the same
@@ -14,30 +14,27 @@ use resilum_core::discovery::Service;
 /// lookup misses and interfaces report no peers instead of failing.
 type PeersByInterface = HashMap<usize, Vec<String>>;
 
-pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
+pub fn snapshot(node: &crate::Node) -> NodeStatus {
     let mut status = NodeStatus {
-        version: env!("CARGO_PKG_VERSION"),
-        running: node.0.is_running(),
-        socks_port: node.0.socks_port(),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
+        running: node.is_running(),
+        socks_port: node.socks_port(),
         identity_hash: None,
         reachable_destinations: 0,
         interfaces: Vec::new(),
         transport: None,
         nostr_relays: node
-            .0
             .discovered(Service::NOSTR_RELAY)
             .iter()
             .map(hex)
             .collect(),
         lxmf: lxmf::snapshot(node),
         tor: node
-            .0
             .tor_bootstrapped()
             .map(|bootstrapped| TorStatus { bootstrapped }),
         coordinates: CoordinatesStatus {
-            ours: node.0.own_coordinate(),
+            ours: node.own_coordinate(),
             peers: node
-                .0
                 .placed_peers()
                 .into_iter()
                 .map(|placed| PlacedPeer {
@@ -49,10 +46,10 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
         },
         links: Vec::new(),
         ble: BleStatus {
-            hosting_the_group: node.0.ble_hosting_the_group(),
+            hosting_the_group: node.ble_hosting_the_group(),
         },
     };
-    let Some(engine) = node.0.engine() else {
+    let Some(engine) = node.engine() else {
         return status;
     };
     status.identity_hash = Some(hex(&engine.identity_hash()));
@@ -81,10 +78,9 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
         .interface_stats()
         .into_iter()
         .map(|i| Interface {
-            added_by: added_by(&i.name),
-            kind: i.kind.as_str(),
+            added_by: added_by(&i.name).to_owned(),
+            kind: i.kind.as_str().to_owned(),
             discovered_via: node
-                .0
                 .discovered_via(i.interface_id)
                 .unwrap_or_else(|| "direct".into()),
             peer_nodes: peer_nodes
@@ -110,14 +106,16 @@ pub(super) fn snapshot(node: &ResilumNode) -> NodeStatus {
         .map(|(shown, i)| (i.interface_id.0, shown.name.clone()))
         .collect();
     status.links = node
-        .0
         .links_we_keep()
         .into_iter()
         .map(|link| Link {
             identity_hash: hex(&link.peer),
             transport: link.transport,
             interface_name: named.get(&link.interface.0).cloned(),
-            estimated_rtt_ms: node.0.estimated_rtt(&link.peer).map(|rtt| rtt.as_millis()),
+            estimated_rtt_ms: node
+                .measured_rtt_over(&link.peer, link.interface.0)
+                .or_else(|| node.estimated_rtt(&link.peer))
+                .map(|rtt| rtt.as_millis()),
         })
         .collect();
     let t = engine.transport_stats();

@@ -2,10 +2,6 @@
 //!
 //! JSON keeps the wire schema evolvable without touching the C ABI.
 
-mod build;
-mod lxmf;
-mod model;
-
 use std::ffi::CString;
 use std::os::raw::c_char;
 
@@ -111,7 +107,7 @@ pub unsafe extern "C" fn resilum_node_status(node: *const ResilumNode) -> *mut c
             set_error("null node");
             return std::ptr::null_mut();
         };
-        let status = build::snapshot(node);
+        let status = resilum_core::status::snapshot(&node.0);
         let json = match serde_json::to_string(&status) {
             Ok(json) => json,
             Err(e) => {
@@ -128,6 +124,3 @@ pub unsafe extern "C" fn resilum_node_status(node: *const ResilumNode) -> *mut c
         }
     })
 }
-
-#[cfg(test)]
-mod tests;
