@@ -24,6 +24,10 @@ impl Peer {
     pub(super) fn fastest_link(&self) -> Option<Duration> {
         self.over.values().filter_map(Window::dependably_fast).min()
     }
+
+    pub(super) fn measured_over(&self, over: LinkId) -> Option<Duration> {
+        self.over.get(&over)?.dependably_fast()
+    }
 }
 
 #[cfg(test)]

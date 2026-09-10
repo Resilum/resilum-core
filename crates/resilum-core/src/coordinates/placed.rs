@@ -16,6 +16,11 @@ impl Coordinates {
     }
 
     #[must_use]
+    pub fn measured_over(&self, peer: &PeerId, over: super::LinkId) -> Option<Duration> {
+        self.peers().get(peer)?.measured_over(over)
+    }
+
+    #[must_use]
     pub fn placed(&self) -> Vec<Placed> {
         let claimed: Vec<(PeerId, Claimed)> = self
             .peers()
