@@ -10,6 +10,7 @@ mod i2pd_export;
 mod mirrors;
 mod nostr;
 mod radio_facts;
+mod status;
 mod subcommands;
 mod wifi_group;
 mod ygg_seed;
