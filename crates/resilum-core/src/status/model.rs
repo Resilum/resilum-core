@@ -1,12 +1,12 @@
 //! The shape the consumer decodes. `resilum_node_status`'s doc comment is the
 //! published copy of it — it is what reaches a caller holding only the header.
 
-use resilum_core::coordinates::Claimed;
-use serde::Serialize;
+use crate::coordinates::Claimed;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize)]
-pub(super) struct NodeStatus {
-    pub version: &'static str,
+#[derive(Serialize, Deserialize)]
+pub struct NodeStatus {
+    pub version: String,
     pub running: bool,
     pub socks_port: Option<u16>,
     pub identity_hash: Option<String>,
@@ -21,39 +21,39 @@ pub(super) struct NodeStatus {
     pub ble: BleStatus,
 }
 
-#[derive(Serialize)]
-pub(super) struct BleStatus {
+#[derive(Serialize, Deserialize)]
+pub struct BleStatus {
     pub hosting_the_group: bool,
 }
 
-#[derive(Serialize)]
-pub(super) struct Link {
+#[derive(Serialize, Deserialize)]
+pub struct Link {
     pub identity_hash: String,
     pub transport: String,
     pub interface_name: Option<String>,
     pub estimated_rtt_ms: Option<u128>,
 }
 
-#[derive(Serialize)]
-pub(super) struct CoordinatesStatus {
+#[derive(Serialize, Deserialize)]
+pub struct CoordinatesStatus {
     pub ours: Claimed,
     pub peers: Vec<PlacedPeer>,
 }
 
-#[derive(Serialize)]
-pub(super) struct PlacedPeer {
+#[derive(Serialize, Deserialize)]
+pub struct PlacedPeer {
     pub identity_hash: String,
     pub at: Claimed,
     pub estimated_rtt_ms: u128,
 }
 
-#[derive(Serialize)]
-pub(super) struct TorStatus {
+#[derive(Serialize, Deserialize)]
+pub struct TorStatus {
     pub bootstrapped: bool,
 }
 
-#[derive(Serialize)]
-pub(super) struct LxmfStatus {
+#[derive(Serialize, Deserialize)]
+pub struct LxmfStatus {
     /// Permanently false if the processor panicked and was detached.
     pub ready: bool,
     pub address: String,
@@ -63,11 +63,11 @@ pub(super) struct LxmfStatus {
     pub propagation_node: Option<String>,
 }
 
-#[derive(Serialize)]
-pub(super) struct Interface {
+#[derive(Serialize, Deserialize)]
+pub struct Interface {
     pub name: String,
-    pub added_by: &'static str,
-    pub kind: &'static str,
+    pub added_by: String,
+    pub kind: String,
     pub discovered_via: String,
     pub online: bool,
     pub local_client: bool,
@@ -85,8 +85,8 @@ pub(super) struct Interface {
     pub peer_hashes: Vec<String>,
 }
 
-#[derive(Serialize)]
-pub(super) struct Transport {
+#[derive(Serialize, Deserialize)]
+pub struct Transport {
     pub packets_sent: u64,
     pub packets_received: u64,
     pub packets_forwarded: u64,
@@ -94,7 +94,7 @@ pub(super) struct Transport {
     pub announces_processed: u64,
 }
 
-pub(super) fn added_by(name: &str) -> &'static str {
+pub fn added_by(name: &str) -> &'static str {
     if name.starts_with("autoconnect") {
         "autoconnect"
     } else if name.starts_with("tcp_client") {
@@ -104,6 +104,6 @@ pub(super) fn added_by(name: &str) -> &'static str {
     }
 }
 
-pub(super) fn hex<const N: usize>(bytes: &[u8; N]) -> String {
-    resilum_core::hex::encode(bytes.iter())
+pub fn hex<const N: usize>(bytes: &[u8; N]) -> String {
+    crate::hex::encode(bytes.iter())
 }

@@ -31,6 +31,7 @@ mod nursery;
 pub mod pump;
 mod socks5_tcp;
 pub mod spec;
+pub mod status;
 pub mod supervisor;
 #[cfg(feature = "arti")]
 pub mod tor;

@@ -20,6 +20,11 @@ pub struct Claimed {
 
 impl Claimed {
     #[must_use]
+    pub fn position(self) -> [f64; 3] {
+        self.position
+    }
+
+    #[must_use]
     pub fn error(self) -> f64 {
         self.error
     }

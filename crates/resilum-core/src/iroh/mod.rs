@@ -12,23 +12,19 @@ mod plugin;
 mod resolvers;
 #[cfg(feature = "iroh-protect")]
 mod transport;
+mod wiring;
 
 pub(crate) use plugin::IrohDiscovery;
 
-use std::collections::HashMap;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use iroh::{Endpoint, EndpointId};
+use iroh::Endpoint;
 use leviculum_std::driver::ReticulumNode;
-use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::task::JoinHandle;
 
 use crate::config::IrohConfig;
-
-/// One byte-channel per peer, so a re-dial replaces a stale link and teardown
-/// can detach them all.
-pub(super) type Links = Arc<Mutex<HashMap<EndpointId, ByteChannelHandle>>>;
+use wiring::Wiring;
 
 pub(super) const ORIGIN: &str = "iroh";
 
@@ -37,8 +33,7 @@ pub(super) const ORIGIN: &str = "iroh";
 pub struct IrohHandle {
     endpoint: Endpoint,
     tasks: Vec<JoinHandle<()>>,
-    links: Links,
-    engine: Arc<ReticulumNode>,
+    wiring: Arc<Wiring>,
     discovery: Option<Arc<IrohDiscovery>>,
     runtime: tokio::runtime::Handle,
 }
@@ -61,12 +56,7 @@ impl IrohHandle {
         for task in std::mem::take(&mut self.tasks) {
             task.abort();
         }
-        let mut links = self.links.lock().expect("iroh links");
-        for handle in links.values() {
-            let _ = self.engine.remove_interface(handle.id());
-        }
-        links.clear();
-        drop(links);
+        self.wiring.attachments.release_service(ORIGIN);
         // Close gracefully so iroh sends CONNECTION_CLOSE rather than logging an
         // ungraceful abort on drop. Best-effort: skip when already on a runtime
         // thread, where `block_on` would panic.
@@ -91,39 +81,31 @@ pub async fn attach(
     cfg: &IrohConfig,
     discovery: Option<Arc<IrohDiscovery>>,
     protect: Option<leviculum_std::socket_hook::OutboundSocketHook>,
+    attachments: Arc<crate::discovery::Attachments>,
     origin: Arc<crate::discovery::OriginRegistry>,
 ) -> Result<IrohHandle, String> {
     let secret = key::load_or_create(dir);
     let endpoint = engine::build(secret, cfg, protect).await?;
-    let links: Links = Arc::new(Mutex::new(HashMap::new()));
-    let mut tasks = vec![tokio::spawn(accept::run(
-        endpoint.clone(),
-        engine.clone(),
-        links.clone(),
-        origin.clone(),
-    ))];
+    let wiring = Arc::new(Wiring {
+        engine,
+        attachments,
+        origin,
+    });
+    let mut tasks = vec![tokio::spawn(accept::run(endpoint.clone(), wiring.clone()))];
     for peer in &cfg.bootstrap {
         tasks.push(tokio::spawn(dial::bootstrap(
             endpoint.clone(),
-            engine.clone(),
-            links.clone(),
-            origin.clone(),
+            wiring.clone(),
             peer.clone(),
         )));
     }
     if let Some(discovery) = &discovery {
-        discovery.activate(
-            endpoint.clone(),
-            engine.clone(),
-            links.clone(),
-            origin.clone(),
-        );
+        discovery.activate(endpoint.clone(), wiring.clone());
     }
     Ok(IrohHandle {
         endpoint,
         tasks,
-        links,
-        engine,
+        wiring,
         discovery,
         runtime: tokio::runtime::Handle::current(),
     })

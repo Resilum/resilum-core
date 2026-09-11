@@ -29,6 +29,8 @@ endpoint a single peer rather than three.
 cd deploy && docker compose up -d
 ```
 
+![A cold container starting and the node reporting its status](assets/quickstart.gif)
+
 That is the whole setup. The image carries Tor, Yggdrasil and I2P already
 wired, the entrypoint writes every config file on first start, and the node
 joins the mesh with no editing at all. Identity and state persist in
@@ -133,6 +135,8 @@ Two things this buys, in order of arrival:
 - **Choosing peers.** A node keeps a bounded set of links: the closest few plus
   a quota of deliberately distant ones, so the mesh does not fragment into
   cliques that all know each other and nothing else.
+
+![Peers placed by latency, each with its coordinate and round trip](assets/coordinates.gif)
 
 Coordinates are never put in an announce. An announce is public and
 unauthenticated, and a position is both a fingerprint and an input an attacker

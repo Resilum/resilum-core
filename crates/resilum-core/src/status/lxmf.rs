@@ -1,5 +1,4 @@
 use super::model::{LxmfStatus, hex};
-use crate::node::ResilumNode;
 
 /// `None` when this node has no `lxmf` config section, or is not running —
 /// the messaging handle only exists once it is.
@@ -11,11 +10,9 @@ use crate::node::ResilumNode;
 /// that first tick and then have it appear — worse for a startup screen than
 /// showing the address (e.g. for a QR code) right away with `ready: false`
 /// until the router catches up.
-pub(super) fn snapshot(node: &ResilumNode) -> Option<LxmfStatus> {
-    let lxmf = node.0.lxmf()?;
-    // The accessor `resilum_lxmf_address` returns, not the handle's own copy:
-    // snapshot and symbol are then one value.
-    let address = crate::lxmf::address_hex(node)?;
+pub fn snapshot(node: &crate::Node) -> Option<LxmfStatus> {
+    let lxmf = node.lxmf()?;
+    let address = node.lxmf_address_hex()?;
     // Read once, then counted: two reads can straddle an engine tick.
     let queued = lxmf.queued_ids();
     Some(LxmfStatus {

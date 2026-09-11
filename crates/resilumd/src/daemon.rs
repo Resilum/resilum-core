@@ -66,7 +66,13 @@ pub fn run(path: &Path) {
     let mut group = crate::wifi_group::WhetherWeHostTheGroup::default();
     let mut guest = crate::wifi_group::WhetherWeJoinTheGroup::default();
     let mut known = crate::radio_facts::WhatThisHostKnows::default();
+    let status_path = crate::status::file_path(
+        node.config().storage_path.as_deref(),
+        std::env::var("RESILUM_STATUS_FILE").ok(),
+    );
+    crate::status::leave_behind(&node, &status_path);
     while let Err(mpsc::RecvTimeoutError::Timeout) = rx.recv_timeout(FOLLOW_THE_ELECTION_EVERY) {
+        crate::status::leave_behind(&node, &status_path);
         known.tell(&node);
         group.follow_the_election(&node);
         guest.follow_the_election(&node);

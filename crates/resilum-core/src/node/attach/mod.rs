@@ -140,6 +140,7 @@ impl Node {
                 &cfg,
                 discovery,
                 protect,
+                self.attachments.clone(),
                 self.origin_registry.clone(),
             ))
             .map_err(Error::Iroh)?;

@@ -15,7 +15,7 @@ use crate::link::{Inbound, LinkMsg, LinkRouter, answered};
 pub(crate) const APP_NAME: &str = "resilum";
 pub(crate) const ASPECT: &str = "coordinates";
 const ANSWER_WITHIN: Duration = Duration::from_secs(20);
-const WHICHEVER_ROUTE_RNS_RACED_TO: super::LinkId = 0;
+const NO_PATH_TO_SAY_WHICH_INTERFACE: super::LinkId = usize::MAX;
 
 #[must_use]
 pub fn destination(identity: Identity) -> Destination {
@@ -68,6 +68,14 @@ async fn serve(
     let _ = handle.send(&ours).await;
 }
 
+fn carried_by(engine: &Arc<ReticulumNode>, at: &DestinationHash) -> super::LinkId {
+    engine
+        .path_table_entries()
+        .into_iter()
+        .find(|path| path.hash == *at.as_bytes())
+        .map_or(NO_PATH_TO_SAY_WHICH_INTERFACE, |path| path.interface_index)
+}
+
 pub async fn place(
     engine: &Arc<ReticulumNode>,
     router: &Arc<LinkRouter>,
@@ -102,10 +110,12 @@ pub async fn place(
         tracing::debug!(peer = %asking, "a peer was asked and said nothing");
         return false;
     };
-    let believed = coordinates.believe(peer, WHICHEVER_ROUTE_RNS_RACED_TO, rtt, theirs, now);
+    let over = carried_by(engine, &at);
+    let believed = coordinates.believe(peer, over, rtt, theirs, now);
     tracing::debug!(
         peer = %asking,
         rtt_ms = rtt.as_millis(),
+        over,
         believed,
         theirs = %format_args!("{theirs:?}"),
         "a peer said where it sits"

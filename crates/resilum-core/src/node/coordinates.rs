@@ -22,4 +22,13 @@ impl Node {
     pub fn estimated_rtt(&self, peer: &crate::coordinates::PeerId) -> Option<std::time::Duration> {
         self.coordinates.estimated_rtt(peer)
     }
+
+    #[must_use]
+    pub fn measured_rtt_over(
+        &self,
+        peer: &crate::coordinates::PeerId,
+        over: crate::coordinates::LinkId,
+    ) -> Option<std::time::Duration> {
+        self.coordinates.measured_over(peer, over)
+    }
 }

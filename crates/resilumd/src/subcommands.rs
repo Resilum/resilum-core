@@ -27,6 +27,7 @@ pub fn dispatch_or_exit(argv: &[String]) {
                 argv.get(2).map(String::as_str),
             ));
         }
+        Some("status") => std::process::exit(crate::status::run(&argv[1..])),
         Some("covert") => std::process::exit(covert::run(&argv[1..])),
         Some("mirrors") => std::process::exit(mirrors::run(&argv[1..])),
         Some("probe-net") => probe_net(),
@@ -66,6 +67,8 @@ pub fn usage() -> ! {
     eprintln!("       resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
     eprintln!("       resilumd ygg-seed-keys <yggdrasil.conf>");
     eprintln!("       resilumd render-bind-config [<ygg.conf>] [<rns.conf>]");
+    eprintln!("       resilumd status [<path.yaml>] [--interfaces] [--links] [--map]");
+    eprintln!("                       [--all] [--color] [--json]");
     eprintln!("       resilumd covert <carrier> <client|server> [flags]");
     std::process::exit(2);
 }

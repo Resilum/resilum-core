@@ -26,10 +26,15 @@ impl DiscoveryPlugin for TcpDiscovered {
             return;
         };
         let name = format!("{}[{}]:{}", self.cfg.name_prefix, host, port);
+        let peer = admit::who_announced(announcer_pubkey.unwrap_or_default());
         if self.attachments.holds(&name) {
+            if let Some(peer) = peer
+                && self.attachments.learn_who_announced(&name, peer)
+            {
+                tracing::debug!(service = %self.cfg.service, %name, "a peer attached from cache has a name now");
+            }
             return;
         }
-        let peer = admit::who_announced(announcer_pubkey.unwrap_or_default());
         match admit::room_for(
             &self.attachments,
             self.engine.path_count(),
