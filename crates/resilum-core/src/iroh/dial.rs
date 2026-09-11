@@ -4,23 +4,25 @@
 use std::sync::Arc;
 
 use iroh::{Endpoint, EndpointAddr, EndpointId};
-use leviculum_std::driver::ReticulumNode;
 
+use super::bridge;
 use super::engine::ALPN;
-use super::{Links, bridge};
-use crate::discovery::OriginRegistry;
+use super::wiring::{NOT_NAMED_UNTIL_THEY_ANNOUNCE, Wiring};
+use crate::coordinates::PeerId;
 
 /// Dial a configured bootstrap peer (an `EndpointId` string) to form an RNS
 /// interface when other transports can't reach an anchor.
-pub async fn bootstrap(
-    endpoint: Endpoint,
-    engine: Arc<ReticulumNode>,
-    links: Links,
-    origin: Arc<OriginRegistry>,
-    peer: String,
-) {
+pub async fn bootstrap(endpoint: Endpoint, wiring: Arc<Wiring>, peer: String) {
     match peer.trim().parse::<EndpointId>() {
-        Ok(id) => dial(endpoint, engine, links, origin, EndpointAddr::from(id)).await,
+        Ok(id) => {
+            dial(
+                endpoint,
+                wiring,
+                EndpointAddr::from(id),
+                NOT_NAMED_UNTIL_THEY_ANNOUNCE,
+            )
+            .await;
+        }
         Err(e) => tracing::warn!(peer, error = %e, "invalid iroh bootstrap peer"),
     }
 }
@@ -28,13 +30,12 @@ pub async fn bootstrap(
 /// Open a connection to `addr` and bridge its bidi stream onto a byte-channel.
 pub async fn dial(
     endpoint: Endpoint,
-    engine: Arc<ReticulumNode>,
-    links: Links,
-    origin: Arc<OriginRegistry>,
+    wiring: Arc<Wiring>,
     addr: EndpointAddr,
+    announced_by: Option<PeerId>,
 ) {
     match endpoint.connect(addr, ALPN).await {
-        Ok(conn) => bridge::dial_link(&engine, &links, &origin, conn).await,
+        Ok(conn) => bridge::dial_link(&wiring, conn, announced_by).await,
         Err(e) => tracing::warn!(error = %e, "iroh dial failed"),
     }
 }

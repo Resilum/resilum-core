@@ -1,46 +1,10 @@
-use resilum_core::coordinates::{Claimed, Coordinates};
-use resilum_core::status::{BleStatus, CoordinatesStatus, Link, NodeStatus, PlacedPeer};
+use resilum_core::coordinates::Coordinates;
+use resilum_core::status::{Link, PlacedPeer};
 
-use super::space::NUDGE;
-use super::{US, of, quickest_way_to};
-
-fn nobody_but_us() -> NodeStatus {
-    NodeStatus {
-        version: "9.9.9".to_owned(),
-        running: true,
-        socks_port: None,
-        identity_hash: None,
-        reachable_destinations: 0,
-        interfaces: Vec::new(),
-        transport: None,
-        nostr_relays: Vec::new(),
-        lxmf: None,
-        tor: None,
-        coordinates: CoordinatesStatus {
-            ours: Coordinates::default().ours(),
-            peers: Vec::new(),
-        },
-        links: Vec::new(),
-        ble: BleStatus {
-            hosting_the_group: false,
-        },
-    }
-}
-
-fn sitting_at(position: [f64; 3]) -> Claimed {
-    serde_json::from_str(&format!(
-        r#"{{"position":{position:?},"height":0.0001,"error":0.5}}"#
-    ))
-    .expect("the published shape of a coordinate")
-}
-
-fn spot_of(drawn: &[String], mark: char) -> Option<(usize, usize)> {
-    drawn.iter().enumerate().find_map(|(row, line)| {
-        line.chars()
-            .position(|c| c == mark)
-            .map(|column| (row, column))
-    })
-}
+use super::super::space::NUDGE;
+use super::{
+    US, letter, linked_at, nobody_but_us, of, quickest_way_to, sitting_at, spot_of, without_colour,
+};
 
 #[test]
 fn a_node_alone_still_marks_itself() {
@@ -77,6 +41,51 @@ fn a_peer_sitting_elsewhere_is_drawn_elsewhere() {
         (one.1 < us.1) != (other.1 < us.1),
         "peers sitting either side of us landed on one side: {drawn:?}"
     );
+}
+
+#[test]
+fn peers_crowded_together_all_keep_their_marks_however_the_labels_fall() {
+    let mut status = nobody_but_us();
+    status.coordinates.ours = sitting_at([0.824, 0.570, 0.0]);
+    let crowded = [[-0.078, -0.063], [-0.100, -0.067], [-0.190, -0.127]];
+    status.coordinates.peers = crowded
+        .iter()
+        .enumerate()
+        .map(|(nth, at)| PlacedPeer {
+            identity_hash: format!("peer{nth}"),
+            at: sitting_at([at[0], at[1], 0.0]),
+            estimated_rtt_ms: 1000 + nth as u128,
+        })
+        .collect();
+
+    let drawn = of(&status);
+
+    for nth in 0..crowded.len() {
+        let mark = letter(nth);
+        assert!(
+            spot_of(&drawn, mark).is_some(),
+            "{mark} is missing: {drawn:?}"
+        );
+    }
+}
+
+#[test]
+fn a_time_goes_after_its_own_mark_while_there_is_room_so_it_is_not_read_as_the_neighbours() {
+    let mut status = nobody_but_us();
+    for (nth, along) in [0.05, 0.10].into_iter().enumerate() {
+        let (peer, link) = linked_at(nth, [along, 0.0, 0.0]);
+        status.coordinates.peers.push(peer);
+        status.links.push(link);
+    }
+
+    let drawn = of(&status);
+
+    let (row, column) = spot_of(&drawn, letter(0)).expect("the peer is marked");
+    let after: String = without_colour(&drawn[row])
+        .chars()
+        .skip(column + 1)
+        .collect();
+    assert!(after.starts_with(" 10 ms"), "{drawn:?}");
 }
 
 #[test]

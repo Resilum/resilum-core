@@ -7,18 +7,17 @@ mod addr;
 use std::sync::{Arc, Mutex};
 
 use iroh::Endpoint;
-use leviculum_std::driver::ReticulumNode;
 
 use addr::{encode_addr, parse_addr};
 
-use super::{Links, dial};
-use crate::discovery::{DiscoveryPlugin, OriginRegistry};
+use super::dial;
+use super::wiring::{Wiring, attached_as};
+use crate::discovery::DiscoveryPlugin;
+use crate::discovery::admit::{self, Room};
 
 struct Active {
     endpoint: Endpoint,
-    engine: Arc<ReticulumNode>,
-    links: Links,
-    origin: Arc<OriginRegistry>,
+    wiring: Arc<Wiring>,
 }
 
 #[derive(Default)]
@@ -28,19 +27,8 @@ pub struct IrohDiscovery {
 
 impl IrohDiscovery {
     /// Wire the live transport in, so announces start producing and consuming.
-    pub fn activate(
-        &self,
-        endpoint: Endpoint,
-        engine: Arc<ReticulumNode>,
-        links: Links,
-        origin: Arc<OriginRegistry>,
-    ) {
-        *self.active.lock().unwrap_or_else(|e| e.into_inner()) = Some(Active {
-            endpoint,
-            engine,
-            links,
-            origin,
-        });
+    pub(super) fn activate(&self, endpoint: Endpoint, wiring: Arc<Wiring>) {
+        *self.active.lock().unwrap_or_else(|e| e.into_inner()) = Some(Active { endpoint, wiring });
     }
 
     pub fn deactivate(&self) {
@@ -54,7 +42,7 @@ impl DiscoveryPlugin for IrohDiscovery {
         Some(encode_addr(&guard.as_ref()?.endpoint.addr()))
     }
 
-    fn consume_endpoint(&self, payload: &[u8], _announcer_pubkey: Option<&[u8]>) {
+    fn consume_endpoint(&self, payload: &[u8], announcer_pubkey: Option<&[u8]>) {
         let guard = self.active.lock().unwrap_or_else(|e| e.into_inner());
         let Some(active) = guard.as_ref() else {
             return;
@@ -62,20 +50,31 @@ impl DiscoveryPlugin for IrohDiscovery {
         let Some(addr) = parse_addr(payload) else {
             return;
         };
-        if active
-            .links
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .contains_key(&addr.id)
-        {
+        let name = attached_as(addr.id);
+        let peer = admit::who_announced(announcer_pubkey.unwrap_or_default());
+        if active.wiring.attachments.holds(&name) {
+            if let Some(peer) = peer
+                && active.wiring.attachments.learn_who_announced(&name, peer)
+            {
+                tracing::debug!(%name, "a peer that dialled us first has a name now");
+            }
             return;
+        }
+        match admit::room_for(
+            &active.wiring.attachments,
+            active.wiring.engine.path_count(),
+            &name,
+            peer,
+            admit::Reached::OverTheNetwork,
+        ) {
+            Room::Yes | Room::OnceThisIsLetGo(_) => {}
+            Room::No => return,
         }
         tokio::spawn(dial::dial(
             active.endpoint.clone(),
-            active.engine.clone(),
-            active.links.clone(),
-            active.origin.clone(),
+            active.wiring.clone(),
             addr,
+            peer,
         ));
     }
 }

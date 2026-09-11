@@ -66,7 +66,7 @@ fn a_carrier(name: &str, online: bool) -> Interface {
     }
 }
 
-fn without_colour(text: &str) -> String {
+pub(super) fn without_colour(text: &str) -> String {
     let mut plain = String::new();
     let mut chars = text.chars();
     while let Some(c) = chars.next() {

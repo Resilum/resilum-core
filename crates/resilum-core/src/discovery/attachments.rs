@@ -44,8 +44,24 @@ impl Attachments {
         self.lock().contains_key(attached_as)
     }
 
-    pub(crate) fn hold(&self, attached_as: String, attached: Attached) {
-        self.lock().insert(attached_as, attached);
+    pub(crate) fn hold(&self, attached_as: String, mut attached: Attached) {
+        let mut held = self.lock();
+        if attached.announced_by.is_none() {
+            attached.announced_by = held.get(&attached_as).and_then(|held| held.announced_by);
+        }
+        held.insert(attached_as, attached);
+    }
+
+    pub(crate) fn learn_who_announced(&self, attached_as: &str, peer: PeerId) -> bool {
+        let mut held = self.lock();
+        let Some(anonymous) = held
+            .get_mut(attached_as)
+            .filter(|held| held.announced_by.is_none())
+        else {
+            return false;
+        };
+        anonymous.announced_by = Some(peer);
+        true
     }
 
     pub(crate) fn release(&self, attached_as: &str) -> Option<Attached> {
@@ -100,3 +116,7 @@ impl Attachments {
         self.held.lock().unwrap_or_else(|e| e.into_inner())
     }
 }
+
+#[cfg(test)]
+#[path = "attachments_tests.rs"]
+mod tests;
