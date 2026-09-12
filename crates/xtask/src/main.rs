@@ -30,7 +30,7 @@ fn file_length(limit: usize, roots: &[String]) -> ExitCode {
     let mut over = Vec::new();
     for root in roots {
         for path in rust_files(Path::new(root)) {
-            let Ok(source) = std::fs::read_to_string(&path) else {
+            let Ok(source) = resilum_store::read_text(&path) else {
                 continue;
             };
             let lines = source.lines().count();
@@ -54,7 +54,7 @@ fn comment_density(limit: usize, roots: &[String]) -> ExitCode {
     let mut over = Vec::new();
     for root in roots {
         for path in rust_files(Path::new(root)) {
-            let Ok(source) = std::fs::read_to_string(&path) else {
+            let Ok(source) = resilum_store::read_text(&path) else {
                 continue;
             };
             let filled = density::filled_lines(&source);
@@ -82,11 +82,10 @@ fn rust_files(root: &Path) -> Vec<PathBuf> {
     let mut found = Vec::new();
     let mut dirs = vec![root.to_path_buf()];
     while let Some(dir) = dirs.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
+        let Ok(entries) = resilum_store::list(&dir) else {
             continue;
         };
-        for entry in entries.flatten() {
-            let path = entry.path();
+        for path in entries {
             if path.is_dir() {
                 dirs.push(path);
             } else if path.extension().is_some_and(|e| e == "rs") {

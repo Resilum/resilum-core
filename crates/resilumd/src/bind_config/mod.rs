@@ -39,7 +39,7 @@ fn render_file(
     let Ok(value) = std::env::var(env) else {
         return Ok(());
     };
-    let original = std::fs::read_to_string(path).map_err(|e| {
+    let original = resilum_store::read_text(path).map_err(|e| {
         tracing::error!(path = %path.display(), error = %e, "read failed");
         1
     })?;
@@ -55,7 +55,7 @@ fn render_file(
         );
         return Ok(());
     };
-    std::fs::write(path, text).map_err(|e| {
+    resilum_store::write_text(path, &text).map_err(|e| {
         tracing::error!(path = %path.display(), error = %e, "write failed");
         1
     })?;

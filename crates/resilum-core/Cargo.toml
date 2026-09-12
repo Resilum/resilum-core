@@ -6,6 +6,7 @@ license.workspace = true
 description = "Shared core for a Resilum node: transports, discovery, egress policy."
 
 [dependencies]
+resilum-store = { path = "../resilum-store" }
 leviculum-std = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "3ed9cac1084d911bf250a84c99e2c86a1bb4860c" }
 leviculum-core = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "3ed9cac1084d911bf250a84c99e2c86a1bb4860c" }
 leviculum-lxmf = { git = "https://codeberg.org/Lew_Palm/leviculum.git", rev = "3ed9cac1084d911bf250a84c99e2c86a1bb4860c" }
@@ -90,6 +91,7 @@ iroh-protect = [
 
 [dev-dependencies]
 proptest = "1.11"
+tempfile = "3.27"
 tokio = { version = "1", features = ["test-util"] }
 
 [lints]

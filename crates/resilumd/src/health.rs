@@ -48,7 +48,7 @@ fn beat(path: &Path, alive: impl FnOnce() -> bool) -> bool {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or_default();
-    if let Err(e) = std::fs::write(path, format!("{stamp}\n")) {
+    if let Err(e) = resilum_store::write_text(path, &format!("{stamp}\n")) {
         tracing::warn!(path = %path.display(), error = %e, "heartbeat write failed");
         return false;
     }
@@ -59,42 +59,38 @@ fn beat(path: &Path, alive: impl FnOnce() -> bool) -> bool {
 mod tests {
     use super::*;
 
-    fn temp_dir(tag: &str) -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("resilumd-health-{tag}-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        dir
+    fn temp_dir() -> tempfile::TempDir {
+        tempfile::tempdir().expect("a temporary directory")
     }
 
     #[test]
     fn a_down_engine_leaves_the_file_untouched() {
-        let dir = temp_dir("down");
-        let path = dir.join("health");
+        let dir = temp_dir();
+        let path = dir.path().join("health");
 
         assert!(!beat(&path, || false));
         assert!(!path.exists());
 
-        std::fs::write(&path, "stale\n").unwrap();
+        resilum_store::write_text(&path, "stale\n").expect("a stale heartbeat");
         assert!(!beat(&path, || false));
-        assert_eq!(std::fs::read_to_string(&path).unwrap(), "stale\n");
-
-        std::fs::remove_dir_all(&dir).ok();
+        assert_eq!(
+            resilum_store::read_text(&path).expect("still there"),
+            "stale\n"
+        );
     }
 
     #[test]
     fn a_live_engine_refreshes_the_file() {
-        let dir = temp_dir("live");
-        let path = dir.join("health");
+        let dir = temp_dir();
+        let path = dir.path().join("health");
 
         assert!(beat(&path, || true));
-        let first = std::fs::metadata(&path).unwrap().modified().unwrap();
+        let first = resilum_store::modified_at(&path).expect("written");
 
         std::thread::sleep(Duration::from_millis(1100));
         assert!(beat(&path, || true));
-        let second = std::fs::metadata(&path).unwrap().modified().unwrap();
+        let second = resilum_store::modified_at(&path).expect("written again");
         assert!(second > first);
-
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

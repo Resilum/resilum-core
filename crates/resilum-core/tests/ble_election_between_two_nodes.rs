@@ -9,15 +9,10 @@ use resilum_core::ble::election::{Candidate, Facts, HostsWhileOnARouter};
 use resilum_core::ble::radio::Radio;
 use resilum_core::{BleInterface, Config, Node};
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("resilum-ble-vote-{tag}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    dir
-}
-
-fn a_node_that_can_host(tag: &str) -> Node {
+fn a_node_that_can_host(tag: &str) -> (Node, tempfile::TempDir) {
+    let dir = tempfile::tempdir().expect("a temporary directory");
     let mut node = Node::new(Config {
-        storage_path: Some(temp_dir(tag)),
+        storage_path: Some(dir.path().to_path_buf()),
         discover_interfaces: false,
         ble: Some(BleInterface {
             can_host_a_group: true,
@@ -26,7 +21,7 @@ fn a_node_that_can_host(tag: &str) -> Node {
     })
     .expect("node");
     node.start().expect("start");
-    node
+    (node, dir)
 }
 
 fn on_a_router_with_an_uplink() -> Facts {
@@ -55,8 +50,8 @@ fn waited_for_a_candidate_that_has_spoken(node: &Node) -> Option<Candidate> {
 #[test]
 fn what_a_candidate_is_reaches_the_other_candidate_over_the_mesh() {
     let air = Air::new(CARRIED_PER_WRITE);
-    let mut listener = a_node_that_can_host("listener");
-    let mut speaker = a_node_that_can_host("speaker");
+    let (mut listener, _listener_dir) = a_node_that_can_host("listener");
+    let (mut speaker, _speaker_dir) = a_node_that_can_host("speaker");
     speaker.ble_facts_reported(on_a_router_with_an_uplink(), true);
 
     let listening_radio: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "aa:vote"));

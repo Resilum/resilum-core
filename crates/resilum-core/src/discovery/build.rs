@@ -6,7 +6,7 @@ use std::sync::Arc;
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::Notify;
 
-use super::{Discovery, OriginRegistry, Service, TcpDiscovered, cache, covert};
+use super::{Discovery, OriginRegistry, Service, TcpDiscovered, covert, store};
 use crate::announce_cap::CapController;
 use crate::config::{CovertDiscoveryService, DiscoveryService, EndpointFormat};
 
@@ -36,17 +36,17 @@ pub fn build_from_services(p: BuildParams<'_>) -> (Discovery, Option<Arc<TcpDisc
         let Some(service) = named(&cfg.service) else {
             continue;
         };
-        let cache_path = p.storage_root.map(|r| cache::path_for(r, &cfg.service));
+        let cache_path = p.storage_root.map(|r| store::path_for(r, &cfg.service));
         let plugin = Arc::new(TcpDiscovered::new(
             cfg.clone(),
             p.engine.clone(),
             attachments.clone(),
             p.trigger.clone(),
-            cache_path.clone(),
+            cache_path,
             p.cap_controller.clone(),
             p.origin_registry.clone(),
         ));
-        super::warm_start(plugin.as_ref(), cache_path.as_deref());
+        plugin.dial_whoever_we_remember();
         if matches!(cfg.endpoint_format, EndpointFormat::BracketedIpv6) {
             ygg = Some(plugin.clone());
         }

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::path::PathBuf;
 use std::time::SystemTime;
 
+use resilum_store::Document;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -13,20 +13,22 @@ pub struct Entry {
     pub last_seen_unix: u64,
 }
 
+type Kept = HashMap<String, Entry>;
+
 pub struct Registry {
-    entries: Mutex<HashMap<String, Entry>>,
-    persist_path: Option<PathBuf>,
+    entries: Document<Kept>,
 }
 
 impl Registry {
+    #[must_use]
     pub fn new(persist_path: Option<PathBuf>) -> Self {
-        let entries = persist_path
-            .as_ref()
-            .and_then(|p| load(p).ok())
-            .unwrap_or_default();
+        let Some(path) = persist_path else {
+            return Self {
+                entries: Document::in_memory(Kept::new()),
+            };
+        };
         Self {
-            entries: Mutex::new(entries),
-            persist_path,
+            entries: Document::open_or_start_empty(path, Kept::new(), decode, encode),
         }
     }
 
@@ -37,33 +39,25 @@ impl Registry {
             repos,
             last_seen_unix: now(),
         };
-        self.entries.lock().unwrap().insert(peer_hex, entry);
-        self.persist();
+        self.entries
+            .change(|entries| entries.insert(peer_hex, entry));
     }
 
+    #[must_use]
     pub fn snapshot(&self) -> Vec<Entry> {
-        self.entries.lock().unwrap().values().cloned().collect()
-    }
-
-    fn persist(&self) {
-        let Some(path) = self.persist_path.as_ref() else {
-            return;
-        };
-        let snap = self.snapshot();
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        if let Ok(bytes) = serde_json::to_vec_pretty(&snap) {
-            let _ = std::fs::write(path, bytes);
-        }
+        self.entries
+            .read(|entries| entries.values().cloned().collect())
     }
 }
 
-fn load(path: &Path) -> std::io::Result<HashMap<String, Entry>> {
-    let bytes = std::fs::read(path)?;
-    let list: Vec<Entry> = serde_json::from_slice(&bytes)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-    Ok(list.into_iter().map(|e| (e.peer.clone(), e)).collect())
+fn decode(bytes: &[u8]) -> Result<Kept, String> {
+    let listed: Vec<Entry> = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    Ok(listed.into_iter().map(|e| (e.peer.clone(), e)).collect())
+}
+
+fn encode(entries: &Kept) -> Vec<u8> {
+    let listed: Vec<&Entry> = entries.values().collect();
+    serde_json::to_vec_pretty(&listed).unwrap_or_default()
 }
 
 fn now() -> u64 {

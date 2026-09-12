@@ -40,3 +40,7 @@ pub(super) fn assign(loaded: Vec<Loaded>) -> Migration {
         rewrite_needed,
     }
 }
+
+#[cfg(test)]
+#[path = "migrate_tests.rs"]
+mod tests;

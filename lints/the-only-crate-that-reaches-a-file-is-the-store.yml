@@ -1,0 +1,24 @@
+---
+id: the-only-crate-that-reaches-a-file-is-the-store
+language: Rust
+severity: error
+message: A file is reached outside `resilum-store`.
+files:
+  - "crates/**"
+ignores:
+  - "crates/resilum-store/**"
+note: |
+  A worker thread inside a disk call serves no other future, and an `fsync`
+  holds it for as long as the storage takes. `resilum-store` owns every file
+  and the threads that write them; everything else holds its state in memory
+  and asks the store, so there is one place to look for what touches a disk
+  and one place where its durability is decided.
+rule:
+  any:
+    - pattern: fs::$M($$$ARGS)
+    - pattern: std::fs::$M($$$ARGS)
+    - pattern: fs::File::$M($$$ARGS)
+    - pattern: std::fs::File::$M($$$ARGS)
+    - pattern: File::$M($$$ARGS)
+    - pattern: $F.sync_all()
+    - pattern: $F.sync_data()

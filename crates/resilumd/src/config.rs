@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 use resilum_core::Config;
 
 pub fn load(path: &Path) -> Result<Config, String> {
-    let raw = std::fs::read_to_string(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let raw =
+        resilum_store::read_text(path).map_err(|e| format!("read {}: {e}", path.display()))?;
     let mut cfg = resilum_core::from_yaml(&raw)?;
     if cfg.storage_path.is_none() {
         cfg.storage_path = Some(beside(path));

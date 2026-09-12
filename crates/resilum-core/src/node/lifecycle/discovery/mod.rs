@@ -96,16 +96,13 @@ pub(super) fn bring_up(
     covert::bring_up(node, engine, identity, &covert_addresses)?;
     node.tasks.push(tokio::spawn(discovery::run_produce(
         engine.clone(),
-        plugins,
+        plugins.clone(),
         destination,
         node.config.discovery_announce_interval,
         node.discovery_trigger.clone(),
     )));
-    if let Some(root) = node.config.storage_path.clone() {
-        let services = discovery_cfg.iter().map(|s| s.service.clone()).collect();
-        node.tasks
-            .push(tokio::spawn(discovery::run_prune_loop(root, services)));
-    }
+    node.tasks
+        .push(tokio::spawn(discovery::run_prune_loop(plugins)));
 
     #[cfg(feature = "arti")]
     {

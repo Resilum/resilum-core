@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use crate::writer::Writer;
+use resilum_store::Writer;
 
 mod entry;
 mod store;

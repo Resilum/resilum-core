@@ -5005,6 +5005,7 @@ dependencies = [
  "proptest",
  "rand_core 0.6.4",
  "regex",
+ "resilum-store",
  "rmp-serde",
  "rustls",
  "serde",
@@ -5014,6 +5015,7 @@ dependencies = [
  "sha2 0.10.9",
  "simple-dns 0.12.0",
  "socket2",
+ "tempfile",
  "tokio",
  "tokio-smoltcp",
  "tokio-util",
@@ -5034,6 +5036,7 @@ dependencies = [
  "resilum-core",
  "serde",
  "serde_json",
+ "tempfile",
  "tracing-subscriber",
 ]
 
@@ -5047,13 +5050,23 @@ dependencies = [
  "humantime-serde",
  "k256",
  "resilum-core",
+ "resilum-store",
  "rustls",
  "serde",
  "serde_json",
  "serde_yaml_ng",
  "sha2 0.11.0",
+ "tempfile",
  "tokio",
  "tokio-tungstenite",
+ "tracing",
+]
+
+[[package]]
+name = "resilum-store"
+version = "0.2.3"
+dependencies = [
+ "tempfile",
  "tracing",
 ]
 
@@ -5073,11 +5086,13 @@ dependencies = [
  "rand_core 0.6.4",
  "resilum-core",
  "resilum-nostr",
+ "resilum-store",
  "serde",
  "serde_json",
  "serde_yaml_ng",
  "sha2 0.10.9",
  "socket2",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -8685,6 +8700,7 @@ dependencies = [
 name = "xtask"
 version = "0.2.3"
 dependencies = [
+ "resilum-store",
  "tree-sitter",
  "tree-sitter-rust",
 ]

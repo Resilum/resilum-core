@@ -31,9 +31,8 @@ fn rejects_empty_repos() {
 
 #[test]
 fn registry_persists_and_reloads() {
-    let dir = std::env::temp_dir().join(format!("resilum-mirrors-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("registry.json");
+    let dir = tempfile::tempdir().expect("a temporary directory");
+    let path = dir.path().join("registry.json");
     {
         let r = Registry::new(Some(path.clone()));
         r.upsert(
@@ -47,5 +46,4 @@ fn registry_persists_and_reloads() {
     assert_eq!(snap.len(), 1);
     assert_eq!(snap[0].peer, "aaaa");
     assert_eq!(snap[0].repos, vec!["resilum-core"]);
-    std::fs::remove_dir_all(&dir).ok();
 }

@@ -9,7 +9,7 @@ use std::process::Command;
 
 pub fn run(config_path: &str) -> i32 {
     let path = Path::new(config_path);
-    let original = match std::fs::read_to_string(path) {
+    let original = match resilum_store::read_text(path) {
         Ok(s) => s,
         Err(e) => {
             tracing::error!(path = %path.display(), error = %e, "read failed");
@@ -27,7 +27,7 @@ pub fn run(config_path: &str) -> i32 {
         }
     };
     let updated = original.replacen(r#"PrivateKey: """#, &format!("PrivateKey: {key}"), 1);
-    if let Err(e) = std::fs::write(path, updated) {
+    if let Err(e) = resilum_store::write_text(path, &updated) {
         tracing::error!(path = %path.display(), error = %e, "write failed");
         return 1;
     }
@@ -60,11 +60,10 @@ fn fresh_key() -> Result<String, String> {
 mod tests {
     #[test]
     fn splices_placeholder_only_once() {
-        let dir = std::env::temp_dir().join(format!("resilumd-ygg-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("ygg.conf");
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let path = dir.path().join("ygg.conf");
         let original = "Peers: []\nPrivateKey: \"\"\nMulticastInterfaces: []\n";
-        std::fs::write(&path, original).unwrap();
+        resilum_store::write_text(&path, original).expect("a config to splice");
 
         // Simulate the splice without invoking yggdrasil.
         let spliced = original.replacen(r#"PrivateKey: """#, "PrivateKey: deadbeef", 1);
@@ -72,8 +71,6 @@ mod tests {
         assert!(!spliced.contains(r#"PrivateKey: """#));
         assert!(spliced.contains("Peers: []"));
         assert!(spliced.contains("MulticastInterfaces: []"));
-
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

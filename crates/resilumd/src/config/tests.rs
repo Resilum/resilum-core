@@ -4,35 +4,32 @@ const A_CONFIG_WITHOUT_A_PATH: &str = "instance_name: a-node\nlxmf: {}\n";
 
 fn written(dir: &Path, body: &str) -> PathBuf {
     let file = dir.join("resilumd.yaml");
-    std::fs::write(&file, body).expect("a temp dir to write into");
+    resilum_store::write_text(&file, body).expect("a temp dir to write into");
     file
 }
 
-fn temp_dir(tag: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("resilumd-cfg-{tag}-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("a temp dir");
-    dir
+fn temp_dir() -> tempfile::TempDir {
+    tempfile::tempdir().expect("a temporary directory")
 }
 
 #[test]
 fn state_lands_beside_the_config_when_none_is_named() {
-    let dir = temp_dir("beside");
-    let file = written(&dir, A_CONFIG_WITHOUT_A_PATH);
+    let dir = temp_dir();
+    let file = written(dir.path(), A_CONFIG_WITHOUT_A_PATH);
 
     let cfg = load(&file).expect("the config just written");
 
     assert_eq!(
         cfg.storage_path.as_deref(),
-        Some(dir.join("state").as_path())
+        Some(dir.path().join("state").as_path())
     );
-    std::fs::remove_dir_all(dir).ok();
 }
 
 #[test]
 fn a_named_path_is_left_alone() {
-    let dir = temp_dir("named");
+    let dir = temp_dir();
     let file = written(
-        &dir,
+        dir.path(),
         "instance_name: a-node\nstorage_path: /var/lib/resilum\nlxmf: {}\n",
     );
 
@@ -42,7 +39,6 @@ fn a_named_path_is_left_alone() {
         cfg.storage_path.as_deref(),
         Some(Path::new("/var/lib/resilum"))
     );
-    std::fs::remove_dir_all(dir).ok();
 }
 
 #[test]

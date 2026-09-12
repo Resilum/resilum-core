@@ -45,7 +45,7 @@ pub fn load_or_create(dir: &Path) -> Identity {
 
 /// Loads `path`, else generates and persists a fresh identity at `0600`.
 pub fn load_or_create_at(path: &Path) -> Identity {
-    if let Ok(bytes) = std::fs::read(path)
+    if let Ok(bytes) = resilum_store::read_bytes(path)
         && let Ok(identity) = Identity::from_private_key_bytes(&bytes)
     {
         return identity;
@@ -59,19 +59,12 @@ fn persist(path: &Path, identity: &Identity) {
     let Ok(bytes) = identity.private_key_bytes() else {
         return;
     };
-    if std::fs::write(path, bytes).is_ok() {
-        restrict(path);
+    if resilum_store::write_bytes(path, &bytes).is_ok()
+        && let Err(e) = resilum_store::own_eyes_only(path)
+    {
+        tracing::warn!(path = %path.display(), error = %e, "the identity file is readable by others");
     }
 }
-
-#[cfg(unix)]
-fn restrict(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-    let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
-}
-
-#[cfg(not(unix))]
-fn restrict(_path: &Path) {}
 
 #[cfg(test)]
 mod tests {
@@ -92,14 +85,11 @@ mod tests {
 
     #[test]
     fn reloads_the_same_identity() {
-        let dir = std::env::temp_dir().join(format!("resilum-id-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = tempfile::tempdir().expect("a temporary directory");
 
-        let first = load_or_create(&dir);
-        let second = load_or_create(&dir);
+        let first = load_or_create(dir.path());
+        let second = load_or_create(dir.path());
         assert_eq!(first.hash(), second.hash(), "second load reused the file");
-        assert!(dir.join(FILE).exists());
-
-        std::fs::remove_dir_all(&dir).ok();
+        assert!(dir.path().join(FILE).exists());
     }
 }

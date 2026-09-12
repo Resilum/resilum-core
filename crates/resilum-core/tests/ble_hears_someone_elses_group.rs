@@ -10,11 +10,10 @@ use resilum_core::ble::radio::{Radio, RadioEvent};
 use resilum_core::ble::spec;
 use resilum_core::{BleInterface, Config, Node};
 
-fn a_node_looking_around(tag: &str) -> Node {
-    let dir = std::env::temp_dir().join(format!("resilum-ble-air-{tag}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
+fn a_node_looking_around(tag: &str) -> (Node, tempfile::TempDir) {
+    let dir = tempfile::tempdir().expect("a temporary directory");
     let mut node = Node::new(Config {
-        storage_path: Some(dir),
+        storage_path: Some(dir.path().to_path_buf()),
         discover_interfaces: false,
         ble: Some(BleInterface {
             can_host_a_group: true,
@@ -23,7 +22,7 @@ fn a_node_looking_around(tag: &str) -> Node {
     })
     .expect("node");
     node.start().expect("start");
-    node
+    (node, dir)
 }
 
 fn within_a_few_look_arounds(node: &Node, wanted: bool) -> bool {
@@ -41,7 +40,7 @@ fn within_a_few_look_arounds(node: &Node, wanted: bool) -> bool {
 #[test]
 fn a_neighbour_advertising_a_raised_group_is_one_we_could_join() {
     let air = Air::new(CARRIED_PER_WRITE);
-    let mut node = a_node_looking_around("hears");
+    let (mut node, _dir) = a_node_looking_around("hears");
     let ours: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "aa:air"));
     node.ble_attach_a_radio_the_caller_owns(ours)
         .expect("the node takes the radio");
@@ -60,7 +59,7 @@ fn a_neighbour_advertising_a_raised_group_is_one_we_could_join() {
 #[test]
 fn a_neighbour_still_announcing_in_its_name_is_heard_all_the_same() {
     let air = Air::new(CARRIED_PER_WRITE);
-    let mut node = a_node_looking_around("named");
+    let (mut node, _dir) = a_node_looking_around("named");
     let ours: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "ee:air"));
     node.ble_attach_a_radio_the_caller_owns(ours)
         .expect("the node takes the radio");
@@ -79,7 +78,7 @@ fn a_neighbour_still_announcing_in_its_name_is_heard_all_the_same() {
 #[test]
 fn a_neighbour_that_raised_nothing_is_not_a_group_to_join() {
     let air = Air::new(CARRIED_PER_WRITE);
-    let mut node = a_node_looking_around("quiet");
+    let (mut node, _dir) = a_node_looking_around("quiet");
     let ours: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "cc:air"));
     node.ble_attach_a_radio_the_caller_owns(ours)
         .expect("the node takes the radio");
@@ -100,7 +99,7 @@ fn a_neighbour_that_raised_nothing_is_not_a_group_to_join() {
 #[test]
 fn a_radio_whose_name_is_ours_announces_us_in_it() {
     let air = Air::new(CARRIED_PER_WRITE);
-    let mut node = a_node_looking_around("nameless");
+    let (mut node, _dir) = a_node_looking_around("nameless");
     let us = resilum_core::ble::radio::PeerAddress("gg:air".to_owned());
     let ours: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "gg:air"));
     node.ble_attach_a_radio_the_caller_owns(ours)

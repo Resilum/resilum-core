@@ -24,13 +24,6 @@ fn nth(pubkey: u8, created_at: i64) -> Subscription {
     }
 }
 
-/// A directory of this process's own, so the file-backed tests do not read
-/// each other's registries when the suite runs them in parallel.
-fn scratch(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "resilum-nostr-registry-{name}-{}",
-        std::process::id()
-    ));
-    std::fs::create_dir_all(&dir).expect("temp dir");
-    dir
+fn scratch() -> tempfile::TempDir {
+    tempfile::tempdir().expect("a temporary directory")
 }

@@ -12,28 +12,24 @@ const KEY_FILE: &str = "iroh_secret";
 /// when it is absent or unreadable.
 pub fn load_or_create(dir: &Path) -> SecretKey {
     let path = dir.join(KEY_FILE);
-    if let Ok(bytes) = std::fs::read(&path)
+    if let Ok(bytes) = resilum_store::read_bytes(&path)
         && let Ok(arr) = <[u8; 32]>::try_from(bytes.as_slice())
     {
         return SecretKey::from_bytes(&arr);
     }
     let key = SecretKey::generate();
-    if std::fs::write(&path, key.to_bytes()).is_ok() {
-        restrict(&path);
-    } else {
-        tracing::warn!(path = %path.display(), "persisting iroh secret failed");
+    match resilum_store::write_bytes(&path, &key.to_bytes()) {
+        Ok(()) => {
+            if let Err(e) = resilum_store::own_eyes_only(&path) {
+                tracing::warn!(path = %path.display(), error = %e, "the iroh secret is readable by others");
+            }
+        }
+        Err(e) => {
+            tracing::warn!(path = %path.display(), error = %e, "persisting iroh secret failed")
+        }
     }
     key
 }
-
-#[cfg(unix)]
-fn restrict(path: &Path) {
-    use std::os::unix::fs::PermissionsExt;
-    let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
-}
-
-#[cfg(not(unix))]
-fn restrict(_path: &Path) {}
 
 #[cfg(test)]
 mod tests {
@@ -41,11 +37,11 @@ mod tests {
 
     #[test]
     fn persists_and_reloads_the_same_key() {
-        let dir = std::env::temp_dir().join(format!("resilum-iroh-key-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let first = load_or_create(&dir).public();
-        let second = load_or_create(&dir).public();
-        std::fs::remove_dir_all(&dir).ok();
+        let dir = tempfile::tempdir().expect("a temporary directory");
+
+        let first = load_or_create(dir.path()).public();
+        let second = load_or_create(dir.path()).public();
+
         assert_eq!(first, second);
     }
 }

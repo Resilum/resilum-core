@@ -4,21 +4,16 @@ use std::time::Duration;
 
 use resilum_core::{Config, Node};
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("resilum-group-{tag}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    dir
-}
-
-fn a_node(tag: &str) -> Node {
+fn a_node(tag: &str) -> (Node, tempfile::TempDir) {
+    let dir = tempfile::tempdir().expect("a temporary directory");
     let mut node = Node::new(Config {
-        storage_path: Some(temp_dir(tag)),
+        storage_path: Some(dir.path().to_path_buf()),
         discover_interfaces: false,
         ..Config::minimal(format!("group-{tag}-{}", std::process::id()))
     })
     .expect("node");
     node.start().expect("start");
-    node
+    (node, dir)
 }
 
 fn group_interfaces(node: &Node) -> usize {
@@ -43,8 +38,8 @@ fn waited_for(node: &Node, links: usize) -> bool {
 
 #[test]
 fn a_phone_that_joins_the_group_and_the_one_hosting_it_both_gain_a_link() {
-    let mut host = a_node("host");
-    let mut guest = a_node("guest");
+    let (mut host, _host_dir) = a_node("host");
+    let (mut guest, _guest_dir) = a_node("guest");
 
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
     let group_at = listener.local_addr().expect("the group named no address");

@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 resilum-core = { path = "../resilum-core" }
+resilum-store = { path = "../resilum-store" }
 bech32 = "0.12"
 data-encoding = "2"
 k256 = { version = "0.14", default-features = false, features = [
@@ -35,6 +36,7 @@ rustls = { version = "0.23", default-features = false, features = [
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util"] }
 serde_yaml_ng = "0.10"
+tempfile = "3.27"
 
 [lints]
 workspace = true

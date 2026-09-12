@@ -14,21 +14,18 @@ use tokio::sync::Notify;
 use crate::announce_cap::CapController;
 use crate::config::{DiscoveryService, EndpointFormat};
 use crate::discovery::OriginRegistry;
+use crate::discovery::store::{Advertised, Peers};
 
 pub struct TcpDiscovered {
     cfg: DiscoveryService,
     engine: Arc<ReticulumNode>,
     attachments: Arc<Attachments>,
-    // Fires on every successful attach so the produce loop re-announces at once.
-    trigger: Arc<Notify>,
-    // Persistent peer cache; None disables persistence (attach still works).
-    cache_path: Option<PathBuf>,
-    // Registers each attached interface for adaptive announce-cap control.
+    announce_again: Arc<Notify>,
+    remembered: Peers,
+    advertised: Advertised,
     cap_controller: Arc<CapController>,
-    // Records the discovery origin (this service) of each attached interface.
     origin_registry: Arc<OriginRegistry>,
-    // While false the service neither announces nor dials (its transport is down).
-    active: AtomicBool,
+    transport_is_up: AtomicBool,
 }
 
 impl TcpDiscovered {
@@ -36,57 +33,52 @@ impl TcpDiscovered {
         cfg: DiscoveryService,
         engine: Arc<ReticulumNode>,
         attachments: Arc<Attachments>,
-        trigger: Arc<Notify>,
+        announce_again: Arc<Notify>,
         cache_path: Option<PathBuf>,
         cap_controller: Arc<CapController>,
         origin_registry: Arc<OriginRegistry>,
     ) -> Self {
-        // A bracketed-IPv6 (ygg) service starts dormant only in a build with a
-        // runtime conduit to un-gate it (`ygg_attach`); without that — e.g. a
-        // node with a real ygg tun that never attaches one — it must stay active.
-        let active = if cfg!(all(unix, feature = "ygg")) {
-            !matches!(cfg.endpoint_format, EndpointFormat::BracketedIpv6)
-        } else {
-            true
-        };
+        let transport_is_up = AtomicBool::new(!waits_for_a_conduit_to_be_attached(&cfg));
+        let advertised = Advertised::at(cfg.hostname_path.clone());
         Self {
             cfg,
             engine,
             attachments,
-            trigger,
-            cache_path,
+            announce_again,
+            remembered: Peers::open(cache_path),
+            advertised,
             cap_controller,
             origin_registry,
-            active: AtomicBool::new(active),
+            transport_is_up,
         }
     }
 
-    /// Bring the service up when its transport attaches: announce, and dial any
-    /// cached peers now (`warm_start`).
     pub fn activate(&self) {
-        self.active.store(true, Ordering::Relaxed);
-        crate::discovery::warm_start(self, self.cache_path.as_deref());
+        self.transport_is_up.store(true, Ordering::Relaxed);
+        self.dial_whoever_we_remember();
     }
 
-    /// Take the service down: drop its dialed interfaces (each detaches on drop),
-    /// stop announcing, and clear the advertised endpoint so none lingers.
+    pub(crate) fn dial_whoever_we_remember(&self) {
+        crate::discovery::warm_start(self, &self.remembered);
+    }
+
     pub fn deactivate(&self) {
-        self.active.store(false, Ordering::Relaxed);
+        self.transport_is_up.store(false, Ordering::Relaxed);
         self.attachments.release_service(&self.cfg.service);
-        if let Some(path) = &self.cfg.hostname_path {
-            let _ = std::fs::remove_file(path);
-        }
+        self.advertised.forget();
     }
 
     fn detect_host(&self) -> Option<String> {
-        if let Some(path) = self.cfg.hostname_path.as_ref() {
-            let raw = std::fs::read_to_string(path).ok()?;
-            let host = raw.trim();
-            return (!host.is_empty()).then(|| host.to_owned());
+        if self.advertised.is_served_from_a_file() {
+            return self.advertised.read();
         }
         if matches!(self.cfg.endpoint_format, EndpointFormat::BracketedIpv6) {
             return crate::net::yggdrasil_local_ipv6().map(|ip| ip.to_string());
         }
         None
     }
+}
+
+fn waits_for_a_conduit_to_be_attached(cfg: &DiscoveryService) -> bool {
+    cfg!(all(unix, feature = "ygg")) && matches!(cfg.endpoint_format, EndpointFormat::BracketedIpv6)
 }

@@ -21,16 +21,15 @@ fn node_listening_on(port: u16, dir: &std::path::Path) -> Node {
 #[test]
 fn the_port_is_free_the_moment_stop_returns() {
     let port = free_port();
-    let dir = std::env::temp_dir().join(format!("resilum-restart-{}", std::process::id()));
+    let dir = tempfile::tempdir().expect("a temporary directory");
 
-    let mut node = node_listening_on(port, &dir);
+    let mut node = node_listening_on(port, dir.path());
     node.start().expect("first start");
     node.stop().expect("stop");
 
-    let mut again = node_listening_on(port, &dir);
+    let mut again = node_listening_on(port, dir.path());
     let second = again.start();
     again.stop().ok();
-    let _ = std::fs::remove_dir_all(&dir);
 
     second.expect("the listener port to be free again");
 }

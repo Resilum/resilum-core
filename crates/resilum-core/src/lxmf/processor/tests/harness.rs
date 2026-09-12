@@ -4,9 +4,8 @@
 //! `LxmfRouter` emits for a propagated message whose selected node prices the
 //! deposit.
 
-use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Sender;
 
 use leviculum_core::DestinationHash;
@@ -30,10 +29,6 @@ use crate::lxmf::stamp::{Job, Jobs};
 /// grind inside a test.
 pub(super) const STAMP_COST: u64 = 4;
 
-/// Serial number for the temp directory, so two harnesses cannot share one and
-/// delete each other's storage on drop.
-static NEXT_DIR: AtomicU64 = AtomicU64::new(0);
-
 pub(super) struct Harness {
     pub(super) core: StdNodeCore,
     pub(super) processor: LxmfProcessor,
@@ -43,21 +38,19 @@ pub(super) struct Harness {
     pub(super) handle: LxmfHandle,
     pub(super) identity: Identity,
     pub(super) propagation_node: DestinationHash,
-    dir: PathBuf,
+    _storage_goes_with_the_harness: tempfile::TempDir,
 }
 
 impl Harness {
     /// A registered processor whose router has one announced propagation node
     /// selected, asking `stamp_cost` bits for a deposit.
     pub(super) fn new(tag: &str, stamp_cost: u64) -> Self {
-        let serial = NEXT_DIR.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!(
-            "resilum-stamp-{tag}-{}-{serial}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&dir);
+        let dir = tempfile::Builder::new()
+            .prefix(&format!("resilum-stamp-{tag}-"))
+            .tempdir()
+            .expect("a temporary directory");
         let identity = crate::identity::generate();
-        let storage = StdStorage::new(&dir).expect("storage");
+        let storage = StdStorage::new(dir.path()).expect("storage");
         let mut core = NodeCoreBuilder::new().identity(copy_of(&identity)).build(
             rand_core::OsRng,
             StdClock::new(),
@@ -99,7 +92,7 @@ impl Harness {
             handle,
             identity,
             propagation_node,
-            dir,
+            _storage_goes_with_the_harness: dir,
         }
     }
 
@@ -135,11 +128,5 @@ impl Harness {
         let mut out = TickOutput::empty();
         self.processor
             .absorb(&mut self.ready, &mut self.core, output, &mut out);
-    }
-}
-
-impl Drop for Harness {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.dir);
     }
 }

@@ -2,19 +2,16 @@
 
 use super::*;
 
-fn scratch(name: &str) -> std::path::PathBuf {
-    let dir =
-        std::env::temp_dir().join(format!("resilum-nostr-queue-{name}-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("temp dir");
-    dir
+fn scratch() -> tempfile::TempDir {
+    tempfile::tempdir().expect("a temporary directory")
 }
 
 /// A direction restored the wrong way round sends a subscriber's inbound
 /// event back out to the public relays.
 #[test]
 fn a_queued_event_outlives_the_process_that_queued_it_field_for_field() {
-    let dir = scratch("restart");
-    let path = dir.join("queue");
+    let dir = scratch();
+    let path = dir.path().join("queue");
     let mut outbound = entry(2);
     outbound.direction = Direction::Outbound;
     outbound.lxmf = [0x5a; 16];
@@ -47,14 +44,12 @@ fn a_queued_event_outlives_the_process_that_queued_it_field_for_field() {
         Direction::Inbound,
         "the two directions do not encode to the same string"
     );
-
-    std::fs::remove_dir_all(&dir).ok();
 }
 
 #[test]
 fn how_far_the_ladder_got_outlives_the_process() {
-    let dir = scratch("handoff");
-    let path = dir.join("queue");
+    let dir = scratch();
+    let path = dir.path().join("queue");
     let deposited = entry(1);
     let trying = entry(2);
 
@@ -87,16 +82,14 @@ fn how_far_the_ladder_got_outlives_the_process() {
         Handoff::LeftWithPropagationNode
     );
     assert_eq!(handoff(trying.event_id), Handoff::Direct { tries: 1 });
-
-    std::fs::remove_dir_all(&dir).ok();
 }
 
 /// Without the removal surviving the restart, the resolved entry comes back
 /// and is delivered to a subscriber already told it landed.
 #[test]
 fn a_resolved_entry_does_not_survive_a_reopen_but_its_sibling_does() {
-    let dir = scratch("resolve");
-    let path = dir.join("queue");
+    let dir = scratch();
+    let path = dir.path().join("queue");
 
     let queue = Queue::open(path.clone(), Duration::from_secs(600), 10).expect("opens");
     hold(&queue, entry(1));
@@ -108,27 +101,26 @@ fn a_resolved_entry_does_not_survive_a_reopen_but_its_sibling_does() {
     let due = reopened.due(100);
     assert_eq!(due.len(), 1);
     assert_eq!(due[0].event_id, [2u8; 32]);
-
-    std::fs::remove_dir_all(&dir).ok();
 }
 
 #[test]
 fn a_queue_file_that_cannot_be_read_refuses_to_open() {
-    let dir = scratch("unreadable");
-    let path = dir.join("queue");
-    std::fs::create_dir_all(&path).expect("a directory where the file belongs");
+    let a_directory_where_the_file_belongs = scratch();
 
-    assert!(Queue::open(path, Duration::from_secs(600), 10).is_err());
-
-    std::fs::remove_dir_all(&dir).ok();
+    assert!(
+        Queue::open(
+            a_directory_where_the_file_belongs.path().to_path_buf(),
+            Duration::from_secs(600),
+            10
+        )
+        .is_err()
+    );
 }
 
 #[test]
 fn a_queue_file_that_does_not_exist_yet_opens_empty() {
-    let dir = scratch("absent");
+    let dir = scratch();
 
-    let queue = Queue::open(dir.join("queue"), Duration::from_secs(600), 10).expect("opens");
+    let queue = Queue::open(dir.path().join("queue"), Duration::from_secs(600), 10).expect("opens");
     assert!(queue.due(100).is_empty());
-
-    std::fs::remove_dir_all(&dir).ok();
 }
