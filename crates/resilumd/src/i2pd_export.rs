@@ -43,8 +43,8 @@ pub fn run(keys_path: &str, hostname_path: &str) -> i32 {
 fn wait_for_keys(path: &Path) -> bool {
     let deadline = Instant::now() + WAIT_TIMEOUT;
     while Instant::now() < deadline {
-        if let Ok(md) = std::fs::metadata(path)
-            && md.len() as usize >= PREFIX_BYTES
+        if let Ok(size) = resilum_store::size_of(path)
+            && size as usize >= PREFIX_BYTES
         {
             return true;
         }
@@ -54,8 +54,8 @@ fn wait_for_keys(path: &Path) -> bool {
 }
 
 fn derive(keys_path: &Path) -> Result<String, String> {
-    let bytes =
-        std::fs::read(keys_path).map_err(|e| format!("read {}: {e}", keys_path.display()))?;
+    let bytes = resilum_store::read_bytes(keys_path)
+        .map_err(|e| format!("read {}: {e}", keys_path.display()))?;
     if bytes.len() < PREFIX_BYTES {
         return Err(format!(
             "{} has {} bytes, expected at least {PREFIX_BYTES}",
@@ -70,9 +70,10 @@ fn derive(keys_path: &Path) -> Result<String, String> {
 
 fn write_hostname(path: &Path, hostname: &str) -> Result<String, String> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
+        resilum_store::make_room_for(parent)
+            .map_err(|e| format!("mkdir {}: {e}", parent.display()))?;
     }
-    std::fs::write(path, format!("{hostname}\n"))
+    resilum_store::write_text(path, &format!("{hostname}\n"))
         .map_err(|e| format!("write {}: {e}", path.display()))?;
     Ok(hostname.to_string())
 }
@@ -83,10 +84,9 @@ mod tests {
 
     #[test]
     fn derives_known_hostname() {
-        let dir = std::env::temp_dir().join(format!("resilumd-i2pd-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let keys = dir.join("keys.dat");
-        std::fs::write(&keys, vec![0x42u8; PREFIX_BYTES]).unwrap();
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let keys = dir.path().join("keys.dat");
+        resilum_store::write_bytes(&keys, &vec![0x42u8; PREFIX_BYTES]).expect("keys to read");
         let hn = derive(&keys).unwrap();
         assert!(hn.ends_with(".b32.i2p"));
         let label = hn.strip_suffix(".b32.i2p").unwrap();
@@ -97,6 +97,5 @@ mod tests {
                 .chars()
                 .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
         );
-        std::fs::remove_dir_all(&dir).ok();
     }
 }

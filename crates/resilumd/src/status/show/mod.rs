@@ -32,7 +32,7 @@ pub fn run(argv: &[String]) -> i32 {
     };
     let config = argv.iter().find(|a| !a.starts_with("--"));
     let path = where_it_lands(config.map(String::as_str));
-    let Ok(raw) = std::fs::read_to_string(&path) else {
+    let Ok(raw) = resilum_store::read_text(&path) else {
         eprintln!("no status at {}", path.display());
         return 1;
     };
@@ -67,7 +67,7 @@ fn where_it_lands(config: Option<&str>) -> PathBuf {
 }
 
 fn age_of(path: &Path) -> Option<Duration> {
-    let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+    let modified = resilum_store::modified_at(path).ok()?;
     SystemTime::now().duration_since(modified).ok()
 }
 

@@ -21,7 +21,9 @@ pub fn yggdrasil_local_ipv6() -> Option<Ipv6Addr> {
 /// starts with a 32-hex, colon-less address.
 #[cfg(target_os = "linux")]
 fn yggdrasil_ipv6_from_proc() -> Option<Ipv6Addr> {
-    ygg_addr_in_if_inet6(&std::fs::read_to_string("/proc/net/if_inet6").ok()?)
+    ygg_addr_in_if_inet6(
+        &resilum_store::read_text(std::path::Path::new("/proc/net/if_inet6")).ok()?,
+    )
 }
 
 #[cfg(target_os = "linux")]

@@ -1,0 +1,15 @@
+[package]
+name = "resilum-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "The only crate that reaches a file: durable state, written off the runtime."
+
+[dependencies]
+tracing = "0.1"
+
+[dev-dependencies]
+tempfile = "3.27"
+
+[lints]
+workspace = true

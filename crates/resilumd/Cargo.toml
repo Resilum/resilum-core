@@ -7,6 +7,7 @@ description = "Resilum node daemon (Linux/server; packaged into the container im
 
 [dependencies]
 resilum-core = { path = "../resilum-core", features = ["ble", "iroh"] }
+resilum-store = { path = "../resilum-store" }
 resilum-nostr = { path = "../resilum-nostr" }
 ctrlc = { version = "3", features = ["termination"] }
 data-encoding = "2"
@@ -27,6 +28,9 @@ futures = "0.3"
 wl-nl80211 = "0.7"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3.27"
 
 [lints]
 workspace = true

@@ -13,9 +13,7 @@ mod support;
 
 use support::free_port;
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    support::temp_dir("egr", tag)
-}
+use support::temp_dir;
 
 /// A blocking TCP echo server on an ephemeral port.
 fn spawn_echo() -> u16 {
@@ -37,15 +35,15 @@ fn spawn_echo() -> u16 {
     port
 }
 
-fn start_egress(echo: u16) -> (Node, u16) {
-    let dir = temp_dir("listen");
-    (0..10)
+fn start_egress(echo: u16) -> (Node, u16, tempfile::TempDir) {
+    let dir = temp_dir();
+    let (node, port) = (0..10)
         .find_map(|_| {
             let port = free_port();
             let mut egress = EgressListen::new("e2e", Some(format!("127.0.0.1:{echo}")));
             egress.announce_interval = Duration::from_secs(1);
             let cfg = Config {
-                storage_path: Some(dir.clone()),
+                storage_path: Some(dir.path().to_path_buf()),
                 discover_interfaces: false,
                 listen: Some(format!("127.0.0.1:{port}")),
                 egress: vec![egress],
@@ -54,17 +52,18 @@ fn start_egress(echo: u16) -> (Node, u16) {
             let mut node = Node::new(cfg).expect("new");
             node.start().is_ok().then_some((node, port))
         })
-        .expect("egress node started")
+        .expect("egress node started");
+    (node, port, dir)
 }
 
 #[test]
 fn egress_forwards_link_bytes_to_local_tcp() {
     let echo = spawn_echo();
-    let (mut egress, egress_port) = start_egress(echo);
+    let (mut egress, egress_port, _egress_dir) = start_egress(echo);
 
-    let dir_b = temp_dir("conn");
+    let dir_b = temp_dir();
     let mut client = Node::new(Config {
-        storage_path: Some(dir_b.clone()),
+        storage_path: Some(dir_b.path().to_path_buf()),
         discover_interfaces: false,
         bootstrap: vec![format!("127.0.0.1:{egress_port}")],
         ..Config::minimal(format!("egr-conn-{}", std::process::id()))
@@ -128,8 +127,6 @@ fn egress_forwards_link_bytes_to_local_tcp() {
 
     client.stop().ok();
     egress.stop().ok();
-    let _ = std::fs::remove_dir_all(temp_dir("listen"));
-    let _ = std::fs::remove_dir_all(dir_b);
 
     assert_eq!(echoed, b"ping");
 }

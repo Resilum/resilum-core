@@ -8,22 +8,17 @@ use fake_radio::{Air, CARRIED_PER_WRITE, FakeRadio};
 use resilum_core::ble::radio::Radio;
 use resilum_core::{BleInterface, Config, Node};
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("resilum-ble-{tag}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    dir
-}
-
-fn a_node(tag: &str) -> Node {
+fn a_node(tag: &str) -> (Node, tempfile::TempDir) {
+    let dir = tempfile::tempdir().expect("a temporary directory");
     let mut node = Node::new(Config {
-        storage_path: Some(temp_dir(tag)),
+        storage_path: Some(dir.path().to_path_buf()),
         discover_interfaces: false,
         ble: Some(BleInterface::default()),
         ..Config::minimal(format!("ble-{tag}-{}", std::process::id()))
     })
     .expect("node");
     node.start().expect("start");
-    node
+    (node, dir)
 }
 
 fn interfaces_named_ble(node: &Node) -> usize {
@@ -50,8 +45,8 @@ fn waited_for(node: &Node, how_many: usize) -> bool {
 #[test]
 fn two_nodes_meeting_over_the_air_each_gain_the_other_as_an_interface() {
     let air = Air::new(CARRIED_PER_WRITE);
-    let mut dialer = a_node("dialer");
-    let mut answerer = a_node("answerer");
+    let (mut dialer, _dialer_dir) = a_node("dialer");
+    let (mut answerer, _answerer_dir) = a_node("answerer");
 
     let dialing_radio: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "aa:ee"));
     let answering_radio: Arc<dyn Radio> = Arc::new(FakeRadio::on(&air, "bb:ee"));

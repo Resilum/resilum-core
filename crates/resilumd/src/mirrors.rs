@@ -63,7 +63,7 @@ struct Entry {
 }
 
 fn load(path: &Path) -> std::io::Result<Vec<Entry>> {
-    let bytes = std::fs::read(path)?;
+    let bytes = resilum_store::read_bytes(path)?;
     serde_json::from_slice(&bytes)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
 }

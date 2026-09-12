@@ -15,7 +15,9 @@ impl Control {
     pub(super) fn to(interface: &str) -> Result<Self, String> {
         let ours =
             std::env::temp_dir().join(format!("resilum-wpa-{}-{interface}", std::process::id()));
-        let _ = std::fs::remove_file(&ours);
+        if let Err(e) = resilum_store::forget(&ours) {
+            tracing::debug!(path = %ours.display(), error = %e, "an old control socket is in the way");
+        }
         let socket = UnixDatagram::bind(&ours).map_err(|e| format!("no control socket: {e}"))?;
         socket
             .connect(Path::new(WHERE_IT_LISTENS).join(interface))
@@ -49,6 +51,8 @@ impl Control {
 
 impl Drop for Control {
     fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.ours);
+        if let Err(e) = resilum_store::forget(&self.ours) {
+            tracing::debug!(path = %self.ours.display(), error = %e, "our control socket outlives us");
+        }
     }
 }

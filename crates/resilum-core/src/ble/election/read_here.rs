@@ -34,12 +34,12 @@ fn answered_with(power: PowerHere, known: Facts) -> Facts {
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 fn power_here() -> PowerHere {
-    let Ok(supplies) = std::fs::read_dir(POWER_SUPPLY) else {
+    let Ok(supplies) = resilum_store::list(std::path::Path::new(POWER_SUPPLY)) else {
         return PowerHere::NotOursToRead;
     };
     supplies
-        .filter_map(Result::ok)
-        .find_map(|entry| a_battery_at(&entry.path()))
+        .iter()
+        .find_map(|supply| a_battery_at(supply))
         .map_or(PowerHere::NoBatteryAtAll, |(percent, charging)| {
             PowerHere::ABattery { percent, charging }
         })
@@ -57,7 +57,7 @@ fn a_battery_at(at: &std::path::Path) -> Option<(u8, bool)> {
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 fn said(at: &std::path::Path, about: &str) -> Option<String> {
-    std::fs::read_to_string(at.join(about))
+    resilum_store::read_text(&at.join(about))
         .ok()
         .map(|raw| raw.trim().to_owned())
 }

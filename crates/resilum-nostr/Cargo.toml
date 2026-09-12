@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 resilum-core = { path = "../resilum-core" }
+resilum-store = { path = "../resilum-store" }
 bech32 = "0.12"
 data-encoding = "2"
 k256 = { version = "0.14", default-features = false, features = [

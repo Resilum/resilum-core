@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 #[cfg(all(unix, feature = "ygg"))]
 pub(crate) fn say_the_address_is(path: &std::path::Path, address: &str) -> std::io::Result<()> {
-    std::fs::write(path, address)
+    resilum_store::write_text(path, address)
 }
 
 pub(crate) struct Advertised {
@@ -29,7 +29,7 @@ impl Advertised {
             return known.clone();
         }
         let path = self.path.as_ref()?;
-        let raw = std::fs::read_to_string(path).ok()?;
+        let raw = resilum_store::read_text(path).ok()?;
         let host = raw.trim();
         *known = (!host.is_empty()).then(|| host.to_owned());
         known.clone()
@@ -40,12 +40,8 @@ impl Advertised {
         let Some(path) = self.path.as_ref() else {
             return;
         };
-        match std::fs::remove_file(path) {
-            Ok(()) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-            Err(e) => {
-                tracing::warn!(path = %path.display(), error = %e, "the advertised address outlives the service that served it");
-            }
+        if let Err(e) = resilum_store::forget(path) {
+            tracing::warn!(path = %path.display(), error = %e, "the advertised address outlives the service that served it");
         }
     }
 

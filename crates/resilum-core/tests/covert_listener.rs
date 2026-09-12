@@ -17,12 +17,11 @@ fn covert_node(dir: &std::path::Path) -> Node {
 
 #[test]
 fn a_node_that_cannot_listen_covertly_still_starts_and_stops() {
-    let dir = std::env::temp_dir().join(format!("resilum-covert-{}", std::process::id()));
+    let dir = tempfile::tempdir().expect("a temporary directory");
 
-    let mut node = covert_node(&dir);
+    let mut node = covert_node(dir.path());
     let started = node.start();
     let stopped = node.stop();
-    let _ = std::fs::remove_dir_all(&dir);
 
     started.expect("a covert node starts even where it cannot listen");
     stopped.expect("nothing outlives stop still holding the engine");

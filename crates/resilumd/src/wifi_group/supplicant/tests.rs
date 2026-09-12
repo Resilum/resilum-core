@@ -1,15 +1,11 @@
-use std::path::PathBuf;
-
 use resilum_core::WifiGroup;
 
 use super::{describing, named_under, the_one_not_there_before};
 
-fn sockets_called(test: &str, names: &[&str]) -> PathBuf {
-    let root = std::env::temp_dir().join(format!("resilum-wpa-dir-{}-{test}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&root);
-    std::fs::create_dir_all(&root).expect("control directory");
+fn sockets_called(names: &[&str]) -> tempfile::TempDir {
+    let root = tempfile::tempdir().expect("a control directory");
     for name in names {
-        std::fs::write(root.join(name), b"").expect("socket");
+        resilum_store::write_text(&root.path().join(name), "").expect("socket");
     }
     root
 }
@@ -35,13 +31,10 @@ fn nothing_new_means_no_group_to_carry() {
 
 #[test]
 fn the_device_socket_is_not_mistaken_for_a_group() {
-    let sockets = sockets_called(
-        "device-is-not-a-group",
-        &["wlan0", "p2p-dev-wlan0", "p2p-wlan0-0"],
-    );
+    let sockets = sockets_called(&["wlan0", "p2p-dev-wlan0", "p2p-wlan0-0"]);
 
     assert_eq!(
-        named_under(&sockets, "p2p-wlan0-"),
+        named_under(sockets.path(), "p2p-wlan0-"),
         vec![String::from("p2p-wlan0-0")]
     );
 }

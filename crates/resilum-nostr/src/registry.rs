@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use crate::subscription::Subscription;
-use resilum_core::storage::Writer;
+use resilum_store::Writer;
 
 mod admit;
 mod batch;

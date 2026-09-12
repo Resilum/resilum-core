@@ -22,7 +22,7 @@ struct NostrSection {
 /// or for a read or parse error, both logged so "why didn't my bridge start"
 /// has an answer.
 pub fn load(path: &Path) -> Option<NostrConfig> {
-    let raw = match std::fs::read_to_string(path) {
+    let raw = match resilum_store::read_text(path) {
         Ok(raw) => raw,
         Err(e) => {
             tracing::error!(error = %e, path = %path.display(), "nostr config read failed");

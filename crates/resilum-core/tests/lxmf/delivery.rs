@@ -13,7 +13,8 @@ use crate::common::{free_port, next_event, start, submit, temp_dir, wait_for};
 /// nowhere to deposit it.
 #[test]
 fn a_refused_message_comes_back_as_a_failed_delivery() {
-    let node = start("reject", &temp_dir("reject"), None, Vec::new());
+    let dir = temp_dir();
+    let node = start("reject", dir.path(), None, Vec::new());
 
     let message_id = submit(
         &node,
@@ -33,10 +34,12 @@ fn a_refused_message_comes_back_as_a_failed_delivery() {
 #[test]
 fn a_message_reaches_the_peer_that_announced_its_delivery_address() {
     let port = free_port();
-    let receiver = start("rx", &temp_dir("rx"), Some(port), Vec::new());
+    let receiving = temp_dir();
+    let sending = temp_dir();
+    let receiver = start("rx", receiving.path(), Some(port), Vec::new());
     let sender = start(
         "tx",
-        &temp_dir("tx"),
+        sending.path(),
         None,
         vec![format!("127.0.0.1:{port}")],
     );

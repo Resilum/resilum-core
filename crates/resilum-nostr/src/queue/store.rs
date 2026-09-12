@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use super::{Entry, Handoff};
-use resilum_core::storage::Writer;
+use resilum_store::Writer;
 
 mod line;
 
@@ -27,7 +27,7 @@ pub(super) enum Change {
 /// would have the first mutation rewrite the file from it, so a transient
 /// fault would destroy every queued event; refusing to open says so instead.
 pub(super) fn read(path: &Path) -> Result<Held, String> {
-    let text = match std::fs::read_to_string(path) {
+    let text = match resilum_store::read_text(path) {
         Ok(text) => text,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Held::new()),
         Err(e) => {
@@ -80,13 +80,7 @@ fn write_atomically(path: &Path, held: &Held) {
             Err(e) => tracing::error!(error = %e, "nostr queue entry could not be encoded"),
         }
     }
-    let temp = path.with_extension("tmp");
-    if let Err(e) = std::fs::write(&temp, &text) {
+    if let Err(e) = resilum_store::replace_with(path, text.as_bytes()) {
         tracing::error!(error = %e, "nostr queue could not be written");
-        return;
-    }
-    if let Err(e) = std::fs::rename(&temp, path) {
-        tracing::error!(error = %e, "nostr queue could not be committed");
-        let _ = std::fs::remove_file(&temp);
     }
 }

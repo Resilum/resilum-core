@@ -8,7 +8,7 @@ pub fn whichever_interface_reaches_the_world() -> Option<String> {
 }
 
 fn the_way_out_in(routes: &Path) -> Option<String> {
-    let table = std::fs::read_to_string(routes).ok()?;
+    let table = resilum_store::read_text(routes).ok()?;
     table
         .lines()
         .skip(1)

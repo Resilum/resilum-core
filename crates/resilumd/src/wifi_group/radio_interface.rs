@@ -21,13 +21,13 @@ fn chosen_from(devices: &Path, named: Option<&str>) -> Result<String, String> {
 }
 
 fn wireless_ones_under(devices: &Path) -> Vec<String> {
-    let Ok(entries) = std::fs::read_dir(devices) else {
+    let Ok(entries) = resilum_store::list(devices) else {
         return Vec::new();
     };
     let mut wireless: Vec<String> = entries
-        .filter_map(Result::ok)
-        .filter(|entry| entry.path().join("phy80211").exists())
-        .filter_map(|entry| entry.file_name().into_string().ok())
+        .iter()
+        .filter(|entry| entry.join("phy80211").exists())
+        .filter_map(|entry| entry.file_name()?.to_str().map(str::to_owned))
         .collect();
     wireless.sort_unstable();
     wireless

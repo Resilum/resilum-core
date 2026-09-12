@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use super::{Entry, SharedWithRngit, whom_to_ask};
 
 fn a_peer_serving(rngit: &str, repos: &[&str]) -> Entry {
@@ -15,18 +13,16 @@ fn named(what: &str) -> Vec<String> {
     vec![String::from(what)]
 }
 
-fn a_state_dir(test: &str, served: &str) -> PathBuf {
-    let root = std::env::temp_dir().join(format!("resilum-handover-{}-{test}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&root);
-    std::fs::create_dir_all(&root).expect("state directory");
-    std::fs::write(root.join("served"), served).expect("served");
+fn a_state_dir(served: &str) -> tempfile::TempDir {
+    let root = tempfile::tempdir().expect("a state directory");
+    resilum_store::write_text(&root.path().join("served"), served).expect("served");
     root
 }
 
 #[test]
 fn we_announce_only_what_rngit_says_it_serves() {
-    let state = a_state_dir("announce", "resilum-core\n");
-    let shared = SharedWithRngit::beside(&state.join("destination"));
+    let state = a_state_dir("resilum-core\n");
+    let shared = SharedWithRngit::beside(&state.path().join("destination"));
 
     let announced =
         shared.of_these_we_serve(&[String::from("resilum-core"), String::from("resilum-mobile")]);

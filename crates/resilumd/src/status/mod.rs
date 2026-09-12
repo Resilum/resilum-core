@@ -27,7 +27,7 @@ pub fn leave_behind(node: &Node, path: &Path) {
             return;
         }
     };
-    if let Err(error) = std::fs::write(path, json) {
+    if let Err(error) = resilum_store::write_text(path, &json) {
         tracing::warn!(path = %path.display(), %error, "status write failed");
     }
 }

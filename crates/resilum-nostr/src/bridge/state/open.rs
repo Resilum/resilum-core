@@ -57,7 +57,7 @@ fn stores(storage: Option<&Path>, retention: Duration) -> Result<(Registry, Queu
         ));
     };
     let dir = root.join("nostr");
-    resilum_core::storage::make_room_for(&dir).map_err(|e| {
+    resilum_store::make_room_for(&dir).map_err(|e| {
         format!(
             "the nostr state directory at {} cannot be created: {e}",
             dir.display()

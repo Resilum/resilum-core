@@ -37,10 +37,10 @@ fn spawn_echo() -> u16 {
 fn a_node_uses_the_exit_it_runs_itself() {
     let echo = spawn_echo();
     let listen_tcp = free_port();
-    let dir = std::env::temp_dir().join(format!("resilum-own-{}", std::process::id()));
+    let dir = tempfile::tempdir().expect("a temporary directory");
 
     let mut node = Node::new(Config {
-        storage_path: Some(dir.clone()),
+        storage_path: Some(dir.path().to_path_buf()),
         discover_interfaces: false,
         egress: vec![EgressListen::new("e2e", Some(format!("127.0.0.1:{echo}")))],
         ingress: Some(IngressConfig::new("e2e", format!("127.0.0.1:{listen_tcp}"))),
@@ -74,7 +74,6 @@ fn a_node_uses_the_exit_it_runs_itself() {
     let got = stream.read_exact(&mut buf);
 
     node.stop().ok();
-    let _ = std::fs::remove_dir_all(dir);
 
     got.expect("a round trip through this node's own exit");
     assert_eq!(&buf, b"ping");

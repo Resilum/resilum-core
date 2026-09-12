@@ -6,6 +6,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
+resilum-store = { path = "../resilum-store" }
 tree-sitter = "0.26"
 tree-sitter-rust = "0.24"
 

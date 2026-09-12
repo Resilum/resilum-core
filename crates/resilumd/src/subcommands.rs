@@ -42,7 +42,7 @@ fn generate_identity(argv: &[String]) -> ! {
     };
     let path = PathBuf::from(out);
     if let Some(parent) = path.parent()
-        && let Err(e) = std::fs::create_dir_all(parent)
+        && let Err(e) = resilum_store::make_room_for(parent)
     {
         tracing::error!(path = %parent.display(), error = %e, "mkdir failed");
         std::process::exit(1);

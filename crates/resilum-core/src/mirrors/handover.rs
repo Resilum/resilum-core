@@ -36,14 +36,16 @@ impl SharedWithRngit {
         if asking.is_empty() {
             return;
         }
-        if let Err(error) = std::fs::write(self.state.join(WANTED), asking.join("\n") + "\n") {
+        if let Err(error) =
+            resilum_store::write_text(&self.state.join(WANTED), &(asking.join("\n") + "\n"))
+        {
             tracing::debug!(%error, "could not leave rngit a list of mirrors to fetch");
         }
     }
 }
 
 pub(super) fn read_rngit_destination(path: &Path) -> Option<String> {
-    let raw = std::fs::read_to_string(path).ok()?;
+    let raw = resilum_store::read_text(path).ok()?;
     let trimmed = raw.trim();
     (trimmed.len() == 32 && trimmed.bytes().all(|b| b.is_ascii_hexdigit()))
         .then(|| trimmed.to_owned())
@@ -63,7 +65,7 @@ fn whom_to_ask(wanted: &[String], served: &[String], known: &[Entry]) -> Vec<Str
 }
 
 fn read_lines(path: &Path) -> Vec<String> {
-    std::fs::read_to_string(path)
+    resilum_store::read_text(path)
         .unwrap_or_default()
         .lines()
         .map(str::trim)

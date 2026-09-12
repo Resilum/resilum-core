@@ -14,12 +14,12 @@ fn a_record_with_no_slot_is_migrated_and_the_file_is_rewritten() {
         "created_at": 100,
         "last_seen": 100,
     });
-    std::fs::write(&path, format!("{legacy_line}\n")).expect("seed a legacy line");
+    resilum_store::write_text(&path, &format!("{legacy_line}\n")).expect("seed a legacy line");
 
     let registry = Registry::open(path.clone(), Duration::from_secs(600)).expect("opens");
     assert_eq!(registry.batch_of(&[7u8; 32]), Some(BatchId::FIRST));
     drop(registry);
 
-    let rewritten = std::fs::read_to_string(&path).expect("rewritten");
+    let rewritten = resilum_store::read_text(&path).expect("rewritten");
     assert!(rewritten.contains(r#""batch":0"#), "{rewritten}");
 }

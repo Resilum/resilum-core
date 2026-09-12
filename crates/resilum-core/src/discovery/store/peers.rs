@@ -1,81 +1,50 @@
-use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
+use std::path::PathBuf;
+
+use resilum_store::Document;
 
 use super::records::{Record, prune, top_n, upsert};
 use super::{TOP_N_ACTIVE, TTL_SECONDS};
-use crate::storage::Writer;
 
 type Records = Vec<Record>;
 
 pub(crate) struct Peers {
-    remembered: Mutex<Records>,
-    writer: Writer<Records>,
+    remembered: Document<Records>,
 }
 
 impl Peers {
     pub(crate) fn open(path: Option<PathBuf>) -> Self {
         let Some(path) = path else {
             return Self {
-                remembered: Mutex::new(Vec::new()),
-                writer: Writer::nowhere_to_write(),
+                remembered: Document::in_memory(Records::new()),
             };
         };
-        let remembered = whatever_the_last_run_left(&path);
         Self {
-            writer: Writer::spawn(path, remembered.clone(), replace, write_atomically),
-            remembered: Mutex::new(remembered),
+            remembered: Document::open_or_start_empty(path, Records::new(), decode, encode),
         }
     }
 
     pub(crate) fn seen(&self, endpoint: &[u8], now: f64) {
-        let mut remembered = self.lock();
-        upsert(&mut remembered, endpoint, now);
-        self.writer.send(remembered.clone());
+        self.remembered
+            .change(|remembered| upsert(remembered, endpoint, now));
     }
 
     pub(crate) fn forget_stale(&self, now: f64) {
-        let mut remembered = self.lock();
-        if prune(&mut remembered, TTL_SECONDS, now) == 0 {
-            return;
-        }
-        self.writer.send(remembered.clone());
+        self.remembered
+            .change(|remembered| prune(remembered, TTL_SECONDS, now));
     }
 
     pub(crate) fn most_recent(&self) -> Vec<Vec<u8>> {
-        top_n(&self.lock(), TOP_N_ACTIVE)
-    }
-
-    fn lock(&self) -> MutexGuard<'_, Records> {
-        self.remembered.lock().unwrap_or_else(|e| e.into_inner())
+        self.remembered
+            .read(|remembered| top_n(remembered, TOP_N_ACTIVE))
     }
 }
 
-fn replace(held: &mut Records, latest: Records) {
-    *held = latest;
+fn decode(bytes: &[u8]) -> Result<Records, String> {
+    Ok(serde_json::from_slice(bytes).unwrap_or_default())
 }
 
-fn whatever_the_last_run_left(path: &Path) -> Records {
-    let Ok(bytes) = std::fs::read(path) else {
-        return Vec::new();
-    };
-    serde_json::from_slice(&bytes).unwrap_or_default()
-}
-
-fn write_atomically(path: &Path, held: &Records) {
-    if let Err(e) = write_or_fail(path, held) {
-        tracing::warn!(path = %path.display(), error = %e, "the peer cache could not be written");
-    }
-}
-
-fn write_or_fail(path: &Path, held: &[Record]) -> std::io::Result<()> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let tmp = path.with_extension("json.tmp");
-    let mut file = std::fs::File::create(&tmp)?;
-    std::io::Write::write_all(&mut file, &serde_json::to_vec_pretty(held)?)?;
-    file.sync_all()?;
-    std::fs::rename(tmp, path)
+fn encode(remembered: &Records) -> Vec<u8> {
+    serde_json::to_vec_pretty(remembered).unwrap_or_default()
 }
 
 #[cfg(test)]

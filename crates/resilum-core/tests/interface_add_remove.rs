@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use resilum_core::{Config, Node};
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("resilum-iar-{tag}-{}", std::process::id()))
+fn temp_dir() -> tempfile::TempDir {
+    tempfile::tempdir().expect("a temporary directory")
 }
 
 fn status_has(node: &Node, name: &str) -> bool {
@@ -34,8 +34,9 @@ fn status_lacks(node: &Node, name: &str) -> bool {
 
 #[test]
 fn add_and_remove_interface_from_json() {
+    let dir = temp_dir();
     let mut node = Node::new(Config {
-        storage_path: Some(temp_dir("node")),
+        storage_path: Some(dir.path().to_path_buf()),
         discover_interfaces: false,
         ..Config::minimal(format!("iar-{}", std::process::id()))
     })

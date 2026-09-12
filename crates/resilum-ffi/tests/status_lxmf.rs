@@ -6,13 +6,8 @@ use serde_json::Value;
 
 const PATIENCE: Duration = Duration::from_secs(30);
 
-fn temp_dir(tag: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "resilum-ffi-status-lxmf-{tag}-{}",
-        std::process::id()
-    ));
-    let _ = std::fs::remove_dir_all(&dir);
-    dir
+fn temp_dir() -> tempfile::TempDir {
+    tempfile::tempdir().expect("a temporary directory")
 }
 
 fn config(tag: &str, dir: &std::path::Path, lxmf: &str) -> CString {
@@ -62,8 +57,9 @@ fn last_error() -> String {
 
 #[test]
 fn lxmf_section_matches_the_dedicated_symbols_once_ready() {
-    let dir = temp_dir("on");
-    let node = unsafe { resilum_node_new_from_yaml(config("on", &dir, "lxmf: {}\n").as_ptr()) };
+    let dir = temp_dir();
+    let node =
+        unsafe { resilum_node_new_from_yaml(config("on", dir.path(), "lxmf: {}\n").as_ptr()) };
     assert!(!node.is_null());
     assert_eq!(unsafe { resilum_node_start(node) }, RESILUM_OK);
 
@@ -106,13 +102,12 @@ fn lxmf_section_matches_the_dedicated_symbols_once_ready() {
 
     unsafe { resilum_node_stop(node) };
     unsafe { resilum_node_free(node) };
-    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
 fn lxmf_key_is_present_and_null_when_messaging_is_not_configured() {
-    let dir = temp_dir("off");
-    let node = unsafe { resilum_node_new_from_yaml(config("off", &dir, "").as_ptr()) };
+    let dir = temp_dir();
+    let node = unsafe { resilum_node_new_from_yaml(config("off", dir.path(), "").as_ptr()) };
     assert!(!node.is_null());
     assert_eq!(unsafe { resilum_node_start(node) }, RESILUM_OK);
 
@@ -122,5 +117,4 @@ fn lxmf_key_is_present_and_null_when_messaging_is_not_configured() {
 
     unsafe { resilum_node_stop(node) };
     unsafe { resilum_node_free(node) };
-    let _ = std::fs::remove_dir_all(&dir);
 }

@@ -9,10 +9,8 @@ use serde_json::Value;
 
 const PATIENCE: Duration = Duration::from_secs(60);
 
-pub fn temp_dir(tag: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("resilum-lxmf-{tag}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    dir
+pub fn temp_dir() -> tempfile::TempDir {
+    tempfile::tempdir().expect("a temporary directory")
 }
 
 pub fn free_port() -> u16 {

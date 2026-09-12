@@ -9,7 +9,6 @@ mod handover;
 mod payload;
 mod produce;
 mod registry;
-mod store;
 
 pub use consume::run_consume;
 pub use handover::SharedWithRngit;

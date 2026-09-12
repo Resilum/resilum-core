@@ -4,11 +4,10 @@
 //! that subscriber, not every subscriber on file.
 
 use std::collections::BTreeMap;
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use super::batch::BatchId;
-use resilum_core::storage::Writer;
+use resilum_store::Writer;
 
 mod line;
 mod migrate;
@@ -35,7 +34,7 @@ pub(super) struct Record {
 /// A file we cannot read is not an empty one: carrying on empty would have
 /// the first mutation rewrite it and drop every subscriber.
 pub(super) fn read(path: &Path) -> Result<Held, String> {
-    let text = match std::fs::read_to_string(path) {
+    let text = match resilum_store::read_text(path) {
         Ok(text) => text,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Held::default()),
         Err(e) => {
@@ -93,35 +92,7 @@ fn write_atomically(path: &Path, held: &Held) {
             Err(e) => tracing::error!(error = %e, "nostr registry entry could not be encoded"),
         }
     }
-    let temp = path.with_extension("tmp");
-    if let Err(e) = write_and_sync(&temp, text.as_bytes()) {
+    if let Err(e) = resilum_store::replace_with(path, text.as_bytes()) {
         tracing::error!(error = %e, "nostr registry could not be written");
-        let _ = std::fs::remove_file(&temp);
-        return;
-    }
-    if let Err(e) = std::fs::rename(&temp, path) {
-        tracing::error!(error = %e, "nostr registry could not be committed");
-        let _ = std::fs::remove_file(&temp);
-        return;
-    }
-    if let Some(parent) = path.parent() {
-        sync_directory(parent);
-    }
-}
-
-fn write_and_sync(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let mut file = std::fs::File::create(path)?;
-    file.write_all(bytes)?;
-    file.sync_all()
-}
-
-/// Until the directory itself is flushed the rename may not have reached the
-/// platter, so the file could come back under its temporary name. Platforms
-/// that refuse to open a directory as a file cannot offer the guarantee at
-/// all, which is worth saying once rather than failing the write over.
-fn sync_directory(parent: &Path) {
-    match std::fs::File::open(parent).and_then(|dir| dir.sync_all()) {
-        Ok(()) => {}
-        Err(e) => tracing::debug!(error = %e, "nostr registry directory was not flushed"),
     }
 }
