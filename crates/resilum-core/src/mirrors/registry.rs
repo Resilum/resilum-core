@@ -1,9 +1,12 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard};
 use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
+
+use super::store::{Kept, whatever_the_last_run_left, write_atomically};
+use crate::storage::Writer;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Entry {
@@ -14,19 +17,23 @@ pub struct Entry {
 }
 
 pub struct Registry {
-    entries: Mutex<HashMap<String, Entry>>,
-    persist_path: Option<PathBuf>,
+    entries: Mutex<Kept>,
+    writer: Writer<Kept>,
 }
 
 impl Registry {
+    #[must_use]
     pub fn new(persist_path: Option<PathBuf>) -> Self {
-        let entries = persist_path
-            .as_ref()
-            .and_then(|p| load(p).ok())
-            .unwrap_or_default();
+        let Some(path) = persist_path else {
+            return Self {
+                entries: Mutex::new(HashMap::new()),
+                writer: Writer::nowhere_to_write(),
+            };
+        };
+        let entries = whatever_the_last_run_left(&path);
         Self {
+            writer: Writer::spawn(path, entries.clone(), replace, write_atomically),
             entries: Mutex::new(entries),
-            persist_path,
         }
     }
 
@@ -37,33 +44,23 @@ impl Registry {
             repos,
             last_seen_unix: now(),
         };
-        self.entries.lock().unwrap().insert(peer_hex, entry);
-        self.persist();
+        let mut entries = self.lock();
+        entries.insert(peer_hex, entry);
+        self.writer.send(entries.clone());
     }
 
+    #[must_use]
     pub fn snapshot(&self) -> Vec<Entry> {
-        self.entries.lock().unwrap().values().cloned().collect()
+        self.lock().values().cloned().collect()
     }
 
-    fn persist(&self) {
-        let Some(path) = self.persist_path.as_ref() else {
-            return;
-        };
-        let snap = self.snapshot();
-        if let Some(parent) = path.parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        if let Ok(bytes) = serde_json::to_vec_pretty(&snap) {
-            let _ = std::fs::write(path, bytes);
-        }
+    fn lock(&self) -> MutexGuard<'_, Kept> {
+        self.entries.lock().unwrap_or_else(|e| e.into_inner())
     }
 }
 
-fn load(path: &Path) -> std::io::Result<HashMap<String, Entry>> {
-    let bytes = std::fs::read(path)?;
-    let list: Vec<Entry> = serde_json::from_slice(&bytes)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-    Ok(list.into_iter().map(|e| (e.peer.clone(), e)).collect())
+fn replace(held: &mut Kept, latest: Kept) {
+    *held = latest;
 }
 
 fn now() -> u64 {

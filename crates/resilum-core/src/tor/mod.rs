@@ -125,7 +125,7 @@ mod tests {
     #[tokio::test]
     async fn spawn_returns_without_waiting_for_the_directory() {
         let dir = std::env::temp_dir().join(format!("resilum-tor-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        tokio::fs::create_dir_all(&dir).await.unwrap();
 
         let tor = tokio::time::timeout(Duration::from_secs(10), EmbeddedTor::spawn(Some(&dir)))
             .await
@@ -133,6 +133,6 @@ mod tests {
             .expect("spawn must succeed");
         assert!(tor.port() != 0, "the SOCKS port has to be known at once");
 
-        std::fs::remove_dir_all(&dir).ok();
+        tokio::fs::remove_dir_all(&dir).await.ok();
     }
 }

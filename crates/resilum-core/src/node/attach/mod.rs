@@ -79,7 +79,7 @@ impl Node {
             })
             .ok_or_else(|| Error::Ygg("no yggdrasil discovery service configured".into()))?;
         if let Some(path) = &service.hostname_path {
-            std::fs::write(path, ygg_address)
+            crate::discovery::store::say_the_address_is(path, ygg_address)
                 .map_err(|e| Error::Ygg(format!("write ygg address to {}: {e}", path.display())))?;
         }
         let rns_port = service.rns_port;

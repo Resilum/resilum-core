@@ -7,21 +7,12 @@ use crate::subscription::Subscription;
 
 const RETENTION: Duration = Duration::from_secs(600);
 
-fn scratch(name: &str) -> std::path::PathBuf {
-    let dir =
-        std::env::temp_dir().join(format!("resilum-nostr-open-{name}-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).expect("temp dir");
-    dir
-}
-
 #[test]
 fn a_storage_path_no_directory_can_be_created_under_refuses_to_open() {
-    let root = scratch("uncreatable");
-    std::fs::write(root.join("nostr"), "a file where the directory belongs").expect("seeds it");
+    let a_file_where_a_directory_belongs =
+        tempfile::NamedTempFile::new().expect("a temporary file");
 
-    assert!(stores(Some(&root), RETENTION).is_err());
-
-    std::fs::remove_dir_all(&root).ok();
+    assert!(stores(Some(a_file_where_a_directory_belongs.path()), RETENTION).is_err());
 }
 
 #[test]

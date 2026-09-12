@@ -4,13 +4,13 @@ use std::sync::atomic::Ordering;
 
 use super::{Attached, TcpDiscovered};
 use crate::config::SocksProxy;
+use crate::discovery::DiscoveryPlugin;
 use crate::discovery::admit::{self, Room};
 use crate::discovery::endpoint::{encode_endpoint, parse_endpoint};
-use crate::discovery::{DiscoveryPlugin, cache};
 
 impl DiscoveryPlugin for TcpDiscovered {
     fn produce_endpoint(&self) -> Option<Vec<u8>> {
-        if !self.active.load(Ordering::Relaxed) {
+        if !self.transport_is_up.load(Ordering::Relaxed) {
             return None;
         }
         let host = self.detect_host()?;
@@ -18,7 +18,7 @@ impl DiscoveryPlugin for TcpDiscovered {
     }
 
     fn consume_endpoint(&self, payload: &[u8], announcer_pubkey: Option<&[u8]>) {
-        if !self.active.load(Ordering::Relaxed) {
+        if !self.transport_is_up.load(Ordering::Relaxed) {
             return;
         }
         let Some((host, port)) = parse_endpoint(payload, &self.cfg.endpoint_format) else {
@@ -69,26 +69,16 @@ impl DiscoveryPlugin for TcpDiscovered {
                         _detaches_when_dropped: Box::new(handle),
                     },
                 );
-                self.trigger.notify_waiters();
-                self.remember(payload);
+                self.announce_again.notify_waiters();
+                self.remembered.seen(payload, crate::wall_clock::unix_now());
             }
             Err(e) => {
                 tracing::warn!(service = %self.cfg.service, %name, error = %e, "attach failed");
             }
         }
     }
-}
 
-impl TcpDiscovered {
-    /// Keep the peer for the next start, when no announce has arrived yet.
-    fn remember(&self, payload: &[u8]) {
-        let Some(path) = &self.cache_path else {
-            return;
-        };
-        let mut records = cache::load(path);
-        cache::upsert(&mut records, payload, crate::wall_clock::unix_now());
-        if let Err(e) = cache::save(path, &records) {
-            tracing::warn!(service = %self.cfg.service, error = %e, "cache save failed");
-        }
+    fn forget_stale_peers(&self, now: f64) {
+        self.remembered.forget_stale(now);
     }
 }

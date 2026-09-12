@@ -8,7 +8,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use super::batch::BatchId;
-use crate::writer::Writer;
+use resilum_core::storage::Writer;
 
 mod line;
 mod migrate;
@@ -75,7 +75,7 @@ fn apply(held: &mut Held, change: Change) {
 }
 
 pub(super) fn null_writer() -> Writer<Change> {
-    Writer::null()
+    Writer::nowhere_to_write()
 }
 
 /// Atomic against a crash and not only against a torn read: the replacement

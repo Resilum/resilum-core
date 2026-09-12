@@ -18,7 +18,6 @@ mod registry;
 mod signed;
 mod subscription;
 mod upstream;
-mod writer;
 
 pub use bridge::{BridgeHandle, StartError, spawn};
 pub use config::NostrConfig;

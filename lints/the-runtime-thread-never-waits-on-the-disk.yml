@@ -1,0 +1,28 @@
+---
+id: the-runtime-thread-never-waits-on-the-disk
+language: Rust
+severity: error
+message: A blocking disk or sleep call inside an async body.
+note: |
+  A worker thread inside a disk call serves no other future, and an `fsync`
+  holds it for as long as the storage takes. Hand the work to a writer thread
+  or to `spawn_blocking`, and keep what the async side reads in memory.
+rule:
+  any:
+    - pattern: fs::$M($$$ARGS)
+    - pattern: std::fs::$M($$$ARGS)
+    - pattern: fs::File::$M($$$ARGS)
+    - pattern: std::fs::File::$M($$$ARGS)
+    - pattern: File::$M($$$ARGS)
+    - pattern: $F.sync_all()
+    - pattern: $F.sync_data()
+    - pattern: thread::sleep($$$ARGS)
+    - pattern: std::thread::sleep($$$ARGS)
+  inside:
+    stopBy: end
+    any:
+      - kind: async_block
+      - kind: function_item
+        has:
+          kind: function_modifiers
+          regex: async

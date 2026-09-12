@@ -90,6 +90,7 @@ iroh-protect = [
 
 [dev-dependencies]
 proptest = "1.11"
+tempfile = "3.27"
 tokio = { version = "1", features = ["test-util"] }
 
 [lints]

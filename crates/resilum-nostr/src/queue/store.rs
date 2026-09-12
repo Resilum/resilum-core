@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use super::{Entry, Handoff};
-use crate::writer::Writer;
+use resilum_core::storage::Writer;
 
 mod line;
 
@@ -66,7 +66,7 @@ fn apply(held: &mut Held, change: Change) {
 }
 
 pub(super) fn null_writer() -> Writer<Change> {
-    Writer::null()
+    Writer::nowhere_to_write()
 }
 
 fn write_atomically(path: &Path, held: &Held) {

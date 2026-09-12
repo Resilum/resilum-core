@@ -32,6 +32,7 @@ pub mod pump;
 mod socks5_tcp;
 pub mod spec;
 pub mod status;
+pub mod storage;
 pub mod supervisor;
 #[cfg(feature = "arti")]
 pub mod tor;

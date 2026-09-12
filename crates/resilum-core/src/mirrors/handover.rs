@@ -42,6 +42,13 @@ impl SharedWithRngit {
     }
 }
 
+pub(super) fn read_rngit_destination(path: &Path) -> Option<String> {
+    let raw = std::fs::read_to_string(path).ok()?;
+    let trimmed = raw.trim();
+    (trimmed.len() == 32 && trimmed.bytes().all(|b| b.is_ascii_hexdigit()))
+        .then(|| trimmed.to_owned())
+}
+
 fn whom_to_ask(wanted: &[String], served: &[String], known: &[Entry]) -> Vec<String> {
     wanted
         .iter()

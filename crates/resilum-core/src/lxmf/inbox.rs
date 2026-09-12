@@ -80,10 +80,8 @@ impl Inbox {
 mod tests {
     use super::*;
 
-    fn temp_dir(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("resilum-inbox-{tag}-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        dir
+    fn temp_dir() -> tempfile::TempDir {
+        tempfile::tempdir().expect("a temporary directory")
     }
 
     #[test]
@@ -99,8 +97,8 @@ mod tests {
 
     #[test]
     fn a_message_outlives_the_process_that_received_it() {
-        let dir = temp_dir("restart");
-        let path = dir.join("inbox");
+        let dir = temp_dir();
+        let path = dir.path().join("inbox");
 
         let inbox = Inbox::open(path.clone());
         inbox.push("kept".into());
@@ -110,14 +108,12 @@ mod tests {
 
         let reopened = Inbox::open(path);
         assert_eq!(reopened.pop().as_deref(), Some("kept"));
-
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
     fn a_taken_message_does_not_come_back_after_a_restart() {
-        let dir = temp_dir("taken");
-        let path = dir.join("inbox");
+        let dir = temp_dir();
+        let path = dir.path().join("inbox");
 
         let inbox = Inbox::open(path.clone());
         inbox.push("taken".into());
@@ -126,8 +122,6 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(200));
 
         assert_eq!(Inbox::open(path).pop(), None);
-
-        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

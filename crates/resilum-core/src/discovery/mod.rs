@@ -5,7 +5,6 @@
 pub(crate) mod admit;
 pub(crate) mod attachments;
 mod build;
-mod cache;
 mod consume;
 pub mod covert;
 mod directory;
@@ -14,15 +13,16 @@ mod origin;
 mod produce;
 mod quota;
 pub mod service;
+pub(crate) mod store;
 mod tcp;
 mod udp;
 pub use attachments::{Attachments, Link};
 pub use build::{BuildParams, build_covert_addresses, build_from_services};
-pub use cache::run_prune_loop;
 pub use consume::run_consume;
 pub use directory::ServiceDirectory;
 pub use origin::OriginRegistry;
 pub use produce::{build_destination, run_produce};
+pub use store::run_prune_loop;
 pub use tcp::TcpDiscovered;
 pub use udp::UdpDiscovered;
 
@@ -49,6 +49,7 @@ pub trait DiscoveryPlugin: Send + Sync {
     /// key to seal a session can do nothing with such an endpoint; the ones
     /// that dial an address (TCP discovery) do not look at it.
     fn consume_endpoint(&self, payload: &[u8], announcer_pubkey: Option<&[u8]>);
+    fn forget_stale_peers(&self, _now: f64) {}
 }
 
 /// Plugins keyed by the service they speak for, which is how a peer names its
@@ -75,6 +76,12 @@ impl Discovery {
         }
     }
 
+    pub fn forget_stale_peers(&self, now: f64) {
+        for plugin in self.by_service.values() {
+            plugin.forget_stale_peers(now);
+        }
+    }
+
     /// Every service whose transport is ready, for the announce loop.
     pub fn endpoints(&self) -> BTreeMap<String, Vec<u8>> {
         self.by_service
@@ -91,16 +98,9 @@ pub fn name_hash(service: &str) -> Vec<u8> {
     Destination::compute_name_hash(APP_NAME, &["discovery", service]).to_vec()
 }
 
-pub(crate) fn warm_start(plugin: &dyn DiscoveryPlugin, cache_path: Option<&std::path::Path>) {
-    let Some(path) = cache_path else { return };
-    let mut records = cache::load(path);
-    cache::prune(
-        &mut records,
-        cache::TTL_SECONDS,
-        crate::wall_clock::unix_now(),
-    );
-    let _ = cache::save(path, &records);
-    for endpoint in cache::top_n(&records, cache::TOP_N_ACTIVE) {
+pub(crate) fn warm_start(plugin: &dyn DiscoveryPlugin, remembered: &store::Peers) {
+    remembered.forget_stale(crate::wall_clock::unix_now());
+    for endpoint in remembered.most_recent() {
         plugin.consume_endpoint(&endpoint, None);
     }
 }
