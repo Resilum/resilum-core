@@ -51,5 +51,4 @@ impl Advertised {
 }
 
 #[cfg(test)]
-#[path = "hostname_tests.rs"]
 mod tests;

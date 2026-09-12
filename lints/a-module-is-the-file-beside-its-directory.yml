@@ -1,0 +1,14 @@
+---
+id: a-module-is-the-file-beside-its-directory
+language: Rust
+severity: error
+message: A module declared in `mod.rs`.
+files:
+  - "crates/*/src/**/mod.rs"
+note: |
+  Since the 2018 edition a module is `foo.rs` sitting beside the `foo/` that
+  holds its children, and `foo/mod.rs` is the layout it replaced. One `mod.rs`
+  per directory also makes every one of them look alike in an editor's tab bar
+  and in a search result.
+rule:
+  kind: source_file

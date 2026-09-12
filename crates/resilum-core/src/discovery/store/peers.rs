@@ -48,5 +48,4 @@ fn encode(remembered: &Records) -> Vec<u8> {
 }
 
 #[cfg(test)]
-#[path = "peers_tests.rs"]
 mod tests;

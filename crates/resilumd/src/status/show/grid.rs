@@ -75,5 +75,4 @@ fn one_row(row: &[Cell], widest: &[usize]) -> String {
 }
 
 #[cfg(test)]
-#[path = "grid_tests.rs"]
 mod tests;

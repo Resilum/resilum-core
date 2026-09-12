@@ -81,5 +81,4 @@ fn write_atomically<T>(path: &std::path::Path, held: &Written<T>) {
 }
 
 #[cfg(test)]
-#[path = "document_tests.rs"]
 mod tests;

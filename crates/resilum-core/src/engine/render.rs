@@ -107,5 +107,4 @@ fn split_host_port(value: &str) -> (&str, &str) {
 }
 
 #[cfg(test)]
-#[path = "render_tests.rs"]
 mod tests;

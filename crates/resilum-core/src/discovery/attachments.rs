@@ -118,5 +118,4 @@ impl Attachments {
 }
 
 #[cfg(test)]
-#[path = "attachments_tests.rs"]
 mod tests;

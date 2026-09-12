@@ -1,0 +1,15 @@
+---
+id: a-file-is-found-by-its-name-not-by-a-path-attribute
+language: Rust
+severity: error
+message: A module pointed at with `#[path]`.
+files:
+  - "crates/*/src/**"
+note: |
+  `#[path]` exists to place a file somewhere the module system would not look,
+  and we have never needed that: a child goes in the directory named after its
+  parent, where `mod child;` finds it. Reaching for the attribute means the
+  file is in the wrong place.
+rule:
+  kind: attribute_item
+  regex: '#\[path'

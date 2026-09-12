@@ -39,5 +39,4 @@ pub(super) fn top_n(records: &[Record], n: usize) -> Vec<Vec<u8>> {
 }
 
 #[cfg(test)]
-#[path = "records_tests.rs"]
 mod tests;

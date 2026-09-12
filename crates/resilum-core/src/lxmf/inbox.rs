@@ -85,5 +85,4 @@ fn encode(held: &Held) -> Vec<u8> {
 }
 
 #[cfg(test)]
-#[path = "inbox_tests.rs"]
 mod tests;

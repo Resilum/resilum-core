@@ -12,5 +12,5 @@ files:
 rule:
   any:
     - pattern: NodeCoreBuilder::new()
-    - pattern: Node::new($$$)
+    - pattern: Node::new($CONFIG)
     - pattern: NodeCore::new($$$)
