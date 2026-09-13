@@ -56,7 +56,9 @@ impl Air {
         };
         for (address, listener) in &wire.listening {
             if address != at {
-                let _ = listener.try_send(arriving.clone());
+                listener
+                    .try_send(arriving.clone())
+                    .expect("a listener on the fake air to take what it heard");
             }
         }
     }
@@ -110,12 +112,14 @@ impl Air {
         );
         let ends = wire.ends.get(&conn)?;
         for (nth, end) in ends.iter().enumerate() {
-            let _ = end.to.try_send(RadioEvent::Connected {
-                conn,
-                address: ends[1 - nth].address.clone(),
-                role: end.role,
-                bytes_one_write_carries: carried,
-            });
+            end.to
+                .try_send(RadioEvent::Connected {
+                    conn,
+                    address: ends[1 - nth].address.clone(),
+                    role: end.role,
+                    bytes_one_write_carries: carried,
+                })
+                .expect("both ends on the fake air to hear they are connected");
         }
         Some(conn)
     }
@@ -136,7 +140,9 @@ impl Air {
         let mut wire = self.wire();
         if let Some(ends) = wire.ends.remove(&conn) {
             for end in ends {
-                let _ = end.to.try_send(RadioEvent::Disconnected { conn });
+                end.to
+                    .try_send(RadioEvent::Disconnected { conn })
+                    .expect("both ends on the fake air to hear they parted");
             }
         }
     }

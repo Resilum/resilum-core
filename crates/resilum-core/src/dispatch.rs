@@ -7,6 +7,8 @@ use leviculum_std::NodeEvent;
 use leviculum_std::driver::EventReceiver;
 use tokio::sync::broadcast;
 
+use crate::letting_go::NoOneIsListening as _;
+
 /// One publisher, many subscribers. Values are shared via `Arc` because node
 /// events are not `Clone`.
 pub struct Fanout<T> {
@@ -33,7 +35,7 @@ impl<T> Fanout<T> {
     }
 
     pub fn publish(&self, value: T) {
-        let _ = self.tx.send(Arc::new(value)); // no subscribers is fine
+        self.tx.send(Arc::new(value)).no_one_is_listening();
     }
 }
 

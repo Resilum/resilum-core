@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use resilum_core::letting_go::NoOneIsListening as _;
+
 /// The first gap is checked against the documented one second from both
 /// sides, not just against the second gap: a loop that doubles the wait
 /// before sleeping it (the bug this guards against) still produces a growing
@@ -20,7 +22,9 @@ async fn a_relay_that_closes_immediately_gets_backed_off_more_each_time() {
             let Ok(ws) = tokio_tungstenite::accept_async(stream).await else {
                 return;
             };
-            let _ = accepted_tx.send(std::time::Instant::now());
+            accepted_tx
+                .send(std::time::Instant::now())
+                .no_one_is_listening();
             drop(ws);
         }
     });

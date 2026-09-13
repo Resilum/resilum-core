@@ -1,6 +1,7 @@
 use proptest::prelude::*;
 
 use super::*;
+use crate::letting_go::ItOnlyMustNotPanic as _;
 
 fn ip(text: &str) -> IpAddr {
     text.parse().expect("test address")
@@ -95,14 +96,14 @@ proptest! {
     #[test]
     fn never_panics_on_arbitrary_v4(bytes in any::<[u8; 4]>()) {
         let addr = IpAddr::V4(Ipv4Addr::from(bytes));
-        let _ = is_globally_routable(&addr);
-        let _ = names_one_host(&addr);
+        is_globally_routable(&addr).it_only_must_not_panic();
+        names_one_host(&addr).it_only_must_not_panic();
     }
     #[test]
     fn never_panics_on_arbitrary_v6(bytes in any::<[u8; 16]>()) {
         let addr = IpAddr::V6(Ipv6Addr::from(bytes));
-        let _ = is_globally_routable(&addr);
-        let _ = names_one_host(&addr);
+        is_globally_routable(&addr).it_only_must_not_panic();
+        names_one_host(&addr).it_only_must_not_panic();
     }
 
     #[test]

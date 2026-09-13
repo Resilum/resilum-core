@@ -4,8 +4,9 @@ use std::time::Duration;
 use dbus::Path;
 use dbus::arg::{RefArg, Variant};
 use dbus::blocking::Connection;
-use dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
+use dbus::blocking::stdintf::org_freedesktop_dbus::Properties as _;
 use resilum_core::WifiGroup;
+use resilum_core::letting_go::OnTheWayOut as _;
 
 use super::{Raised, RaisesAGroup};
 
@@ -53,7 +54,7 @@ fn started(bus: &Connection, device: &Path<'static>, group: &WifiGroup) -> Resul
         }
         std::thread::sleep(Duration::from_millis(300));
     }
-    let _ = mode(bus, device, STATION);
+    mode(bus, device, STATION).on_the_way_out("putting the radio back to station mode");
     Err(format!("iwd would not start the group: {refused}"))
 }
 

@@ -10,6 +10,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::{Facts, Field, WhatThePlatformKnows};
 use crate::ble::links::PeerId;
+use crate::letting_go::OnTheWayOut as _;
 use crate::link::{Inbound, LinkMsg, LinkRouter, answered};
 
 const APP_NAME: &str = "resilum";
@@ -89,7 +90,9 @@ async fn serve(
         field.told_us(peer, theirs.facts, theirs.can_host_at_all);
     }
     let ours = serde_json::to_vec(&what_we_tell(&known, &field)).unwrap_or_default();
-    let _ = handle.send(&ours).await;
+    if let Err(error) = handle.send(&ours).await {
+        tracing::debug!(%error, "what we tell an election never reached the one who asked");
+    }
 }
 
 pub async fn ask(
@@ -120,7 +123,10 @@ pub async fn ask(
         }
     };
     router.detach(&link_id);
-    let _ = handle.close().await;
+    handle
+        .close()
+        .await
+        .on_the_way_out("the link an election ask ran over");
     if let Some(theirs) = told {
         field.told_us(peer, theirs.facts, theirs.can_host_at_all);
     }

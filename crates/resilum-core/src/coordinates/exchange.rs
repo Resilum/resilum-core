@@ -10,6 +10,7 @@ use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::{Coordinates, PeerId};
+use crate::letting_go::OnTheWayOut as _;
 use crate::link::{Inbound, LinkMsg, LinkRouter, answered};
 
 pub(crate) const APP_NAME: &str = "resilum";
@@ -68,7 +69,9 @@ async fn serve(
         coordinates.heard(peer, theirs, now);
     }
     let ours = serde_json::to_vec(&coordinates.ours()).unwrap_or_default();
-    let _ = handle.send(&ours).await;
+    if let Err(error) = handle.send(&ours).await {
+        tracing::debug!(%error, "our coordinates never reached the one who asked");
+    }
 }
 
 fn carried_by(engine: &Arc<ReticulumNode>, at: &DestinationHash) -> super::LinkId {
@@ -108,7 +111,10 @@ pub async fn place(
     };
     let rtt = least_round_trip_of(engine, &link_id).unwrap_or_else(|| asked_at.elapsed());
     router.detach(&link_id);
-    let _ = handle.close().await;
+    handle
+        .close()
+        .await
+        .on_the_way_out("the link a coordinate ask ran over");
     let Some(theirs) = theirs else {
         tracing::debug!(peer = %asking, "a peer was asked and said nothing");
         return false;

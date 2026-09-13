@@ -18,6 +18,7 @@ mod tls;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use resilum_core::letting_go::NoOneIsListening as _;
 use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::protocol::frame::Utf8Bytes;
 
@@ -53,7 +54,7 @@ impl Upstream {
     /// silent source of truth about what upstream should hear.
     pub fn send(&self, frame: Utf8Bytes) {
         if self.is_up() {
-            let _ = self.outbox_tx.send(frame);
+            self.outbox_tx.send(frame).no_one_is_listening();
         }
     }
 

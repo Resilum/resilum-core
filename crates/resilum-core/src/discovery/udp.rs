@@ -11,6 +11,7 @@ use super::attachments::Attachments;
 use super::covert::AddressSource;
 use crate::config::{DiscoveryService, UdpInterface};
 use crate::discovery::OriginRegistry;
+use crate::letting_go::OnTheWayOut as _;
 use targets::Targets;
 
 pub struct UdpDiscovered {
@@ -71,7 +72,9 @@ impl Inner {
         let mut targets = self.targets.lock().unwrap_or_else(|e| e.into_inner());
         let spawned = self.spawn(&targets.all());
         if let Some(previous) = targets.now_served_by(spawned) {
-            let _ = self.engine.remove_interface(previous);
+            self.engine
+                .remove_interface(previous)
+                .on_the_way_out("the udp interface a rebuild replaces");
         }
         spawned
     }

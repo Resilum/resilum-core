@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use leviculum_std::api::LinkId;
 use leviculum_std::driver::ReticulumNode;
 
+use crate::letting_go::OnTheWayOut as _;
+
 #[derive(Default)]
 pub struct ActiveLinks {
     by_dest: Mutex<HashMap<[u8; 16], HashSet<LinkId>>>,
@@ -42,7 +44,10 @@ impl ActiveLinks {
             .unwrap_or_default();
         for id in ids {
             let mut handle = engine.link_handle(&id);
-            let _ = handle.close().await;
+            handle
+                .close()
+                .await
+                .on_the_way_out("an egress link being hung up");
         }
     }
 }

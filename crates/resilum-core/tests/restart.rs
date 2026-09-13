@@ -29,7 +29,8 @@ fn the_port_is_free_the_moment_stop_returns() {
 
     let mut again = node_listening_on(port, dir.path());
     let second = again.start();
-    again.stop().ok();
+    let stopped = again.stop();
 
     second.expect("the listener port to be free again");
+    stopped.expect("the second node to stop");
 }

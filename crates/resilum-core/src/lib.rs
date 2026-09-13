@@ -22,6 +22,7 @@ pub mod hex;
 pub mod identity;
 #[cfg(feature = "iroh")]
 pub mod iroh;
+pub mod letting_go;
 pub mod link;
 pub mod lxmf;
 pub mod mirrors;
@@ -31,6 +32,7 @@ pub mod pump;
 mod socks5_tcp;
 pub mod spec;
 pub mod status;
+pub mod text;
 #[cfg(feature = "arti")]
 pub mod tor;
 mod wall_clock;

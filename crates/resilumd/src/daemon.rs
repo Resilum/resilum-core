@@ -1,3 +1,5 @@
+mod reporting;
+
 use std::path::Path;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -6,6 +8,7 @@ const FOLLOW_THE_ELECTION_EVERY: Duration = Duration::from_secs(5);
 
 use resilum_core::Node;
 use resilum_core::discovery::Service;
+use resilum_core::letting_go::NoOneIsListening as _;
 
 /// The shutdown path returns rather than exiting, so `_iroh` and the node are
 /// dropped: the iroh handle's teardown sends CONNECTION_CLOSE, which a
@@ -49,13 +52,13 @@ pub fn run(path: &Path) {
         }
         Some(handle)
     });
-    log_startup(&node);
-    spawn_stats(&node);
-    spawn_health(&node);
+    reporting::log_startup(&node);
+    reporting::spawn_stats(&node);
+    reporting::spawn_health(&node);
 
     let (tx, rx) = mpsc::channel();
     if let Err(e) = ctrlc::set_handler(move || {
-        let _ = tx.send(());
+        tx.send(()).no_one_is_listening();
     }) {
         // `set_handler` consumed `tx` and dropped it, so `rx.recv()` would
         // return immediately and the daemon would shut down looking clean
@@ -97,54 +100,5 @@ fn attach_iroh(node: &mut Node) -> Option<resilum_core::IrohHandle> {
             tracing::error!(error = %e, "iroh attach failed");
             None
         }
-    }
-}
-
-fn log_startup(node: &Node) {
-    let id_hash = node
-        .engine()
-        .as_ref()
-        .map(|e| e.identity_hash())
-        .map(|h| resilum_core::hex::encode(h.iter().take(8)))
-        .unwrap_or_default();
-    tracing::info!(
-        version = env!("CARGO_PKG_VERSION"),
-        instance = node.config().instance_name.as_str(),
-        identity = %id_hash,
-        "started"
-    );
-}
-
-fn spawn_health(node: &Node) {
-    let Some(engine) = node.engine() else {
-        return;
-    };
-    let path = crate::health::file_path(
-        node.config().storage_path.as_deref(),
-        std::env::var("RESILUM_HEALTH_FILE").ok(),
-    );
-    crate::health::spawn(engine, node.tasks(), path);
-}
-
-fn spawn_stats(node: &Node) {
-    let Some(engine) = node.engine() else {
-        return;
-    };
-    let started = resilum_tasks::a_thread_of_its_own("what the transport carried", move || {
-        loop {
-            std::thread::sleep(std::time::Duration::from_secs(30));
-            let s = engine.transport_stats();
-            tracing::info!(
-                sent = s.packets_sent(),
-                recv = s.packets_received(),
-                forwarded = s.packets_forwarded(),
-                announces = s.announces_processed(),
-                paths = engine.path_count(),
-                "transport stats"
-            );
-        }
-    });
-    if let Err(e) = started {
-        tracing::warn!(error = %e, "no thread to report transport stats from");
     }
 }

@@ -8,6 +8,7 @@ use tokio::sync::mpsc;
 
 use super::radio::{ConnectionId, Radio, Role};
 use super::spec;
+use crate::letting_go::TheQueueMayBeFull as _;
 
 const PIPE_BUFFER_EQUIVALENT: usize = 64 * 1024;
 const FRAGMENTS_HELD_PER_PEER: usize = 64;
@@ -58,7 +59,9 @@ impl PeerLink {
     }
 
     pub fn hand_over(&self, fragment: Vec<u8>) {
-        let _ = self.arriving.try_send(fragment);
+        self.arriving
+            .try_send(fragment)
+            .dropped_if_the_queue_is_full("a fragment arriving from the radio");
     }
 }
 

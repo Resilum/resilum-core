@@ -11,10 +11,14 @@
 
 use std::sync::Once;
 
+use resilum_core::letting_go::ItWasAlreadyThere as _;
+
 static INSTALL: Once = Once::new();
 
 pub fn install_default_provider() {
     INSTALL.call_once(|| {
-        let _ = rustls::crypto::ring::default_provider().install_default();
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .it_was_already_there();
     });
 }

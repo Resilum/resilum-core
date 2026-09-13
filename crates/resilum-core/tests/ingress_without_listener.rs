@@ -30,8 +30,9 @@ fn an_ingress_without_a_listen_address_binds_nothing() {
 
     let port = node.socks_port();
 
-    node.stop().ok();
+    let stopped = node.stop();
     assert_eq!(port, None, "a node with no listener reported a port");
+    stopped.expect("the node to stop");
 }
 
 #[test]
@@ -51,6 +52,7 @@ fn an_ingress_with_one_still_binds_it() {
         }
     });
 
-    node.stop().ok();
+    let stopped = node.stop();
     assert_eq!(bound, Some(asked_for));
+    stopped.expect("the node to stop");
 }

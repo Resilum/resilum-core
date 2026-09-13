@@ -4,6 +4,7 @@ use blew::central::Central;
 
 use super::{ATT_HEADER, Held};
 use crate::ble::radio::{PeerAddress, RadioEvent, Role};
+use crate::letting_go::NoOneIsListening as _;
 
 pub(super) struct Dialled {
     address: PeerAddress,
@@ -48,8 +49,7 @@ pub(super) async fn dialled(held: &mut Held, reached: Dialled) {
         .peers
         .joined(reached.address.clone(), Role::Central);
     held.told.now_carries(conn, carried);
-    let _ = held
-        .told
+    held.told
         .telling
         .send(RadioEvent::Connected {
             conn,
@@ -57,5 +57,6 @@ pub(super) async fn dialled(held: &mut Held, reached: Dialled) {
             role: Role::Central,
             bytes_one_write_carries: carried,
         })
-        .await;
+        .await
+        .no_one_is_listening();
 }

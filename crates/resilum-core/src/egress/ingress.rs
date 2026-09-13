@@ -12,6 +12,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use crate::config::IngressConfig;
 use crate::egress::own::{self, OwnExits};
 use crate::egress::{ActiveLinks, Candidate, CandidateRegistry, best_available};
+use crate::letting_go::OnTheWayOut as _;
 use crate::link::{LinkMsg, LinkRouter};
 use crate::socks5_tcp::{
     self, REP_EGRESS_DID_NOT_ANSWER, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH,
@@ -80,7 +81,9 @@ async fn turn_away(mut tcp: TcpStream, why: u8) {
     if socks5_tcp::read_connect(&mut tcp).await.is_err() {
         return;
     }
-    let _ = socks5_tcp::reply(&mut tcp, why).await;
+    socks5_tcp::reply(&mut tcp, why)
+        .await
+        .on_the_way_out("a socks refusal to a local client");
 }
 
 async fn session(
@@ -104,7 +107,7 @@ async fn session(
     super::relay::relay(&handle, from_link, tcp).await;
     active.deregister(&dest_bytes, &link_id);
     router.detach(&link_id);
-    let _ = handle.close().await;
+    handle.close().await.on_the_way_out("an ingress link");
 }
 
 pub(super) async fn dial(

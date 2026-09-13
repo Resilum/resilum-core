@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::ble::backend::drive::{ATT_HEADER, Reporting};
 use crate::ble::radio::{ConnectionId, PeerAddress, RadioEvent, Role};
 use crate::ble::spec;
+use crate::letting_go::NoOneIsListening as _;
 
 const SMALLEST_MTU: usize = 23;
 
@@ -27,14 +28,14 @@ pub(super) async fn seen(
         keys = service_data.len(),
         "heard one of ours on the air"
     );
-    let _ = told
-        .telling
+    told.telling
         .send(RadioEvent::Seen {
             address,
             name,
             beacon,
         })
-        .await;
+        .await
+        .no_one_is_listening();
 }
 
 pub(super) async fn arrived(
@@ -55,14 +56,14 @@ pub(super) async fn arrived_on(
     characteristic: u128,
     value: Vec<u8>,
 ) {
-    let _ = told
-        .telling
+    told.telling
         .send(RadioEvent::Data {
             conn,
             characteristic,
             value,
         })
-        .await;
+        .await
+        .no_one_is_listening();
 }
 
 pub(super) async fn parted(told: &mut Reporting, address: &PeerAddress) {
@@ -71,7 +72,10 @@ pub(super) async fn parted(told: &mut Reporting, address: &PeerAddress) {
     };
     told.peers.parted(conn);
     told.forget_what_it_carried(conn);
-    let _ = told.telling.send(RadioEvent::Disconnected { conn }).await;
+    told.telling
+        .send(RadioEvent::Disconnected { conn })
+        .await
+        .no_one_is_listening();
 }
 
 pub(super) async fn met_us(told: &mut Reporting, address: PeerAddress) -> ConnectionId {
@@ -81,14 +85,14 @@ pub(super) async fn met_us(told: &mut Reporting, address: PeerAddress) -> Connec
     let conn = told.peers.joined(address.clone(), Role::Peripheral);
     let carried = SMALLEST_MTU - ATT_HEADER;
     told.now_carries(conn, carried);
-    let _ = told
-        .telling
+    told.telling
         .send(RadioEvent::Connected {
             conn,
             address,
             role: Role::Peripheral,
             bytes_one_write_carries: carried,
         })
-        .await;
+        .await
+        .no_one_is_listening();
     conn
 }

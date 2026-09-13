@@ -1,3 +1,5 @@
+use resilum_core::letting_go::NoOneIsListening as _;
+
 const REQ: &str = r#"["REQ","aabb",{"kinds":[1059]}]"#;
 
 #[tokio::test]
@@ -15,7 +17,7 @@ async fn a_dropped_connection_comes_back_and_reissues_its_requests() {
                 .await
                 .expect("handshake");
             if let Some(Ok(msg)) = futures_util::StreamExt::next(&mut ws).await {
-                let _ = seen_tx.send((round, msg.to_string()));
+                seen_tx.send((round, msg.to_string())).no_one_is_listening();
             }
         }
     });

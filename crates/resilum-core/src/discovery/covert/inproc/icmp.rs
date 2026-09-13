@@ -24,9 +24,12 @@ pub(super) fn attach(
         .map_err(|e| format!("open icmp socket: {e}"))?;
     let session = super::random_session_id();
     super::bridge(engine, name, move |uplink, decoded| {
-        let _ = runner::run_client(carrier, server, session, uplink, move |bytes| {
+        let ran = runner::run_client(carrier, server, session, uplink, move |bytes| {
             decoded.hand_to_leviculum(bytes);
         });
+        if let Err(error) = ran {
+            tracing::warn!(%error, "the covert icmp client stopped carrying");
+        }
     })
 }
 
@@ -41,8 +44,11 @@ pub(super) fn listen(
         crate::covert::icmp::server::IcmpServer::with_mtu(&identity.public_key_bytes(), mtu)
             .map_err(|e| format!("open icmp server socket: {e}"))?;
     super::bridge(engine, name, move |uplink, decoded| {
-        let _ = runner::run_server(carrier, identity, uplink, move |_session, bytes| {
+        let ran = runner::run_server(carrier, identity, uplink, move |_session, bytes| {
             decoded.hand_to_leviculum(bytes);
         });
+        if let Err(error) = ran {
+            tracing::warn!(%error, "the covert icmp server stopped carrying");
+        }
     })
 }

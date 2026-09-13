@@ -79,7 +79,7 @@ pub(super) fn bring_up(
         node.ygg_discovery = ygg_discovery;
     }
     #[cfg(not(all(unix, feature = "ygg")))]
-    let _ = ygg_discovery;
+    let _no_node_field_to_keep_it_in = ygg_discovery;
     for (service, directory) in &node.directories {
         discovery.register(*service, directory.clone());
     }

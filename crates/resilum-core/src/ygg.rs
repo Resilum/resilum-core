@@ -18,6 +18,7 @@ use leviculum_std::interfaces::ByteChannelHandle;
 use tokio_smoltcp::Net;
 
 use crate::discovery::OriginRegistry;
+use crate::letting_go::OnTheWayOut as _;
 
 type Links = Arc<Mutex<HashMap<IpAddr, ByteChannelHandle>>>;
 
@@ -49,7 +50,9 @@ impl YggHandle {
         // accepted links leave the node's status the moment the transport is off.
         let mut links = self.links.lock().expect("ygg links");
         for handle in links.values() {
-            let _ = self.engine.remove_interface(handle.id());
+            self.engine
+                .remove_interface(handle.id())
+                .on_the_way_out("a yggdrasil link's interface");
         }
         links.clear();
         drop(links);

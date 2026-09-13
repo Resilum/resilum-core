@@ -7,6 +7,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::time::{Instant, timeout_at};
 
 use super::{LinkMsg, LinkRouter};
+use crate::letting_go::OnTheWayOut as _;
 
 const ESTABLISH_TIMEOUT: Duration = Duration::from_secs(30);
 const PATH_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
@@ -46,7 +47,10 @@ pub async fn dial(
     if !established(&mut from_link).await {
         tracing::debug!(dest = %dest_hash, "the far side never confirmed the link");
         router.detach(&link_id);
-        let _ = handle.close().await;
+        handle
+            .close()
+            .await
+            .on_the_way_out("a link the far side never confirmed");
         return None;
     }
     Some((handle, link_id, from_link))

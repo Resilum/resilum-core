@@ -1,0 +1,15 @@
+---
+id: a-string-is-grown-not-written-to
+language: Rust
+severity: error
+message: A write into a `String` pretends to be checked.
+note: |
+  `String` has no way to fail, so the `fmt::Result` these macros hand back is
+  noise, and thrown away it reads like a real error was ignored. Grow the text
+  instead: `Text::line` for one line, `Text::block` for a chunk that brings its
+  own newlines. A `write!` whose target really can fail belongs in the
+  surrounding `Result`, not behind `let _`.
+rule:
+  any:
+    - pattern: let _ = write!($$$ARGS);
+    - pattern: let _ = writeln!($$$ARGS);

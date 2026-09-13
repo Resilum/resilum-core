@@ -1,0 +1,23 @@
+---
+id: nothing-fails-in-silence
+language: Rust
+severity: error
+message: A result is thrown away without saying why.
+note: |
+  `let _ =` hides both the error and the reason it was acceptable, and a
+  failure that says nothing has cost us more days than any other kind. Say
+  which of the two it is. Handle it — match the error and log what was lost,
+  even if only at debug level. Or name the reason, so the next reader needs no
+  archaeology: `no_one_is_listening()` when a send outlives its receiver,
+  `on_the_way_out("what")` on a shutdown path, `it_was_already_there()` when
+  `Err` only means a global was set twice, `it_only_must_not_panic()` when a
+  test cares about the absence of a panic and nothing else.
+  A binding the compiler would call unused is not a thrown-away result: give it
+  a name starting with `_`.
+rule:
+  all:
+    - pattern: let _ = $RESULT;
+    - not:
+        any:
+          - pattern: let _ = write!($$$ARGS);
+          - pattern: let _ = writeln!($$$ARGS);

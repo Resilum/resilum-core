@@ -1,8 +1,9 @@
 //! Bidirectional byte pump between a TCP stream and one link session.
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncReadExt as _, AsyncWrite, AsyncWriteExt as _};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
+use crate::letting_go::OnTheWayOut as _;
 use crate::link::LinkMsg;
 
 const CHUNK: usize = 8 * 1024;
@@ -26,7 +27,9 @@ pub async fn pump<S>(
                 }
                 Some(LinkMsg::Established) => {}
                 Some(LinkMsg::Closed) | None => {
-                    let _ = tcp.shutdown().await;
+                    tcp.shutdown()
+                        .await
+                        .on_the_way_out("the tcp side of a closed link");
                     break;
                 }
             },
@@ -40,6 +43,17 @@ pub async fn pump<S>(
                 }
             },
         }
+    }
+}
+
+pub async fn both_ways<A, B>(one: &mut A, other: &mut B, what: &str)
+where
+    A: AsyncRead + AsyncWrite + Unpin + ?Sized,
+    B: AsyncRead + AsyncWrite + Unpin + ?Sized,
+{
+    match tokio::io::copy_bidirectional(one, other).await {
+        Ok((there, back)) => tracing::debug!(what, there, back, "a flow ended"),
+        Err(error) => tracing::debug!(what, %error, "a flow broke"),
     }
 }
 

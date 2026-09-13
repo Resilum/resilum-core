@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use resilum_core::letting_go::NoOneIsListening as _;
+
 use crate::upstream::Deadlines;
 
 #[tokio::test]
@@ -22,7 +24,7 @@ async fn a_relay_that_stops_speaking_is_dropped_and_redialled() {
                     .await
                     .expect("handshake"),
             );
-            let _ = seen_tx.send(round);
+            seen_tx.send(round).no_one_is_listening();
         }
         std::future::pending::<()>().await;
     });
@@ -66,7 +68,7 @@ async fn a_quiet_relay_that_answers_its_pings_keeps_the_same_connection() {
             // Reading is what makes tungstenite answer a ping with a pong.
             while let Some(Ok(message)) = futures_util::StreamExt::next(&mut ws).await {
                 if message.is_ping() {
-                    let _ = ping_tx.send(round);
+                    ping_tx.send(round).no_one_is_listening();
                 }
             }
             round += 1;

@@ -1,7 +1,7 @@
 //! End-to-end: an egress listen node accepts an inbound link and forwards its
 //! bytes to a local TCP endpoint, echoing them back to the initiator.
 
-use std::io::{Read, Write};
+use std::io::{Read as _, Write as _};
 use std::time::Duration;
 
 use leviculum_std::NodeEvent;
@@ -125,8 +125,10 @@ fn egress_forwards_link_bytes_to_local_tcp() {
         .expect("echo")
     });
 
-    client.stop().ok();
-    egress.stop().ok();
+    let client_stopped = client.stop();
+    let egress_stopped = egress.stop();
 
     assert_eq!(echoed, b"ping");
+    client_stopped.expect("the client node to stop");
+    egress_stopped.expect("the egress node to stop");
 }

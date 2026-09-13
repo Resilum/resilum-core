@@ -30,10 +30,14 @@ fn each_service_is_routed_to_its_own_target() {
         let b = probe_service(&engine, &events, "svc-b").await;
         (a, b)
     });
+    drop(engine);
+    drop(rt);
 
-    client.stop().ok();
-    egress.stop().ok();
+    let client_stopped = client.stop();
+    let egress_stopped = egress.stop();
 
     assert_eq!(a, b'A', "svc-a reached the A target");
     assert_eq!(b, b'B', "svc-b reached the B target");
+    client_stopped.expect("the client node to stop");
+    egress_stopped.expect("the egress node to stop");
 }

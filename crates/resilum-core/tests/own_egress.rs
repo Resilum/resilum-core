@@ -1,7 +1,7 @@
 //! A node that runs an exit itself reaches it over a local socket, with no
 //! peer and no mesh round trip.
 
-use std::io::{Read, Write};
+use std::io::{Read as _, Write as _};
 use std::time::Duration;
 
 use resilum_core::{Config, EgressListen, IngressConfig, Node};
@@ -73,8 +73,9 @@ fn a_node_uses_the_exit_it_runs_itself() {
     let mut buf = [0u8; 4];
     let got = stream.read_exact(&mut buf);
 
-    node.stop().ok();
+    let stopped = node.stop();
 
     got.expect("a round trip through this node's own exit");
     assert_eq!(&buf, b"ping");
+    stopped.expect("the node to stop");
 }

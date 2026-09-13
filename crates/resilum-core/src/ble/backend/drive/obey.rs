@@ -4,6 +4,7 @@ use blew::peripheral::AdvertisingConfig;
 use super::Held;
 use super::dialling;
 use crate::ble::radio::{ConnectionId, RadioEvent};
+use crate::letting_go::NoOneIsListening as _;
 
 pub(super) async fn command(held: &mut Held, command: super::Command) {
     use super::Command;
@@ -76,11 +77,11 @@ async fn disconnect(held: &mut Held, conn: ConnectionId) {
     if let Err(error) = held.central.disconnect(&device).await {
         tracing::debug!(%error, "the radio had already let the peer go");
     }
-    let _ = held
-        .told
+    held.told
         .telling
         .send(RadioEvent::Disconnected { conn })
-        .await;
+        .await
+        .no_one_is_listening();
 }
 
 async fn read(held: &Held, conn: ConnectionId, characteristic: u128) {
@@ -90,14 +91,14 @@ async fn read(held: &Held, conn: ConnectionId, characteristic: u128) {
     let device = blew::DeviceId::from(address.0);
     let want = uuid::Uuid::from_u128(characteristic);
     if let Ok(value) = held.central.read_characteristic(&device, want).await {
-        let _ = held
-            .told
+        held.told
             .telling
             .send(RadioEvent::Data {
                 conn,
                 characteristic,
                 value: value.to_vec(),
             })
-            .await;
+            .await
+            .no_one_is_listening();
     }
 }

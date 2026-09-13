@@ -13,6 +13,8 @@ use tokio::net::TcpListener;
 
 use socks::handle_conn;
 
+use crate::letting_go::ItWasAlreadyThere as _;
+
 pub type ArtiClient = Arc<TorClient<tor_rtcompat::PreferredRuntime>>;
 
 pub struct EmbeddedTor {
@@ -31,7 +33,9 @@ impl EmbeddedTor {
     pub async fn spawn(state_root: Option<&Path>) -> io::Result<Self> {
         // Arti needs rustls' process-default CryptoProvider installed, else TLS
         // panics mid-bootstrap.
-        let _ = rustls::crypto::ring::default_provider().install_default();
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .it_was_already_there();
         let config =
             build_config(state_root).map_err(|e| io::Error::other(format!("arti config: {e}")))?;
         let client: ArtiClient = TorClient::builder()
@@ -126,15 +130,15 @@ mod tests {
 
     #[tokio::test]
     async fn spawn_returns_without_waiting_for_the_directory() {
-        let dir = std::env::temp_dir().join(format!("resilum-tor-{}", std::process::id()));
-        tokio::fs::create_dir_all(&dir).await.unwrap();
+        let dir = tempfile::tempdir().expect("a temporary directory");
 
-        let tor = tokio::time::timeout(Duration::from_secs(10), EmbeddedTor::spawn(Some(&dir)))
-            .await
-            .expect("spawn must not wait for the directory")
-            .expect("spawn must succeed");
+        let tor = tokio::time::timeout(
+            Duration::from_secs(10),
+            EmbeddedTor::spawn(Some(dir.path())),
+        )
+        .await
+        .expect("spawn must not wait for the directory")
+        .expect("spawn must succeed");
         assert!(tor.port() != 0, "the SOCKS port has to be known at once");
-
-        tokio::fs::remove_dir_all(&dir).await.ok();
     }
 }

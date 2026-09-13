@@ -81,7 +81,11 @@ async fn a_central_that_writes_before_it_subscribes_is_a_connection_all_the_same
 async fn a_peer_that_drops_is_forgotten_and_stops_carrying_anything() {
     let mut bench = bench();
     let conn = met_us(&mut bench.told, their_address()).await;
-    let _ = bench.heard.recv().await;
+    bench
+        .heard
+        .recv()
+        .await
+        .expect("the connected event that comes first");
 
     parted(&mut bench.told, &their_address()).await;
 

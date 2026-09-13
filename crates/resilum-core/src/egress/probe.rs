@@ -34,6 +34,7 @@ fn greeting_and_connect(host: Ipv4Addr, port: u16) -> Vec<u8> {
 
 use crate::egress::Candidate;
 use crate::egress::ingress::dial;
+use crate::letting_go::OnTheWayOut as _;
 use crate::link::{LinkMsg, LinkRouter};
 
 /// One probe's raw timings, seconds: mesh round-trip and full round-trip.
@@ -87,7 +88,10 @@ pub async fn e2e_probe(
             .measure(&handle, &mut from_link, *host, *port)
             .await;
         router.detach(&link_id);
-        let _ = handle.close().await;
+        handle
+            .close()
+            .await
+            .on_the_way_out("the link a probe ran over");
         if result.is_some() {
             return result;
         }

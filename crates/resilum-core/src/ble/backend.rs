@@ -11,6 +11,7 @@ use tokio::sync::mpsc;
 
 use super::radio::{ConnectionId, Outbound, PeerAddress, Radio, RadioError, RadioEvent};
 use super::spec;
+use crate::letting_go::OnTheWayOut as _;
 use command::Command;
 
 const COMMANDS_IN_FLIGHT: usize = 64;
@@ -63,7 +64,8 @@ impl Radio for BlewRadio {
     }
 
     fn stop_advertising(&self) {
-        let _ = self.ask(Command::StopAdvertising);
+        self.ask(Command::StopAdvertising)
+            .on_the_way_out("the order to stop advertising");
     }
 
     fn the_local_name_is_ours_to_spend(&self) -> bool {
@@ -75,7 +77,8 @@ impl Radio for BlewRadio {
     }
 
     fn stop_scan(&self) {
-        let _ = self.ask(Command::StopScan);
+        self.ask(Command::StopScan)
+            .on_the_way_out("the order to stop scanning");
     }
 
     fn connect(&self, address: &PeerAddress) -> Result<(), RadioError> {
@@ -83,7 +86,8 @@ impl Radio for BlewRadio {
     }
 
     fn disconnect(&self, conn: ConnectionId) {
-        let _ = self.ask(Command::Disconnect(conn));
+        self.ask(Command::Disconnect(conn))
+            .on_the_way_out("the order to drop a connection");
     }
 
     fn outbound_awaits_a_slot(&self) -> mpsc::Sender<Outbound> {
@@ -107,6 +111,8 @@ impl Radio for BlewRadio {
     }
 
     fn serve_identity(&self, identity: [u8; spec::IDENTITY_LEN]) {
-        let _ = self.ask(Command::ServeIdentity(identity));
+        if let Err(error) = self.ask(Command::ServeIdentity(identity)) {
+            tracing::warn!(%error, "the radio will not serve our identity, so peers cannot name us");
+        }
     }
 }

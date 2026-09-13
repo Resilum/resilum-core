@@ -11,10 +11,11 @@ use std::sync::Arc;
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _, ReadHalf, WriteHalf};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::DialableAddress;
+use crate::letting_go::NoOneIsListening as _;
 
 pub(in crate::discovery::covert) fn attach(
     engine: &Arc<ReticulumNode>,
@@ -53,7 +54,7 @@ pub(in crate::discovery::covert) struct Decoded(UnboundedSender<Vec<u8>>);
 
 impl Decoded {
     pub(in crate::discovery::covert) fn hand_to_leviculum(&self, bytes: &[u8]) {
-        let _ = self.0.send(bytes.to_vec());
+        self.0.send(bytes.to_vec()).no_one_is_listening();
     }
 }
 
@@ -112,15 +113,14 @@ async fn give_leviculum_what_arrived(
     mut decoded: UnboundedReceiver<Vec<u8>>,
 ) {
     while let Some(bytes) = decoded.recv().await {
-        if sink.write_all(&bytes).await.is_err() {
+        if sink.write_all(&bytes).await.is_err() || sink.flush().await.is_err() {
             return;
         }
-        let _ = sink.flush().await;
     }
 }
 
 fn random_session_id() -> u32 {
-    use rand_core::RngCore;
+    use rand_core::RngCore as _;
     let mut buf = [0u8; 4];
     rand_core::OsRng.fill_bytes(&mut buf);
     u32::from_be_bytes(buf)

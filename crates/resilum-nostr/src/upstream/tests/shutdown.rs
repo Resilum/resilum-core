@@ -1,4 +1,4 @@
-use futures_util::SinkExt;
+use futures_util::SinkExt as _;
 use tokio_tungstenite::tungstenite::Message;
 
 /// `run` owns its own clone of the shared state, so nothing else stops it:
@@ -15,7 +15,9 @@ async fn dropping_the_incoming_receiver_ends_the_reconnect_loop() {
         let mut ws = tokio_tungstenite::accept_async(stream)
             .await
             .expect("handshake");
-        let _ = ws.send(Message::text(r#"["NOTICE","still here"]"#)).await;
+        ws.send(Message::text(r#"["NOTICE","still here"]"#))
+            .await
+            .expect("to greet the client");
         std::future::pending::<()>().await; // keep the socket open; `run` must exit on its own
     });
 

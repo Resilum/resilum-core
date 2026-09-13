@@ -1,7 +1,7 @@
 //! End-to-end: a connect node accepts local TCP and forwards it through the
 //! mesh to an egress node, which relays to a local TCP echo and back.
 
-use std::io::{Read, Write};
+use std::io::{Read as _, Write as _};
 use std::time::Duration;
 
 use resilum_core::{Config, EgressListen, IngressConfig, Node};
@@ -116,8 +116,8 @@ fn connect_forwards_a_local_connection_through_egress() {
         }
     }
 
-    connect.stop().ok();
-    egress.stop().ok();
+    let connect_stopped = connect.stop();
+    let egress_stopped = egress.stop();
 
     got.expect("round-trip through the mesh");
     assert_eq!(&buf, b"ping");
@@ -125,4 +125,6 @@ fn connect_forwards_a_local_connection_through_egress() {
         discovered_hash.is_some_and(|h| !h.is_empty()),
         "PeerDiscovered event carried a hash"
     );
+    connect_stopped.expect("the connecting node to stop");
+    egress_stopped.expect("the egress node to stop");
 }

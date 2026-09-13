@@ -1,6 +1,7 @@
 use proptest::prelude::*;
 
 use super::Beacon;
+use crate::letting_go::ItOnlyMustNotPanic as _;
 
 const ROOM_IN_THE_ADVERTISEMENT: usize = 8;
 
@@ -108,8 +109,8 @@ proptest! {
     }
 
     #[test]
-    fn no_name_at_all_makes_this_panic(name in ".{0,40}") {
-        let _ = Beacon::read(&name);
+    fn no_name_at_all_must_not_panic(name in ".{0,40}") {
+        Beacon::read(&name).it_only_must_not_panic();
     }
 
     #[test]
@@ -124,7 +125,7 @@ proptest! {
     }
 
     #[test]
-    fn no_service_data_at_all_makes_this_panic(raw in prop::collection::vec(any::<u8>(), 0..40)) {
-        let _ = Beacon::read_on_the_air(&raw);
+    fn no_service_data_at_all_must_not_panic(raw in prop::collection::vec(any::<u8>(), 0..40)) {
+        Beacon::read_on_the_air(&raw).it_only_must_not_panic();
     }
 }

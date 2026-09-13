@@ -12,6 +12,7 @@ use resilum_core::ble::radio::{
     ConnectionId, Outbound, PeerAddress, Radio, RadioError, RadioEvent,
 };
 use resilum_core::ble::spec;
+use resilum_core::letting_go::NoOneIsListening as _;
 
 const DEEP_ENOUGH_FOR_A_TEST: usize = 256;
 
@@ -122,11 +123,13 @@ fn deliver_to_the_far_end(air: &Air, ours: &PeerAddress, mut waiting: mpsc::Rece
         air.wire()
             .tapped
             .push((piece.conn, piece.characteristic, piece.value.clone()));
-        let _ = far.to.blocking_send(RadioEvent::Data {
-            conn: piece.conn,
-            characteristic: piece.characteristic,
-            value: piece.value,
-        });
+        far.to
+            .blocking_send(RadioEvent::Data {
+                conn: piece.conn,
+                characteristic: piece.characteristic,
+                value: piece.value,
+            })
+            .no_one_is_listening();
     }
 }
 

@@ -12,8 +12,11 @@ async fn an_exit_that(answer: &'static [u8]) -> String {
     resilum_tasks::watch("a test exit that answers a probe", async move {
         let (mut served, _) = exit.accept().await.expect("the probe below");
         let mut asked = [0u8; 13];
-        let _ = served.read_exact(&mut asked).await;
-        let _ = served.write_all(answer).await;
+        served
+            .read_exact(&mut asked)
+            .await
+            .expect("the probe's request");
+        served.write_all(answer).await.expect("to answer the probe");
     });
     address
 }

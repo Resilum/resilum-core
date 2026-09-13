@@ -26,7 +26,9 @@ pub(super) fn on_seen(
     }
     match toward(&ours.beacon, theirs.as_ref()) {
         Toward::DialNow => {
-            let _ = ours.radio.connect(&address);
+            if let Err(error) = ours.radio.connect(&address) {
+                tracing::debug!(peer = %address.0, %error, "the radio refused to dial");
+            }
         }
         Toward::LetThemDialFirst => {
             held_off.insert(address, now_ms);
@@ -42,8 +44,10 @@ pub(super) fn those_who_waited(ours: &Ours, links: &Links, held_off: &mut HeldOf
         .collect();
     for address in ready {
         held_off.remove(&address);
-        if links.room_for_one_more() {
-            let _ = ours.radio.connect(&address);
+        if links.room_for_one_more()
+            && let Err(error) = ours.radio.connect(&address)
+        {
+            tracing::debug!(peer = %address.0, %error, "the radio refused to dial the one who waited");
         }
     }
 }

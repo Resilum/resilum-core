@@ -25,7 +25,7 @@ pub async fn build(
         return super::transport::build_protected(secret, cfg, hook).await;
     }
     #[cfg(not(feature = "iroh-protect"))]
-    let _ = protect;
+    let _no_transport_to_hand_it_to = protect;
     base_builder(secret, cfg)?
         .bind()
         .await

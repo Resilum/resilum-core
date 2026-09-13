@@ -6,12 +6,13 @@ use std::sync::Arc;
 
 use leviculum_std::driver::ReticulumNode;
 use netstack_smoltcp::TcpStream;
-use tokio::io::AsyncWriteExt;
+use tokio::io::AsyncWriteExt as _;
 
 use super::fakedns::FakeDns;
 use crate::config::IngressConfig;
 use crate::egress::socks5::Target;
 use crate::egress::{ActiveLinks, CandidateRegistry, best_available, ingress, relay, socks5};
+use crate::letting_go::OnTheWayOut as _;
 use crate::link::LinkRouter;
 
 pub(super) struct FlowCtx {
@@ -66,7 +67,7 @@ pub(super) async fn serve(ctx: Arc<FlowCtx>, stream: TcpStream, dest: SocketAddr
 async fn serve_i2p(i2p: &super::i2p::I2pConduit, host: &str, mut stream: TcpStream) {
     match i2p.connect(host).await {
         Ok(mut upstream) => {
-            let _ = tokio::io::copy_bidirectional(&mut stream, &mut upstream).await;
+            crate::pump::both_ways(&mut stream, &mut upstream, "a flow through i2p").await;
         }
         Err(e) => tracing::debug!(error = %e, host, "i2p dial failed"),
     }
@@ -76,7 +77,7 @@ async fn serve_i2p(i2p: &super::i2p::I2pConduit, host: &str, mut stream: TcpStre
 async fn serve_onion(tor: &crate::tor::ArtiClient, host: &str, port: u16, mut stream: TcpStream) {
     match tor.connect((host, port)).await {
         Ok(mut upstream) => {
-            let _ = tokio::io::copy_bidirectional(&mut stream, &mut upstream).await;
+            crate::pump::both_ways(&mut stream, &mut upstream, "a flow to an onion").await;
         }
         Err(e) => tracing::debug!(error = %e, host, "onion dial failed"),
     }
@@ -112,5 +113,5 @@ async fn serve_mesh(ctx: Arc<FlowCtx>, mut stream: TcpStream, target: Target, de
 
     ctx.active.deregister(&dest_bytes, &link_id);
     ctx.router.detach(&link_id);
-    let _ = handle.close().await;
+    handle.close().await.on_the_way_out("a vpn flow's link");
 }

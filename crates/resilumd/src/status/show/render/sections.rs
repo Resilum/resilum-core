@@ -1,6 +1,5 @@
-use std::fmt::Write as _;
-
 use resilum_core::status::NodeStatus;
+use resilum_core::text::Text as _;
 
 use super::super::paint::{dimmed, transport};
 use super::super::plot;
@@ -15,65 +14,58 @@ pub fn what_has_moved(out: &mut String, status: &NodeStatus, links_listed: bool)
     } else {
         dimmed(" (--links)")
     };
-    let _ = writeln!(
-        out,
+    out.line(format_args!(
         "\n{}",
         side_by_side(&[
             format!("paths {}", status.reachable_destinations),
             format!("links {}{ask_for_links}", status.links.len()),
             format!("interfaces {up}/{} up", status.interfaces.len()),
         ])
-    );
+    ));
     let Some(t) = &status.transport else {
         return;
     };
-    let _ = writeln!(
-        out,
-        "{}",
-        side_by_side(&[
-            format!("sent {}", t.packets_sent),
-            format!("received {}", t.packets_received),
-            format!("forwarded {}", t.packets_forwarded),
-            format!("dropped {}", t.packets_dropped),
-            format!("announces {}", t.announces_processed),
-        ])
-    );
+    out.line(side_by_side(&[
+        format!("sent {}", t.packets_sent),
+        format!("received {}", t.packets_received),
+        format!("forwarded {}", t.packets_forwarded),
+        format!("dropped {}", t.packets_dropped),
+        format!("announces {}", t.announces_processed),
+    ]));
 }
 
 pub fn where_we_sit(out: &mut String, status: &NodeStatus, map_wanted: bool) {
     let ours = status.coordinates.ours;
     let at = ours.position();
     let placed = status.coordinates.peers.len();
-    let _ = writeln!(
-        out,
+    out.line(format_args!(
         "at {:+.4} {:+.4} {:+.4}   error {:.2}   placed {placed}{}",
         at[0],
         at[1],
         at[2],
         ours.error(),
         if map_wanted { "" } else { "   (--map)" }
-    );
+    ));
     if !map_wanted {
         return;
     }
     out.push_str(&heading("where everyone sits"));
     for line in plot::of(status) {
-        let _ = writeln!(out, "  {line}");
+        out.line(format_args!("  {line}"));
     }
-    let _ = writeln!(out, "  {} {}", plot::US, dimmed("this node"));
+    out.line(format_args!("  {} {}", plot::US, dimmed("this node")));
     for (nth, peer) in status.coordinates.peers.iter().enumerate() {
         let ways: Vec<String> = plot::ways_to(status, &peer.identity_hash)
             .iter()
             .map(|service| transport(service))
             .collect();
-        let _ = writeln!(
-            out,
+        out.line(format_args!(
             "  {} {}  {:>4} ms   {}",
             plot::letter(nth),
             shortened(&peer.identity_hash),
             peer.estimated_rtt_ms,
             side_by_side(&ways)
-        );
+        ));
     }
 }
 
@@ -100,17 +92,16 @@ pub fn what_carries_us(out: &mut String, status: &NodeStatus, listed: bool) {
             format!("{} {up}/{}", transport(service), over_it.count())
         })
         .collect();
-    let _ = writeln!(
-        out,
+    out.line(format_args!(
         "carried by   {}{}",
         by_service.join("   "),
         if listed { "" } else { "   (--interfaces)" }
-    );
+    ));
     if !listed {
         return;
     }
     out.push_str(&heading("interfaces"));
-    let _ = writeln!(out, "{}", tables::interfaces(status));
+    out.line(tables::interfaces(status));
 }
 
 pub fn who_we_hold(out: &mut String, status: &NodeStatus, listed: bool) {
@@ -118,5 +109,5 @@ pub fn who_we_hold(out: &mut String, status: &NodeStatus, listed: bool) {
         return;
     }
     out.push_str(&heading("links"));
-    let _ = writeln!(out, "{}", tables::links(status));
+    out.line(tables::links(status));
 }

@@ -96,8 +96,10 @@ impl Node {
     /// exactly when a new peer becomes reachable.
     pub fn trigger_discovery_announce(&self) {
         self.discovery_trigger.notify_waiters();
-        if let Some(lxmf) = &self.lxmf {
-            let _ = lxmf.announce();
+        if let Some(lxmf) = &self.lxmf
+            && let Err(error) = lxmf.announce()
+        {
+            tracing::debug!(%error, "our lxmf delivery destination was not announced");
         }
     }
 

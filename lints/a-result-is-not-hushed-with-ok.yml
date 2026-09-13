@@ -1,0 +1,13 @@
+---
+id: a-result-is-not-hushed-with-ok
+language: Rust
+severity: error
+message: A result is hushed with `.ok()`.
+note: |
+  `.ok()` on a discarded result reads like a conversion but exists only to
+  quiet the compiler, which is why clippy's own `unused_result_ok` calls it
+  misleading. Say what you mean instead: handle the error, or name the reason
+  it may be let go — see `nothing-fails-in-silence`. Turning a `Result` into an
+  `Option` you actually bind and use is a different thing and stays.
+rule:
+  pattern: $RESULT.ok();

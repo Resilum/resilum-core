@@ -3,11 +3,12 @@
 use std::net::SocketAddr;
 
 use leviculum_std::api::LinkHandle;
-use tokio::io::AsyncWriteExt;
+use tokio::io::AsyncWriteExt as _;
 use tokio::net::{TcpStream, lookup_host};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::egress::socks5;
+use crate::letting_go::OnTheWayOut as _;
 use crate::link::LinkMsg;
 
 pub(super) async fn session_external(
@@ -19,7 +20,7 @@ pub(super) async fn session_external(
         Ok(tcp) => tcp,
         Err(e) => {
             tracing::warn!(target = %target, error = %e, "egress connect failed");
-            let _ = close(handle).await;
+            close(handle).await;
             return;
         }
     };
@@ -35,7 +36,7 @@ pub(super) async fn session_embedded(
         Ok(r) => r,
         Err(e) => {
             tracing::debug!(error = %e, "socks handshake failed");
-            let _ = close(handle).await;
+            close(handle).await;
             return;
         }
     };
@@ -48,23 +49,32 @@ pub(super) async fn session_embedded(
         Ok(a) => a.collect(),
         Err(e) => {
             tracing::debug!(host = %req.host, port = req.port, error = %e, "resolve failed");
-            let _ = handle.send(&socks5::REPLY_HOST_UNREACHABLE).await;
-            let _ = close(handle).await;
+            handle
+                .send(&socks5::REPLY_HOST_UNREACHABLE)
+                .await
+                .on_the_way_out("a socks reply saying the host is unreachable");
+            close(handle).await;
             return;
         }
     };
     if !super::policy::dialable(&addrs, allow_private) {
         tracing::warn!(host = %req.host, port = req.port, "egress target refused by policy");
-        let _ = handle.send(&socks5::REPLY_NOT_ALLOWED).await;
-        let _ = close(handle).await;
+        handle
+            .send(&socks5::REPLY_NOT_ALLOWED)
+            .await
+            .on_the_way_out("a socks reply refusing the target");
+        close(handle).await;
         return;
     }
     let mut tcp = match TcpStream::connect(&addrs[..]).await {
         Ok(tcp) => tcp,
         Err(e) => {
             tracing::debug!(host = %req.host, port = req.port, error = %e, "upstream unreachable");
-            let _ = handle.send(&socks5::REPLY_HOST_UNREACHABLE).await;
-            let _ = close(handle).await;
+            handle
+                .send(&socks5::REPLY_HOST_UNREACHABLE)
+                .await
+                .on_the_way_out("a socks reply saying the upstream is unreachable");
+            close(handle).await;
             return;
         }
     };
@@ -72,7 +82,7 @@ pub(super) async fn session_embedded(
         return;
     }
     if !req.leftover.is_empty() && tcp.write_all(&req.leftover).await.is_err() {
-        let _ = close(handle).await;
+        close(handle).await;
         return;
     }
     pump_link(handle, from_link, tcp).await;
@@ -80,9 +90,9 @@ pub(super) async fn session_embedded(
 
 async fn pump_link(handle: LinkHandle, from_link: UnboundedReceiver<LinkMsg>, tcp: TcpStream) {
     crate::egress::relay::relay(&handle, from_link, tcp).await;
-    let _ = close(handle).await;
+    close(handle).await;
 }
 
 async fn close(mut handle: LinkHandle) {
-    let _ = handle.close().await;
+    handle.close().await.on_the_way_out("an egress link");
 }

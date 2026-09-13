@@ -1,9 +1,9 @@
 mod sections;
 
-use std::fmt::Write as _;
 use std::time::Duration;
 
 use resilum_core::status::NodeStatus;
+use resilum_core::text::Text as _;
 
 use super::A_SNAPSHOT_THIS_OLD_IS_NOT_A_LIVE_NODE;
 use super::paint::{bold, dimmed, green, red, yellow};
@@ -29,13 +29,12 @@ fn heading(text: &str) -> String {
 }
 
 fn who_we_are(out: &mut String, status: &NodeStatus, age: Option<Duration>) {
-    let _ = writeln!(
-        out,
+    out.line(format_args!(
         "resilum {}  {}  {}",
         bold(&status.version),
         dimmed(status.identity_hash.as_deref().unwrap_or("unknown")),
         how_it_is(status.running, age),
-    );
+    ));
 }
 
 fn how_it_is(running: bool, age: Option<Duration>) -> String {

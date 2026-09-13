@@ -41,7 +41,7 @@ async fn handle_conn(mut client: TcpStream, net: Arc<Net>) -> io::Result<()> {
     match net.tcp_connect(SocketAddr::new(ip, port)).await {
         Ok(mut upstream) => {
             socks5_tcp::reply(&mut client, REP_OK).await?;
-            let _ = tokio::io::copy_bidirectional(&mut client, &mut upstream).await;
+            crate::pump::both_ways(&mut client, &mut upstream, "a flow through yggdrasil").await;
             Ok(())
         }
         Err(e) => {

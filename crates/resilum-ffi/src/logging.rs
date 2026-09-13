@@ -3,6 +3,8 @@
 use std::os::raw::c_int;
 use std::sync::Once;
 
+use resilum_core::letting_go::ItWasAlreadyThere as _;
+
 use crate::{RESILUM_ERR_FAILED, RESILUM_OK, guard};
 
 /// Install a `tracing` subscriber so arti's and our logs are visible — Android
@@ -23,10 +25,14 @@ fn init_subscriber() {
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
     let registry = tracing_subscriber::registry().with(filter);
     #[cfg(target_os = "android")]
-    let _ = registry
+    registry
         .with(paranoid_android::layer(env!("CARGO_PKG_NAME")))
-        .try_init();
+        .try_init()
+        .it_was_already_there();
     #[cfg(not(target_os = "android"))]
-    let _ = registry.with(tracing_subscriber::fmt::layer()).try_init();
+    registry
+        .with(tracing_subscriber::fmt::layer())
+        .try_init()
+        .it_was_already_there();
     resilum_tasks::panics::are_told_to_the_log();
 }

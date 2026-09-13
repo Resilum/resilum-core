@@ -33,7 +33,9 @@ pub fn install(marker: [u8; MARKER_LEN]) -> bool {
 }
 
 pub fn remove() {
-    let _ = nft(&["delete", "table", "inet", TABLE]);
+    if !nft(&["delete", "table", "inet", TABLE]) {
+        tracing::debug!(table = TABLE, "the nft table was already gone");
+    }
 }
 
 fn drop_rule(proto: &str, marker: [u8; MARKER_LEN]) -> bool {

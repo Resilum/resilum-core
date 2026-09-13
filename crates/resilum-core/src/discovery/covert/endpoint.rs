@@ -20,6 +20,7 @@ pub fn parse(raw: &[u8]) -> Option<(String, Vec<String>)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::letting_go::ItOnlyMustNotPanic as _;
     use proptest::prelude::*;
 
     #[test]
@@ -59,7 +60,7 @@ mod tests {
 
         #[test]
         fn parse_never_panics_on_garbage(raw in proptest::collection::vec(any::<u8>(), 0..256)) {
-            let _ = parse(&raw);
+            parse(&raw).it_only_must_not_panic();
         }
     }
 }

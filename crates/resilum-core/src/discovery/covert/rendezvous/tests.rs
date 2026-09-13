@@ -1,6 +1,7 @@
 use proptest::prelude::*;
 
 use super::{as_one_msgpack_value, from_one_msgpack_value};
+use crate::letting_go::ItOnlyMustNotPanic as _;
 
 #[test]
 fn an_endpoint_reply_survives_the_trip_whole() {
@@ -29,6 +30,6 @@ proptest! {
 
     #[test]
     fn unwrapping_never_panics_on_garbage(raw in proptest::collection::vec(any::<u8>(), 0..64)) {
-        let _ = from_one_msgpack_value(&raw);
+        from_one_msgpack_value(&raw).it_only_must_not_panic();
     }
 }

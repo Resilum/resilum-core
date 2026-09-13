@@ -55,7 +55,9 @@ pub async fn run(ours: Ours, mut events: Receiver<RadioEvent>, since: std::time:
             _ = look_around.tick() => {
                 if a_scan_this_quiet_may_have_died(now_ms(), scanning_since) {
                     scanning_since = now_ms();
-                    let _ = ours.radio.scan(spec::SERVICE);
+                    if let Err(error) = ours.radio.scan(spec::SERVICE) {
+                        tracing::warn!(%error, "a scan that had gone quiet could not be restarted");
+                    }
                 }
                 ours.someone_elses_group.forget_it_if_it_has_gone_quiet(now_ms());
                 dial::those_who_waited(&ours, &links, &mut held_off, now_ms());
@@ -101,7 +103,9 @@ fn on_event(
             ..
         } => {
             held_off.remove(&address);
-            let _ = waiting.began(ours.radio.as_ref(), conn, address, role, now_ms);
+            if let Err(error) = waiting.began(ours.radio.as_ref(), conn, address, role, now_ms) {
+                tracing::debug!(%error, "a handshake could not be started, so the peer stays unnamed");
+            }
         }
         RadioEvent::Data {
             conn,

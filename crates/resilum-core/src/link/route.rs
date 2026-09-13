@@ -6,6 +6,7 @@ use leviculum_std::NodeEvent;
 use tokio::sync::{broadcast, mpsc};
 
 use super::{Inbound, LinkMsg, LinkRouter};
+use crate::letting_go::NoOneIsListening as _;
 
 /// Drain the node-event bus onto sessions until it closes. Responder-side links
 /// are attached here, before reporting on `inbound`, so no data event can slip
@@ -32,7 +33,9 @@ fn route(router: &LinkRouter, inbound: &mpsc::UnboundedSender<Inbound>, ev: &Nod
             destination_hash,
         } => {
             if !router.deliver(link_id, LinkMsg::Established) && !is_initiator {
-                let _ = inbound.send((*link_id, *destination_hash, router.attach(*link_id)));
+                inbound
+                    .send((*link_id, *destination_hash, router.attach(*link_id)))
+                    .no_one_is_listening();
             }
         }
         // reliable channel stream; raw LinkDataReceived is a separate path

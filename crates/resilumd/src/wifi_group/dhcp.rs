@@ -21,8 +21,10 @@ pub struct Serving {
 impl Serving {
     pub fn stop(mut self) {
         self.told_to_stop.store(true, Ordering::Relaxed);
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
+        if let Some(thread) = self.thread.take()
+            && thread.join().is_err()
+        {
+            tracing::error!("the dhcp thread panicked");
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::io;
 
 use tokio::net::TcpStream;
-use tokio_util::compat::FuturesAsyncReadCompatExt;
+use tokio_util::compat::FuturesAsyncReadCompatExt as _;
 
 use super::ArtiClient;
 use crate::socks5_tcp::{self, REP_CONNECTION_REFUSED, REP_OK};
@@ -13,7 +13,7 @@ pub async fn handle_conn(mut client_sock: TcpStream, tor: ArtiClient) -> io::Res
         Ok(stream) => {
             socks5_tcp::reply(&mut client_sock, REP_OK).await?;
             let mut tor_stream = stream.compat();
-            let _ = tokio::io::copy_bidirectional(&mut client_sock, &mut tor_stream).await;
+            crate::pump::both_ways(&mut client_sock, &mut tor_stream, "a flow through tor").await;
             Ok(())
         }
         Err(e) => {

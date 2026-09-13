@@ -83,6 +83,17 @@ pub enum RadioError {
     Backend(String),
 }
 
+impl std::fmt::Display for RadioError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RadioError::NotConnected => write!(f, "not connected"),
+            RadioError::QueueFull => write!(f, "the radio's queue is full"),
+            RadioError::Unsupported => write!(f, "the radio does not support this"),
+            RadioError::Backend(detail) => write!(f, "radio backend: {detail}"),
+        }
+    }
+}
+
 pub trait Radio: Send + Sync + 'static {
     fn events_taken_once(&self) -> Option<mpsc::Receiver<RadioEvent>>;
 

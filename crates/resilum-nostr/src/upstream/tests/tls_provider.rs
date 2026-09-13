@@ -1,4 +1,5 @@
-use tokio::io::AsyncReadExt;
+use resilum_core::letting_go::NoOneIsListening as _;
+use tokio::io::AsyncReadExt as _;
 
 /// `wss://` builds a `rustls::ClientConfig` as soon as the TCP handshake
 /// completes, before any TLS bytes are exchanged. The proof is a byte: a
@@ -20,7 +21,7 @@ async fn a_wss_dial_writes_tls_bytes_instead_of_panicking_for_want_of_a_provider
         let (mut stream, _) = listener.accept().await.expect("accept");
         let mut first = [0u8; 1];
         let read = stream.read(&mut first).await.unwrap_or(0);
-        let _ = hello_tx.send(read);
+        hello_tx.send(read).no_one_is_listening();
     });
 
     let (_handle, runner, _arriving) = super::a_relay_at(

@@ -1,7 +1,7 @@
 //! stdin/stdout ↔ runner glue for PipeInterface subprocess mode. Used only
 //! where the runner is a subprocess; an embedder bridges it in-process instead.
 
-use std::io::{self, Read, Write};
+use std::io::{self, Read as _, Write as _};
 use std::net::IpAddr;
 use std::sync::mpsc::{Sender, channel};
 
@@ -50,7 +50,13 @@ fn spawn_stdin_reader(tx: Sender<Vec<u8>>) {
 }
 
 fn write_stdout(data: &[u8]) {
+    if let Err(error) = pushed_out(data) {
+        tracing::warn!(%error, bytes = data.len(), "a covert frame never left through stdout");
+    }
+}
+
+fn pushed_out(data: &[u8]) -> io::Result<()> {
     let mut out = io::stdout().lock();
-    let _ = out.write_all(data);
-    let _ = out.flush();
+    out.write_all(data)?;
+    out.flush()
 }
