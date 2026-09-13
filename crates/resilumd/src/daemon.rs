@@ -123,14 +123,14 @@ fn spawn_health(node: &Node) {
         node.config().storage_path.as_deref(),
         std::env::var("RESILUM_HEALTH_FILE").ok(),
     );
-    crate::health::spawn(engine, path);
+    crate::health::spawn(engine, node.tasks(), path);
 }
 
 fn spawn_stats(node: &Node) {
     let Some(engine) = node.engine() else {
         return;
     };
-    std::thread::spawn(move || {
+    let started = resilum_tasks::a_thread_of_its_own("what the transport carried", move || {
         loop {
             std::thread::sleep(std::time::Duration::from_secs(30));
             let s = engine.transport_stats();
@@ -144,4 +144,7 @@ fn spawn_stats(node: &Node) {
             );
         }
     });
+    if let Err(e) = started {
+        tracing::warn!(error = %e, "no thread to report transport stats from");
+    }
 }

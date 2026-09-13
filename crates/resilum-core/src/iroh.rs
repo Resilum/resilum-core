@@ -21,7 +21,6 @@ use std::sync::Arc;
 
 use iroh::Endpoint;
 use leviculum_std::driver::ReticulumNode;
-use tokio::task::JoinHandle;
 
 use crate::config::IrohConfig;
 use wiring::Wiring;
@@ -32,7 +31,7 @@ pub(super) const ORIGIN: &str = "iroh";
 #[must_use]
 pub struct IrohHandle {
     endpoint: Endpoint,
-    tasks: Vec<JoinHandle<()>>,
+    tasks: Vec<resilum_tasks::Watched>,
     wiring: Arc<Wiring>,
     discovery: Option<Arc<IrohDiscovery>>,
     runtime: tokio::runtime::Handle,
@@ -91,13 +90,15 @@ pub async fn attach(
         attachments,
         origin,
     });
-    let mut tasks = vec![tokio::spawn(accept::run(endpoint.clone(), wiring.clone()))];
+    let mut tasks = vec![resilum_tasks::watch(
+        "iroh: taking inbound connections",
+        accept::run(endpoint.clone(), wiring.clone()),
+    )];
     for peer in &cfg.bootstrap {
-        tasks.push(tokio::spawn(dial::bootstrap(
-            endpoint.clone(),
-            wiring.clone(),
-            peer.clone(),
-        )));
+        tasks.push(resilum_tasks::watch(
+            format!("iroh: dialling the anchor {peer}"),
+            dial::bootstrap(endpoint.clone(), wiring.clone(), peer.clone()),
+        ));
     }
     if let Some(discovery) = &discovery {
         discovery.activate(endpoint.clone(), wiring.clone());

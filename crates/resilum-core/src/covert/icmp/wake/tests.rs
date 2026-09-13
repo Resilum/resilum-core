@@ -32,13 +32,15 @@ fn a_silent_carrier_still_lets_the_thread_leave() {
     let wake = Arc::new(Wake::new().expect("a pipe"));
     let raiser = wake.clone();
 
-    let waiting = std::thread::spawn(move || {
-        let started = Instant::now();
-        let ready = wake
-            .wait_for_carrier_or_a_raise(&[reader.as_raw_fd()])
-            .expect("no poll error");
-        (ready, started.elapsed())
-    });
+    let waiting =
+        resilum_tasks::a_thread_of_its_own("a test wait on a silent carrier", move || {
+            let started = Instant::now();
+            let ready = wake
+                .wait_for_carrier_or_a_raise(&[reader.as_raw_fd()])
+                .expect("no poll error");
+            (ready, started.elapsed())
+        })
+        .expect("a thread to wait on");
     std::thread::sleep(Duration::from_millis(50));
     raiser.raise();
 

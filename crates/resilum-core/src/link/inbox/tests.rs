@@ -19,14 +19,14 @@ async fn a_link_goes_to_whoever_claimed_its_destination() {
     let (unclaimed_tx, mut unclaimed) = unbounded_channel();
     let (arriving_tx, arriving) = unbounded_channel();
 
-    let sorting = tokio::spawn({
+    let sorting = resilum_tasks::watch("a test inbox sorting what arrives", {
         let inbox = inbox.clone();
         async move { inbox.sort(arriving, unclaimed_tx).await }
     });
     arriving_tx.send(arrival(CLAIMED)).expect("sorter is up");
     arriving_tx.send(arrival(NOBODYS)).expect("sorter is up");
     drop(arriving_tx);
-    sorting.await.expect("the sorter runs to the end");
+    sorting.come_home().await;
 
     assert_eq!(
         claimed.recv().await.map(|(_, to, _)| to),

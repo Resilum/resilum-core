@@ -34,6 +34,11 @@ impl Node {
         self.engine.clone()
     }
 
+    #[must_use]
+    pub fn tasks(&self) -> Arc<resilum_tasks::Watching> {
+        self.tasks.clone()
+    }
+
     /// The identity the node is running as, or `None` before start.
     pub fn identity(&self) -> Option<&Identity> {
         self.identity.as_ref()

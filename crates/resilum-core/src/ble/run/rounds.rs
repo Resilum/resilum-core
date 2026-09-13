@@ -29,7 +29,7 @@ pub struct Deciding {
     pub hosting: HostingTheGroup,
     pub us: PeerId,
     pub beacon: Beacon,
-    pub nursery: Arc<crate::nursery::Nursery>,
+    pub nursery: Arc<resilum_tasks::Nursery>,
 }
 
 pub async fn keep_deciding(mut deciding: Deciding, since: Instant) {
@@ -83,14 +83,17 @@ fn ask_whoever_has_not_answered_lately(
             continue;
         }
         asked_at.insert(*peer, now_ms);
-        deciding.nursery.keep(exchange::ask(
-            deciding.engine.clone(),
-            deciding.router.clone(),
-            deciding.field.clone(),
-            deciding.identity.clone(),
-            *peer,
-            ours,
-        ));
+        deciding.nursery.keep(
+            "asking a neighbour where it stands",
+            exchange::ask(
+                deciding.engine.clone(),
+                deciding.router.clone(),
+                deciding.field.clone(),
+                deciding.identity.clone(),
+                *peer,
+                ours,
+            ),
+        );
     }
     asked_at.retain(|peer, _| standing.contains(peer));
 }

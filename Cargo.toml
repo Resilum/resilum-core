@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "crates/resilum-core",
   "crates/resilum-store",
+  "crates/resilum-tasks",
   "crates/resilum-nostr",
   "crates/resilumd",
   "crates/resilum-ffi",

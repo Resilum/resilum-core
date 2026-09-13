@@ -31,41 +31,53 @@ pub(super) fn bring_up(
         } else {
             for service in &ingress.services {
                 let bus = node.events.subscribe();
-                node.tasks.push(tokio::spawn(egress::discover::run(
-                    engine.clone(),
-                    node.registry.clone(),
-                    active.clone(),
-                    node.event_queue.clone(),
-                    service.clone(),
-                    ours.hashes_serving(service),
-                    bus,
-                )));
+                node.tasks.keep(resilum_tasks::watch(
+                    format!("egress: finding who serves {service}"),
+                    egress::discover::run(
+                        engine.clone(),
+                        node.registry.clone(),
+                        active.clone(),
+                        node.event_queue.clone(),
+                        service.clone(),
+                        ours.hashes_serving(service),
+                        bus,
+                    ),
+                ));
             }
         }
-        node.tasks.push(tokio::spawn(egress::ingress::run(
-            engine.clone(),
-            router.clone(),
-            node.registry.clone(),
-            active,
-            node.socks_port.clone(),
-            ingress.clone(),
-            ours.clone(),
-        )));
-        node.tasks.push(tokio::spawn(egress::monitor::run(
-            engine.clone(),
-            router.clone(),
-            node.registry.clone(),
-            ingress,
-            ours,
-        )));
+        node.tasks.keep(resilum_tasks::watch(
+            "ingress: taking local connections into the mesh",
+            egress::ingress::run(
+                engine.clone(),
+                router.clone(),
+                node.registry.clone(),
+                active,
+                node.socks_port.clone(),
+                ingress.clone(),
+                ours.clone(),
+            ),
+        ));
+        node.tasks.keep(resilum_tasks::watch(
+            "egress: watching whether the exits we use still answer",
+            egress::monitor::run(
+                engine.clone(),
+                router.clone(),
+                node.registry.clone(),
+                ingress,
+                ours,
+            ),
+        ));
     }
 
     if !node.config.egress.is_empty() {
-        node.tasks.push(tokio::spawn(egress::listen::run(
-            engine.clone(),
-            identity.clone(),
-            node.config.egress.clone(),
-            inbound_rx,
-        )));
+        node.tasks.keep(resilum_tasks::watch(
+            "egress: serving the exits this node offers",
+            egress::listen::run(
+                engine.clone(),
+                identity.clone(),
+                node.config.egress.clone(),
+                inbound_rx,
+            ),
+        ));
     }
 }

@@ -10,7 +10,7 @@ async fn dropping_the_incoming_receiver_ends_the_reconnect_loop() {
         .expect("bind");
     let port = listener.local_addr().expect("addr").port();
 
-    tokio::spawn(async move {
+    resilum_tasks::watch("a test relay that stays open", async move {
         let (stream, _) = listener.accept().await.expect("accept");
         let mut ws = tokio_tungstenite::accept_async(stream)
             .await
@@ -21,10 +21,9 @@ async fn dropping_the_incoming_receiver_ends_the_reconnect_loop() {
 
     let (_handle, runner, arriving) = super::a_relay_on(port);
     drop(arriving);
-    let task = tokio::spawn(runner.run(Vec::new));
+    let task = resilum_tasks::watch("the upstream under test", runner.run(Vec::new));
 
-    let outcome = tokio::time::timeout(std::time::Duration::from_secs(10), task)
+    tokio::time::timeout(std::time::Duration::from_secs(10), task.come_home())
         .await
         .expect("run did not exit after its incoming receiver was dropped");
-    outcome.expect("run task panicked instead of returning");
 }

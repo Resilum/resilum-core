@@ -12,7 +12,7 @@ async fn a_relay_that_closes_immediately_gets_backed_off_more_each_time() {
     let port = listener.local_addr().expect("addr").port();
     let (accepted_tx, mut accepted_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    tokio::spawn(async move {
+    resilum_tasks::watch("a test relay that refuses", async move {
         loop {
             let Ok((stream, _)) = listener.accept().await else {
                 return;
@@ -26,7 +26,7 @@ async fn a_relay_that_closes_immediately_gets_backed_off_more_each_time() {
     });
 
     let (_handle, runner, _arriving) = super::a_relay_on(port);
-    let task = tokio::spawn(runner.run(Vec::new));
+    let task = resilum_tasks::watch("the upstream under test", runner.run(Vec::new));
 
     let (t0, t1, t2) = tokio::time::timeout(std::time::Duration::from_secs(15), async {
         let t0 = accepted_rx.recv().await.expect("first connect");

@@ -68,12 +68,24 @@ where
     let (our_read, our_write) = tokio::io::split(our_side);
 
     let (uplink_tx, uplink_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-    tokio::spawn(carry_out_what_leviculum_writes(our_read, uplink_tx));
+    resilum_tasks::watch(
+        format!("{name}:carrying out what the node writes"),
+        carry_out_what_leviculum_writes(our_read, uplink_tx),
+    );
 
     let (out_tx, out_rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
-    tokio::spawn(give_leviculum_what_arrived(our_write, out_rx));
+    resilum_tasks::watch(
+        format!("{name}:handing the node what arrived"),
+        give_leviculum_what_arrived(our_write, out_rx),
+    );
 
-    std::thread::spawn(move || run(uplink_rx, Decoded(out_tx)));
+    if let Err(e) =
+        resilum_tasks::a_thread_of_its_own(format!("{name}: the carrier itself"), move || {
+            run(uplink_rx, Decoded(out_tx));
+        })
+    {
+        return Err(format!("no thread to carry {name}: {e}"));
+    }
 
     Ok(iface)
 }

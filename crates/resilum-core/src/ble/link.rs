@@ -5,7 +5,6 @@ use std::sync::Arc;
 use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
 
 use super::radio::{ConnectionId, Radio, Role};
 use super::spec;
@@ -18,7 +17,7 @@ pub struct PeerLink {
     pub conn: ConnectionId,
     pub interface: leviculum_std::InterfaceId,
     arriving: mpsc::Sender<Vec<u8>>,
-    pumps: [JoinHandle<()>; 2],
+    pumps: [resilum_tasks::Watched; 2],
     _detaches_when_dropped: ByteChannelHandle,
 }
 
@@ -45,10 +44,14 @@ impl PeerLink {
             interface: handle.id(),
             arriving,
             pumps: [
-                tokio::spawn(carry::out_to_the_radio(ours_read, radio, conn, role)),
-                tokio::spawn(carry::in_from_the_radio(
-                    ours_write, arrived, carried, now_ms,
-                )),
+                resilum_tasks::watch(
+                    "ble: out to the radio",
+                    carry::out_to_the_radio(ours_read, radio, conn, role),
+                ),
+                resilum_tasks::watch(
+                    "ble: in from the radio",
+                    carry::in_from_the_radio(ours_write, arrived, carried, now_ms),
+                ),
             ],
             _detaches_when_dropped: handle,
         })

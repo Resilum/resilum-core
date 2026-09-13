@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::task::JoinHandle;
 
 use crate::discovery::{Attachments, OriginRegistry};
 
@@ -24,7 +23,7 @@ pub struct Ours {
 
 #[must_use]
 pub struct GroupHandle {
-    tasks: Vec<JoinHandle<()>>,
+    tasks: Vec<resilum_tasks::Watched>,
     links: Links,
     ours: Ours,
 }
@@ -84,10 +83,9 @@ pub fn hosting(
     adopted.set_nonblocking(true)?;
     let listener = TcpListener::from_std(adopted)?;
     let links: Links = Links::default();
-    let tasks = vec![tokio::spawn(keep::whoever_joins(
-        ours.clone(),
-        links.clone(),
-        listener,
-    ))];
+    let tasks = vec![resilum_tasks::watch(
+        "wifi group: taking whoever joins",
+        keep::whoever_joins(ours.clone(), links.clone(), listener),
+    )];
     Ok(GroupHandle { tasks, links, ours })
 }

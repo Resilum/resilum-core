@@ -3,7 +3,6 @@
 mod jobs;
 
 use std::sync::mpsc::Sender;
-use std::thread;
 
 use leviculum_lxmf::{CooperativeStamper, DeliveryStampRequest, PropagationStampRequest};
 use tokio::sync::mpsc::UnboundedReceiver;
@@ -39,7 +38,7 @@ pub(super) enum Outcome {
 /// stamps to buy parallelism the router cannot use: it wants one stamp at a
 /// time per message, and both queues are drained by the same 4-second retry.
 pub(super) fn spawn(mut jobs: UnboundedReceiver<Job>, out: Sender<Command>) {
-    thread::spawn(move || {
+    let started = resilum_tasks::a_thread_of_its_own("lxmf: grinding stamps", move || {
         let runtime = match tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -58,6 +57,9 @@ pub(super) fn spawn(mut jobs: UnboundedReceiver<Job>, out: Sender<Command>) {
             }
         });
     });
+    if let Err(e) = started {
+        tracing::error!(error = %e, "no thread to grind stamps on; messages asking for one will not go out");
+    }
 }
 
 async fn grind(job: Job) -> Outcome {

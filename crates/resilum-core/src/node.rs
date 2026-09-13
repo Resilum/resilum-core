@@ -14,7 +14,6 @@ use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 use leviculum_std::socket_hook::OutboundSocketHook;
 use tokio::sync::Notify;
-use tokio::task::JoinHandle;
 
 use crate::config::Config;
 use crate::discovery::Service;
@@ -38,8 +37,8 @@ pub struct Node {
     pub(crate) lxmf: Option<Arc<crate::lxmf::LxmfHandle>>,
     pub(crate) protect: Option<OutboundSocketHook>,
     pub(crate) events: dispatch::Events,
-    pub(crate) tasks: Vec<JoinHandle<()>>,
-    pub(crate) nursery: Arc<crate::nursery::Nursery>,
+    pub(crate) tasks: Arc<resilum_tasks::Watching>,
+    pub(crate) nursery: Arc<resilum_tasks::Nursery>,
     pub(crate) event_queue: event::Queue,
     pub(crate) socks_port: Arc<AtomicU16>,
     pub(crate) discovery_trigger: Arc<Notify>,
@@ -80,7 +79,7 @@ impl Node {
             lxmf: None,
             protect: None,
             events: dispatch::Events::new(1024),
-            tasks: Vec::new(),
+            tasks: Arc::default(),
             nursery: Arc::default(),
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             socks_port: Arc::new(AtomicU16::new(0)),

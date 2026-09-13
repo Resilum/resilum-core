@@ -10,7 +10,7 @@ async fn a_relay_that_stops_speaking_is_dropped_and_redialled() {
     let port = listener.local_addr().expect("addr").port();
     let (seen_tx, mut seen_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    tokio::spawn(async move {
+    resilum_tasks::watch("a test relay", async move {
         // Held, never polled: an unpolled tungstenite stream answers no ping
         // and sends no close, while dropping it would close the socket and
         // give the client the drop it is not supposed to get here.
@@ -34,7 +34,7 @@ async fn a_relay_that_stops_speaking_is_dropped_and_redialled() {
             answer: Duration::from_millis(100),
         },
     );
-    tokio::spawn(runner.run(Vec::new));
+    resilum_tasks::watch("the upstream under test", runner.run(Vec::new));
 
     let rounds = tokio::time::timeout(Duration::from_secs(10), async {
         (seen_rx.recv().await, seen_rx.recv().await)
@@ -56,7 +56,7 @@ async fn a_quiet_relay_that_answers_its_pings_keeps_the_same_connection() {
     let port = listener.local_addr().expect("addr").port();
     let (ping_tx, mut ping_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    tokio::spawn(async move {
+    resilum_tasks::watch("a test relay", async move {
         let mut round = 0;
         loop {
             let (stream, _) = listener.accept().await.expect("accept");
@@ -80,7 +80,7 @@ async fn a_quiet_relay_that_answers_its_pings_keeps_the_same_connection() {
             answer: Duration::from_millis(50),
         },
     );
-    tokio::spawn(runner.run(Vec::new));
+    resilum_tasks::watch("the upstream under test", runner.run(Vec::new));
 
     let rounds = tokio::time::timeout(Duration::from_secs(10), async {
         let mut rounds = Vec::new();

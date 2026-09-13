@@ -12,7 +12,7 @@ use tokio::sync::mpsc;
 use super::Node;
 use crate::error::{Error, Result};
 use crate::event::{self, Event};
-use crate::{bridge, dispatch, engine, link, lxmf, supervisor};
+use crate::{bridge, dispatch, engine, link, lxmf};
 
 impl Node {
     pub fn start(&mut self) -> Result<()> {
@@ -45,11 +45,10 @@ impl Node {
             let router = Arc::new(link::LinkRouter::default());
             let (inbound_tx, inbound_rx) = mpsc::unbounded_channel();
             let link_bus = self.events.subscribe();
-            self.tasks.push(tokio::spawn(link::run(
-                router.clone(),
-                link_bus,
-                inbound_tx,
-            )));
+            self.tasks.keep(resilum_tasks::watch(
+                "links: handing each session what arrives for it",
+                link::run(router.clone(), link_bus, inbound_tx),
+            ));
 
             let inbox = Arc::new(link::Inbox::default());
             let (unclaimed_tx, unclaimed_rx) = mpsc::unbounded_channel();
@@ -76,10 +75,12 @@ impl Node {
             mirrors::bring_up(self, &leviculum, &identity);
 
             if let Some(rx) = event_rx {
-                self.tasks
-                    .push(tokio::spawn(dispatch::forward(self.events.clone(), rx)));
+                self.tasks.keep(resilum_tasks::watch(
+                    "events: carrying what the engine reports to whoever listens",
+                    dispatch::forward(self.events.clone(), rx),
+                ));
             }
-            self.tasks.extend(supervisor::spawn_all(bridge_tasks));
+            self.tasks.keep_all(resilum_tasks::keep_alive(bridge_tasks));
             self.router = Some(router.clone());
             self.inbox = Some(inbox.clone());
         }
@@ -120,15 +121,10 @@ impl Node {
     }
 
     fn wait_for_tasks_to_let_go_of_the_engine(&mut self) {
-        let tasks = std::mem::take(&mut self.tasks);
-        for task in &tasks {
-            task.abort();
-        }
+        let tasks = self.tasks.clone();
         let nursery = self.nursery.clone();
         self.runtime.block_on(async {
-            for task in tasks {
-                let _ = task.await;
-            }
+            tasks.everyone_home().await;
             nursery.everyone_home().await;
         });
     }

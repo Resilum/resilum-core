@@ -3,17 +3,20 @@ use std::sync::{Mutex, MutexGuard};
 
 use tokio::task::JoinSet;
 
+use crate::watched::reporting;
+
 #[derive(Default)]
 pub struct Nursery(Mutex<JoinSet<()>>);
 
 impl Nursery {
-    pub fn keep<F>(&self, task: F)
+    pub fn keep<F>(&self, name: impl Into<String>, task: F)
     where
         F: Future<Output = ()> + Send + 'static,
     {
+        let name = name.into();
         let mut kept = self.lock();
         while kept.try_join_next().is_some() {}
-        kept.spawn(task);
+        kept.spawn(reporting(name, task));
     }
 
     pub async fn everyone_home(&self) {

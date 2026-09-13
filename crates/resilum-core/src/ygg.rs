@@ -15,7 +15,6 @@ use std::sync::{Arc, Mutex};
 
 use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
-use tokio::task::JoinHandle;
 use tokio_smoltcp::Net;
 
 use crate::discovery::OriginRegistry;
@@ -26,7 +25,7 @@ type Links = Arc<Mutex<HashMap<IpAddr, ByteChannelHandle>>>;
 /// and close the conduit fd.
 #[must_use]
 pub struct YggHandle {
-    tasks: Vec<JoinHandle<()>>,
+    tasks: Vec<resilum_tasks::Watched>,
     _net: Arc<Net>,
     links: Links,
     engine: Arc<ReticulumNode>,
@@ -84,16 +83,22 @@ pub fn attach(
     let net = Arc::new(device::build_net(ygg_fd, address)?);
 
     let links: Links = Arc::new(Mutex::new(HashMap::new()));
-    let mut tasks = vec![tokio::spawn(accept::accept(
-        engine.clone(),
-        origin,
-        net.clone(),
-        address,
-        rns_port,
-        links.clone(),
-    ))];
+    let mut tasks = vec![resilum_tasks::watch(
+        "ygg: taking links over the overlay",
+        accept::accept(
+            engine.clone(),
+            origin,
+            net.clone(),
+            address,
+            rns_port,
+            links.clone(),
+        ),
+    )];
     if let Some(port) = socks_port {
-        tasks.push(tokio::spawn(socks::serve(net.clone(), port)));
+        tasks.push(resilum_tasks::watch(
+            "ygg: the socks proxy onto the overlay",
+            socks::serve(net.clone(), port),
+        ));
     }
     Ok(YggHandle {
         tasks,

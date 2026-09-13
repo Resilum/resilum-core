@@ -9,7 +9,7 @@ async fn an_exit_that(answer: &'static [u8]) -> String {
         .await
         .expect("a local port for the exit");
     let address = exit.local_addr().expect("the port just bound").to_string();
-    tokio::spawn(async move {
+    resilum_tasks::watch("a test exit that answers a probe", async move {
         let (mut served, _) = exit.accept().await.expect("the probe below");
         let mut asked = [0u8; 13];
         let _ = served.read_exact(&mut asked).await;

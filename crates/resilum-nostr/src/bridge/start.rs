@@ -7,7 +7,6 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use data_encoding::HEXLOWER;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
 
 use super::run;
 use super::state::{self, InFlight, MeshSender, Wiring};
@@ -42,7 +41,7 @@ impl std::error::Error for StartError {}
 /// nothing else keeps them alive.
 #[must_use = "the bridge runs only for as long as this handle is held"]
 pub struct BridgeHandle {
-    tasks: Vec<JoinHandle<()>>,
+    tasks: Vec<resilum_tasks::Watched>,
 }
 
 impl Drop for BridgeHandle {
@@ -95,11 +94,15 @@ pub fn spawn(node: &resilum_core::Node, cfg: NostrConfig) -> Result<BridgeHandle
         .map_err(StartError::Storage)?,
     );
 
-    let mut tasks: Vec<JoinHandle<()>> = runners
+    let mut tasks: Vec<resilum_tasks::Watched> = runners
         .into_iter()
         .map(|runner| {
             let state = Arc::clone(&state);
-            runtime.spawn(runner.run(move || state.request_frames()))
+            resilum_tasks::watch_on(
+                &runtime,
+                "nostr: one upstream relay",
+                runner.run(move || state.request_frames()),
+            )
         })
         .collect();
     tracing::info!(
@@ -107,7 +110,11 @@ pub fn spawn(node: &resilum_core::Node, cfg: NostrConfig) -> Result<BridgeHandle
         upstreams = state.upstreams.len(),
         "the nostr bridge is running"
     );
-    tasks.push(runtime.spawn(run::run(state, relays)));
+    tasks.push(resilum_tasks::watch_on(
+        &runtime,
+        "nostr: the bridge itself",
+        run::run(state, relays),
+    ));
     Ok(BridgeHandle { tasks })
 }
 

@@ -1,0 +1,21 @@
+---
+id: a-task-is-held-as-watched-not-as-a-bare-handle
+language: Rust
+severity: error
+message: A task held as a bare `JoinHandle`.
+files:
+  - "crates/*/src/**"
+ignores:
+  - "crates/resilum-tasks/**"
+note: |
+  A bare handle carries no name, so when the task behind it stops there is
+  nothing to say about which one. `resilum_tasks::watch` hands back a
+  `Watched`, which aborts and awaits the same way and can say what it was.
+rule:
+  any:
+    - pattern:
+        context: "mod held { use tokio::task::JoinHandle; }"
+        selector: use_declaration
+    - pattern:
+        context: "struct Held { task: tokio::task::JoinHandle<()> }"
+        selector: generic_type

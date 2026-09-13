@@ -41,9 +41,14 @@ fn those_that_answer(names: impl Iterator<Item = String>) -> HashSet<String> {
         .map(|name| {
             let (tell, heard) = mpsc::channel();
             let asking = name.clone();
-            std::thread::spawn(move || {
-                let _ = tell.send(resolves(&asking));
-            });
+            let telling = format!("resolving {asking}");
+            if let Err(e) = resilum_tasks::a_thread_of_its_own(telling, move || {
+                if tell.send(resolves(&asking)).is_err() {
+                    tracing::debug!(name = %asking, "nobody waited for this name any more");
+                }
+            }) {
+                tracing::warn!(error = %e, "no thread to resolve a name with");
+            }
             (name, heard)
         })
         .collect();

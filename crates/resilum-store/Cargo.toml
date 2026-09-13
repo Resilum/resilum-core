@@ -6,6 +6,7 @@ license.workspace = true
 description = "The only crate that reaches a file: durable state, written off the runtime."
 
 [dependencies]
+resilum-tasks = { path = "../resilum-tasks" }
 tracing = "0.1"
 
 [dev-dependencies]

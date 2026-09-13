@@ -4,7 +4,6 @@
 use std::io::{self, Read, Write};
 use std::net::IpAddr;
 use std::sync::mpsc::{Sender, channel};
-use std::thread;
 
 use leviculum_std::api::Identity;
 use resilum_core::covert::carrier::{CarrierClient, CarrierServer};
@@ -31,7 +30,7 @@ where
 }
 
 fn spawn_stdin_reader(tx: Sender<Vec<u8>>) {
-    thread::spawn(move || {
+    let started = resilum_tasks::a_thread_of_its_own("covert: reading stdin", move || {
         let mut stdin = io::stdin().lock();
         let mut buf = [0u8; STDIN_CHUNK];
         loop {
@@ -45,6 +44,9 @@ fn spawn_stdin_reader(tx: Sender<Vec<u8>>) {
             }
         }
     });
+    if let Err(e) = started {
+        tracing::error!(error = %e, "no thread to read stdin with");
+    }
 }
 
 fn write_stdout(data: &[u8]) {

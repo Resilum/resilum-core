@@ -15,7 +15,8 @@ impl<C: Send + 'static> Writer<C> {
         write: fn(&Path, &H),
     ) -> Self {
         let (changes, arriving) = std::sync::mpsc::channel::<C>();
-        let thread = std::thread::spawn(move || {
+        let named = format!("writing {}", path.display());
+        let thread = resilum_tasks::a_thread_of_its_own(named, move || {
             while let Ok(change) = arriving.recv() {
                 apply(&mut held, change);
                 while let Ok(still_arriving) = arriving.try_recv() {
@@ -24,9 +25,15 @@ impl<C: Send + 'static> Writer<C> {
                 write(&path, &held);
             }
         });
-        Self {
-            changes: Some(changes),
-            thread: Some(thread),
+        match thread {
+            Ok(thread) => Self {
+                changes: Some(changes),
+                thread: Some(thread),
+            },
+            Err(e) => {
+                tracing::error!(error = %e, "no thread to write with; this state stays in memory");
+                Self::nowhere_to_write()
+            }
         }
     }
 

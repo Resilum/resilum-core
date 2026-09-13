@@ -5006,6 +5006,7 @@ dependencies = [
  "rand_core 0.6.4",
  "regex",
  "resilum-store",
+ "resilum-tasks",
  "rmp-serde",
  "rustls",
  "serde",
@@ -5034,6 +5035,7 @@ dependencies = [
  "ndk-context",
  "paranoid-android",
  "resilum-core",
+ "resilum-tasks",
  "serde",
  "serde_json",
  "tempfile",
@@ -5051,6 +5053,7 @@ dependencies = [
  "k256",
  "resilum-core",
  "resilum-store",
+ "resilum-tasks",
  "rustls",
  "serde",
  "serde_json",
@@ -5066,7 +5069,16 @@ dependencies = [
 name = "resilum-store"
 version = "0.2.3"
 dependencies = [
+ "resilum-tasks",
  "tempfile",
+ "tracing",
+]
+
+[[package]]
+name = "resilum-tasks"
+version = "0.2.3"
+dependencies = [
+ "tokio",
  "tracing",
 ]
 
@@ -5087,6 +5099,7 @@ dependencies = [
  "resilum-core",
  "resilum-nostr",
  "resilum-store",
+ "resilum-tasks",
  "serde",
  "serde_json",
  "serde_yaml_ng",

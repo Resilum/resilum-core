@@ -10,12 +10,16 @@ RUN rustup toolchain install
 COPY Cargo.toml Cargo.lock /src/
 COPY crates/resilum-core/Cargo.toml /src/crates/resilum-core/
 COPY crates/resilum-nostr/Cargo.toml /src/crates/resilum-nostr/
+COPY crates/resilum-store/Cargo.toml /src/crates/resilum-store/
+COPY crates/resilum-tasks/Cargo.toml /src/crates/resilum-tasks/
 COPY crates/resilumd/Cargo.toml /src/crates/resilumd/
 COPY crates/resilum-ffi/Cargo.toml /src/crates/resilum-ffi/
 COPY crates/xtask/Cargo.toml /src/crates/xtask/
 RUN mkdir -p crates/resilum-core/src crates/resilum-nostr/src crates/resilumd/src \
+             crates/resilum-store/src crates/resilum-tasks/src \
              crates/resilum-ffi/src crates/xtask/src \
  && touch crates/resilum-core/src/lib.rs crates/resilum-nostr/src/lib.rs \
+          crates/resilum-store/src/lib.rs crates/resilum-tasks/src/lib.rs \
           crates/resilum-ffi/src/lib.rs \
  && echo 'fn main() {}' > crates/resilumd/src/main.rs \
  && echo 'fn main() {}' > crates/xtask/src/main.rs \

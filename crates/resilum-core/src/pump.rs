@@ -53,7 +53,7 @@ mod tests {
         let (side, mut peer) = tokio::io::duplex(256);
         let (ltx, lrx) = mpsc::unbounded_channel();
         let (otx, _orx) = mpsc::unbounded_channel();
-        let task = tokio::spawn(pump(side, lrx, otx));
+        let task = resilum_tasks::watch("pumping a test link", pump(side, lrx, otx));
 
         ltx.send(LinkMsg::Data(b"hello".to_vec())).unwrap();
         let mut got = [0u8; 5];
@@ -61,7 +61,7 @@ mod tests {
         assert_eq!(&got, b"hello");
 
         drop(ltx);
-        task.await.unwrap();
+        task.come_home().await;
     }
 
     #[tokio::test]
@@ -69,14 +69,14 @@ mod tests {
         let (side, mut peer) = tokio::io::duplex(256);
         let (ltx, lrx) = mpsc::unbounded_channel();
         let (otx, mut orx) = mpsc::unbounded_channel();
-        let task = tokio::spawn(pump(side, lrx, otx));
+        let task = resilum_tasks::watch("pumping a test link", pump(side, lrx, otx));
 
         peer.write_all(b"world").await.unwrap();
         assert_eq!(orx.recv().await.unwrap(), b"world".to_vec());
 
         drop(peer);
         drop(ltx);
-        task.await.unwrap();
+        task.come_home().await;
     }
 
     #[tokio::test]
@@ -84,7 +84,7 @@ mod tests {
         let (side, mut peer) = tokio::io::duplex(256);
         let (ltx, lrx) = mpsc::unbounded_channel();
         let (otx, _orx) = mpsc::unbounded_channel();
-        let task = tokio::spawn(pump(side, lrx, otx));
+        let task = resilum_tasks::watch("pumping a test link", pump(side, lrx, otx));
 
         peer.shutdown().await.unwrap(); // client stops sending (our TCP read hits EOF)
         ltx.send(LinkMsg::Data(b"resp".to_vec())).unwrap();
@@ -93,7 +93,7 @@ mod tests {
         assert_eq!(&got, b"resp");
 
         ltx.send(LinkMsg::Closed).unwrap();
-        task.await.unwrap();
+        task.come_home().await;
     }
 
     #[tokio::test]
@@ -101,9 +101,9 @@ mod tests {
         let (side, _peer) = tokio::io::duplex(256);
         let (ltx, lrx) = mpsc::unbounded_channel();
         let (otx, _orx) = mpsc::unbounded_channel();
-        let task = tokio::spawn(pump(side, lrx, otx));
+        let task = resilum_tasks::watch("pumping a test link", pump(side, lrx, otx));
 
         ltx.send(LinkMsg::Closed).unwrap();
-        task.await.unwrap();
+        task.come_home().await;
     }
 }

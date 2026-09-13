@@ -6,7 +6,7 @@ async fn is_up_clears_even_when_run_is_cancelled_mid_connection() {
         .expect("bind");
     let port = listener.local_addr().expect("addr").port();
 
-    tokio::spawn(async move {
+    resilum_tasks::watch("a test relay that accepts once", async move {
         let (stream, _) = listener.accept().await.expect("accept");
         let _ws = tokio_tungstenite::accept_async(stream)
             .await
@@ -15,7 +15,7 @@ async fn is_up_clears_even_when_run_is_cancelled_mid_connection() {
     });
 
     let (handle, runner, _arriving) = super::a_relay_on(port);
-    let task = tokio::spawn(runner.run(Vec::new));
+    let task = resilum_tasks::watch("the upstream under test", runner.run(Vec::new));
 
     tokio::time::timeout(std::time::Duration::from_secs(10), async {
         while !handle.is_up() {
