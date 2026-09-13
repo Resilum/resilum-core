@@ -5,7 +5,7 @@
 use std::io;
 use std::net::IpAddr;
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio::net::TcpStream;
 
 const VER: u8 = 5;

@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{SinkExt as _, StreamExt as _};
 use tokio::sync::mpsc;
 use tokio::time::{Instant, sleep_until, timeout};
 use tokio_tungstenite::tungstenite::protocol::frame::Utf8Bytes;

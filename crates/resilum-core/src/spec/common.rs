@@ -1,7 +1,7 @@
 //! Shared deserialize/validation helpers for the config specs.
 
 use std::net::IpAddr;
-use std::str::FromStr;
+use std::str::FromStr as _;
 
 use regex::Regex;
 use serde::Deserialize;

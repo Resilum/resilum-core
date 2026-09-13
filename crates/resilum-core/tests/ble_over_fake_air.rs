@@ -8,7 +8,7 @@ use std::time::Duration;
 use ble_pair::{SERVED_IDENTITY, joined, put_on_the_air};
 use fake_radio::{Air, CARRIED_PER_WRITE};
 use resilum_core::ble::framing::{Arrived, Reassembly};
-use resilum_core::ble::radio::{Radio, RadioEvent, Role};
+use resilum_core::ble::radio::{Radio as _, RadioEvent, Role};
 use resilum_core::ble::spec;
 
 #[tokio::test]

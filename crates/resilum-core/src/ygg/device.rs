@@ -1,7 +1,7 @@
 //! The userspace TCP/IP stack over the conduit fd.
 
 use std::net::Ipv6Addr;
-use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
+use std::os::fd::{AsRawFd as _, FromRawFd as _, OwnedFd, RawFd};
 
 use tokio_smoltcp::device::AsyncCapture;
 use tokio_smoltcp::smoltcp::iface::Config;

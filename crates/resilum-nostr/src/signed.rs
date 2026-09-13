@@ -2,8 +2,8 @@
 
 use data_encoding::HEXLOWER;
 use k256::schnorr::SigningKey;
-use k256::schnorr::signature::hazmat::PrehashSigner;
-use sha2::{Digest, Sha256};
+use k256::schnorr::signature::hazmat::PrehashSigner as _;
+use sha2::{Digest as _, Sha256};
 
 use crate::event::{self, Event};
 

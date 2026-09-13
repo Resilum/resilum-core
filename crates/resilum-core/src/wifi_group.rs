@@ -1,7 +1,7 @@
 mod keep;
 
 use std::collections::HashMap;
-use std::os::fd::{FromRawFd, RawFd};
+use std::os::fd::{FromRawFd as _, RawFd};
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::driver::ReticulumNode;

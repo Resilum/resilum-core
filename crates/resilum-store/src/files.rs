@@ -19,7 +19,7 @@ pub fn write_bytes(path: &Path, bytes: &[u8]) -> io::Result<()> {
 
 #[cfg(unix)]
 pub fn own_eyes_only(path: &Path) -> io::Result<()> {
-    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::PermissionsExt as _;
 
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
 }
@@ -70,7 +70,7 @@ pub fn replace_with(path: &Path, bytes: &[u8]) -> io::Result<()> {
 }
 
 fn write_and_sync(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    use std::io::Write;
+    use std::io::Write as _;
 
     let mut file = std::fs::File::create(path)?;
     file.write_all(bytes)?;

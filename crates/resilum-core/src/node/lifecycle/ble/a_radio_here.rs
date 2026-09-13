@@ -4,7 +4,7 @@ use crate::ble::radio::Radio;
 
 #[cfg(feature = "ble")]
 pub(super) async fn opened() -> Option<Arc<dyn Radio>> {
-    use futures::FutureExt;
+    use futures::FutureExt as _;
 
     let opening = std::panic::AssertUnwindSafe(crate::ble::backend::BlewRadio::open_or_say_why());
     match opening.catch_unwind().await {

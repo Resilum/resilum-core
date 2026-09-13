@@ -8,7 +8,7 @@ use leviculum_std::api::Identity;
 pub const SESSION_KEY_LEN: usize = 32;
 
 pub fn new_session_key() -> [u8; SESSION_KEY_LEN] {
-    use rand_core::RngCore;
+    use rand_core::RngCore as _;
     let mut key = [0u8; SESSION_KEY_LEN];
     rand_core::OsRng.fill_bytes(&mut key);
     key

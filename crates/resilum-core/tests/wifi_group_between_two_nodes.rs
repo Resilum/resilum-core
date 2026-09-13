@@ -1,5 +1,5 @@
 use std::net::{TcpListener, TcpStream};
-use std::os::fd::IntoRawFd;
+use std::os::fd::IntoRawFd as _;
 use std::time::Duration;
 
 use resilum_core::{Config, Node};

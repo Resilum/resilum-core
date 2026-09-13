@@ -1,5 +1,4 @@
-use std::io::Write;
-use std::os::fd::AsRawFd;
+use std::io::Write as _;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 

@@ -2,7 +2,7 @@
 
 use std::io;
 use std::net::{IpAddr, SocketAddr};
-use std::os::fd::AsRawFd;
+use std::os::fd::AsRawFd as _;
 use std::time::Duration;
 
 use socket2::{Domain, Protocol, SockAddr, Socket};

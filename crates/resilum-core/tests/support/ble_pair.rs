@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use resilum_core::ble::framing::fragment;
-use resilum_core::ble::radio::{ConnectionId, Outbound, Radio, RadioEvent, Role};
+use resilum_core::ble::radio::{ConnectionId, Outbound, Radio as _, RadioEvent, Role};
 use resilum_core::ble::spec;
 use tokio::sync::mpsc::Receiver;
 

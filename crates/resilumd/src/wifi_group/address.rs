@@ -1,5 +1,5 @@
 use std::net::Ipv4Addr;
-use std::os::fd::AsRawFd;
+use std::os::fd::AsRawFd as _;
 
 const A_FULL_24: Ipv4Addr = Ipv4Addr::new(255, 255, 255, 0);
 

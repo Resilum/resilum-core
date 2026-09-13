@@ -1,10 +1,10 @@
 //! NIP-01 events: the only thing that crosses both networks unchanged.
 
 use data_encoding::{HEXLOWER, HEXLOWER_PERMISSIVE};
-use k256::schnorr::signature::hazmat::PrehashVerifier;
+use k256::schnorr::signature::hazmat::PrehashVerifier as _;
 use k256::schnorr::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2::{Digest as _, Sha256};
 
 pub(crate) const GIFT_WRAP_KIND: u32 = 1059;
 pub(crate) const LEGACY_DM_KIND: u32 = 4;

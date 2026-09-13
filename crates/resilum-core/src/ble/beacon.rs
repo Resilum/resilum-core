@@ -1,4 +1,4 @@
-use rand_core::RngCore;
+use rand_core::RngCore as _;
 
 const OURS_BEGIN_WITH: char = 'R';
 const TIEBREAK_LEN: usize = 3;

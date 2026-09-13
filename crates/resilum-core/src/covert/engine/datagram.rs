@@ -2,7 +2,7 @@
 //! Header packs a session id, seq, ack and kind.
 
 use hmac::digest::KeyInit;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, Mac as _};
 use sha2::Sha256;
 
 pub const HEADER_LEN: usize = 4 + 4 + 4 + 1; // session:u32, seq:u32, ack:u32, kind:u8

@@ -6,7 +6,7 @@
 
 use std::io;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use std::os::fd::AsRawFd;
+use std::os::fd::AsRawFd as _;
 use std::sync::Arc;
 use std::task::{Context, Poll, ready};
 

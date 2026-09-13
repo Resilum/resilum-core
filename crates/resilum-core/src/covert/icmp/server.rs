@@ -12,7 +12,7 @@ mod sniff;
 use std::collections::HashMap;
 use std::io;
 use std::net::{IpAddr, SocketAddr};
-use std::os::fd::AsRawFd;
+use std::os::fd::AsRawFd as _;
 use std::sync::Mutex;
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};

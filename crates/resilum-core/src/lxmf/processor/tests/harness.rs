@@ -14,7 +14,7 @@ use leviculum_core::transport::TickOutput;
 use leviculum_lxmf::PropagationStampRequest;
 use leviculum_lxmf::router::{RouterEvent, RouterOutput};
 use leviculum_std::api::Identity;
-use leviculum_std::driver::{CoreProcessor, StdClock, StdNodeCore, StdStorage};
+use leviculum_std::driver::{CoreProcessor as _, StdClock, StdNodeCore, StdStorage};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::super::{LxmfProcessor, Ready, Wiring};

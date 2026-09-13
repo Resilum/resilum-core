@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use futures::{SinkExt, StreamExt};
+use futures::{SinkExt as _, StreamExt as _};
 use netstack_smoltcp::UdpSocket;
 
 use super::fakedns::FakeDns;

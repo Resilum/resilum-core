@@ -61,7 +61,7 @@ pub fn server(opts: Options) -> i32 {
 }
 
 fn random_session_id() -> u32 {
-    use rand_core::RngCore;
+    use rand_core::RngCore as _;
     let mut buf = [0u8; 4];
     rand_core::OsRng.fill_bytes(&mut buf);
     u32::from_be_bytes(buf)

@@ -1,6 +1,6 @@
 //! The two ends the test needs: a tagged echo target, and an egress node.
 
-use std::io::{Read, Write};
+use std::io::{Read as _, Write as _};
 use std::time::Duration;
 
 use resilum_core::{Config, EgressListen, Node};

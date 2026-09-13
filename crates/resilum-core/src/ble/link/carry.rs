@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use leviculum_core::framing::hdlc::{DeframeResult, Deframer, frame};
-use tokio::io::{AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _, ReadHalf, WriteHalf};
 use tokio::sync::mpsc;
 
 use crate::ble::framing::{Arrived, Reassembly, fragment};

@@ -1,5 +1,5 @@
 use std::net::TcpListener;
-use std::os::fd::IntoRawFd;
+use std::os::fd::IntoRawFd as _;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use resilum_core::wifi_group::GroupHandle;

@@ -3,7 +3,7 @@
 //! dropped. Linux only.
 
 use std::io;
-use std::os::fd::AsRawFd;
+use std::os::fd::AsRawFd as _;
 
 use socket2::{Domain, Protocol, Socket, Type};
 

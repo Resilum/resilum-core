@@ -14,7 +14,7 @@ pub use i2p::I2pConduit;
 use std::os::fd::RawFd;
 use std::sync::Arc;
 
-use futures::StreamExt;
+use futures::StreamExt as _;
 use netstack_smoltcp::{StackBuilder, TcpListener};
 
 use self::fakedns::FakeDns;

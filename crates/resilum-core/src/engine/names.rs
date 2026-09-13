@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::net::ToSocketAddrs;
+use std::net::ToSocketAddrs as _;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 

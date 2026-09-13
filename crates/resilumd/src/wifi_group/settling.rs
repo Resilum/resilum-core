@@ -1,5 +1,5 @@
 use std::net::Ipv4Addr;
-use std::os::fd::AsRawFd;
+use std::os::fd::AsRawFd as _;
 use std::time::{Duration, Instant};
 
 use super::address::{as_wide_as_this_libc_wants, named};

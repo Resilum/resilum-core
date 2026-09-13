@@ -3,7 +3,7 @@
 //! reply differ so the kernel's own echo of a request cannot pass for the
 //! server's reply — the client only accepts the reply marker.
 
-use sha2::{Digest, Sha256};
+use sha2::{Digest as _, Sha256};
 
 pub const MARKER_LEN: usize = 4;
 

@@ -9,7 +9,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use data_encoding::BASE32_NOPAD;
-use sha2::{Digest, Sha256};
+use sha2::{Digest as _, Sha256};
 
 const PREFIX_BYTES: usize = 391;
 const WAIT_TIMEOUT: Duration = Duration::from_secs(600);

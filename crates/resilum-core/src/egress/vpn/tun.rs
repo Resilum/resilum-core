@@ -2,10 +2,10 @@
 //! pumps that shuttle IP frames between it and the userspace netstack.
 
 use std::io;
-use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
+use std::os::fd::{AsRawFd as _, FromRawFd as _, OwnedFd, RawFd};
 use std::sync::Arc;
 
-use futures::{SinkExt, StreamExt};
+use futures::{SinkExt as _, StreamExt as _};
 use netstack_smoltcp::AnyIpPktFrame;
 use tokio::io::unix::AsyncFd;
 
