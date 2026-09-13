@@ -18,6 +18,7 @@ resilum-core = { path = "../resilum-core", features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+resilum-tasks = { path = "../resilum-tasks" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [target.'cfg(target_os = "android")'.dependencies]

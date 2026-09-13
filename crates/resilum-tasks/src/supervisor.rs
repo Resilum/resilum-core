@@ -1,15 +1,15 @@
-//! Supervised async tasks with exponential backoff: a failing task restarts
-//! without taking the node down.
-
 use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
 
-use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
-/// Restart delays after consecutive failures.
+use crate::ending;
+use crate::watched::Watched;
+
 const BACKOFF_SECS: [u64; 6] = [1, 2, 5, 15, 30, 60];
+
+const HEALTHY_AFTER: Duration = Duration::from_secs(30);
 
 fn backoff(fails: usize) -> Duration {
     Duration::from_secs(BACKOFF_SECS[fails.min(BACKOFF_SECS.len() - 1)])
@@ -36,17 +36,16 @@ impl Task {
     }
 }
 
-const HEALTHY_AFTER: Duration = Duration::from_secs(30);
-
 async fn supervise(task: Task) {
     let mut fails = 0;
     loop {
         let started = Instant::now();
-        match tokio::spawn((task.run)()).await {
+        let run = tokio::spawn((task.run)());
+        match run.await {
             Ok(()) => tracing::info!(task = %task.name, "run ended"),
             Err(join) if join.is_cancelled() => return,
             Err(join) => {
-                let reason = panic_reason(join.into_panic());
+                let reason = ending::reason(join.into_panic());
                 tracing::error!(task = %task.name, reason, "run panicked");
             }
         }
@@ -60,23 +59,13 @@ async fn supervise(task: Task) {
     }
 }
 
-/// The default panic hook writes to stderr under a worker thread's name, which
-/// says nothing about which component died.
-fn panic_reason(payload: Box<dyn std::any::Any + Send>) -> String {
-    if let Some(text) = payload.downcast_ref::<&str>() {
-        return (*text).to_owned();
-    }
-    if let Some(text) = payload.downcast_ref::<String>() {
-        return text.clone();
-    }
-    "a panic payload that is neither &str nor String".to_owned()
-}
-
-/// Spawn every task under supervision.
-pub fn spawn_all(tasks: Vec<Task>) -> Vec<JoinHandle<()>> {
+pub fn keep_alive(tasks: Vec<Task>) -> Vec<Watched> {
     tasks
         .into_iter()
-        .map(|t| tokio::spawn(supervise(t)))
+        .map(|t| {
+            let named = t.name.clone();
+            crate::watch(named, supervise(t))
+        })
         .collect()
 }
 

@@ -1,4 +1,5 @@
 mod pace;
+mod whom;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -6,7 +7,7 @@ use std::time::Duration;
 
 use pace::{between_asks, forgotten_after, still_resting};
 
-use leviculum_std::api::{Destination, DestinationHash, Identity};
+use leviculum_std::api::{Destination, Identity};
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc;
 
@@ -31,29 +32,35 @@ pub(super) fn bring_up(
     let ours = *destination.hash();
     engine.register_destination(destination);
     let asked_of_us = inbox.claim(*ours.as_bytes());
-    node.tasks.push(tokio::spawn({
-        let inbox = inbox.clone();
-        async move { inbox.sort(arriving, unclaimed).await }
-    }));
-    node.tasks.push(tokio::spawn(exchange::answer(
-        engine.clone(),
-        asked_of_us,
-        node.coordinates.clone(),
-        wall_clock::unix_now,
-        node.nursery.clone(),
-    )));
-    node.tasks.push(tokio::spawn(crate::announce_ours::every(
-        engine.clone(),
-        ours,
-        ANNOUNCE_EVERY,
-    )));
-    node.tasks.push(tokio::spawn(ask_around(
-        engine.clone(),
-        router.clone(),
-        node.coordinates.clone(),
-        node.attachments.clone(),
-        identity.clone(),
-    )));
+    node.tasks
+        .keep(resilum_tasks::watch("inbox: sorting what arrives", {
+            let inbox = inbox.clone();
+            async move { inbox.sort(arriving, unclaimed).await }
+        }));
+    node.tasks.keep(resilum_tasks::watch(
+        "coordinates: answering an exchange",
+        exchange::answer(
+            engine.clone(),
+            asked_of_us,
+            node.coordinates.clone(),
+            wall_clock::unix_now,
+            node.nursery.clone(),
+        ),
+    ));
+    node.tasks.keep(resilum_tasks::watch(
+        "coordinates: announcing where to reach us",
+        crate::announce_ours::every(engine.clone(), ours, ANNOUNCE_EVERY),
+    ));
+    node.tasks.keep(resilum_tasks::watch(
+        "coordinates: asking peers where they sit",
+        ask_around(
+            engine.clone(),
+            router.clone(),
+            node.coordinates.clone(),
+            node.attachments.clone(),
+            identity.clone(),
+        ),
+    ));
 }
 
 async fn ask_around(
@@ -71,7 +78,7 @@ async fn ask_around(
         tokio::time::sleep(between_asks).await;
         let now = wall_clock::unix_now();
         coordinates.forget_before(now - forgotten_after(between_asks).as_secs_f64());
-        let asking = whom_to_ask(&engine, &aspect, &attachments, round);
+        let asking = whom::to_ask(&engine, &aspect, &attachments, round);
         round = round.wrapping_add(1);
         let mut placed = 0;
         let mut spared = 0;
@@ -99,47 +106,4 @@ async fn ask_around(
             "asked the peers this node can reach where they sit"
         );
     }
-}
-
-fn whom_to_ask(
-    engine: &Arc<ReticulumNode>,
-    aspect: &[u8; 10],
-    attachments: &Attachments,
-    round: usize,
-) -> Vec<(PeerId, DestinationHash)> {
-    let kept = attachments.whose_links_we_keep();
-    let (mut whose_links_we_keep, rest): (Vec<_>, Vec<_>) = reachable_peers(engine, aspect)
-        .into_iter()
-        .partition(|(peer, _)| kept.contains(peer));
-    if whose_links_we_keep.is_empty() {
-        return rest;
-    }
-    whose_links_we_keep.extend(one_of_the_rest_in_turn(&rest, round));
-    whose_links_we_keep
-}
-
-fn one_of_the_rest_in_turn(
-    rest: &[(PeerId, DestinationHash)],
-    round: usize,
-) -> Option<(PeerId, DestinationHash)> {
-    rest.get(round % rest.len().max(1)).copied()
-}
-
-fn reachable_peers(
-    engine: &Arc<ReticulumNode>,
-    aspect: &[u8; 10],
-) -> Vec<(PeerId, DestinationHash)> {
-    let mut asking = Vec::new();
-    for entry in engine.path_table_entries() {
-        let Some(identity) = engine.get_identity(&entry.hash.into()) else {
-            continue;
-        };
-        let at = Destination::compute_destination_hash(aspect, identity.hash());
-        if engine.has_path(&at) {
-            asking.push((*identity.hash(), at));
-        }
-    }
-    asking.sort_unstable();
-    asking.dedup();
-    asking
 }

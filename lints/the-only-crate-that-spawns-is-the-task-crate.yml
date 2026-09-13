@@ -1,0 +1,23 @@
+---
+id: the-only-crate-that-spawns-is-the-task-crate
+language: Rust
+severity: error
+message: A task or thread spawned outside `resilum-tasks`.
+files:
+  - "crates/*/src/**"
+ignores:
+  - "crates/resilum-tasks/**"
+note: |
+  A bare spawn has no name and no one waiting on it, so when it panics the
+  node carries on with a component silently gone. `resilum-tasks` gives each
+  one a name, reports how it ended, and hands back something the node can
+  abort: `watch` for a task that runs once, `keep_alive` for one worth
+  restarting, `Nursery` for the short-lived, `a_thread_of_its_own` for a
+  thread.
+rule:
+  any:
+    - pattern: tokio::spawn($$$ARGS)
+    - pattern: std::thread::spawn($$$ARGS)
+    - pattern: thread::spawn($$$ARGS)
+    - kind: token_tree
+      regex: '(tokio|thread)::spawn'

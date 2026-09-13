@@ -28,4 +28,5 @@ fn init_subscriber() {
         .try_init();
     #[cfg(not(target_os = "android"))]
     let _ = registry.with(tracing_subscriber::fmt::layer()).try_init();
+    resilum_tasks::panics::are_told_to_the_log();
 }

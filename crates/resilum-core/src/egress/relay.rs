@@ -13,11 +13,14 @@ where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     let (to_link, mut to_link_rx) = mpsc::unbounded_channel();
-    let pumping = tokio::spawn(pump(stream, from_link, to_link));
+    let pumping = resilum_tasks::watch(
+        "egress: relaying a session",
+        pump(stream, from_link, to_link),
+    );
     while let Some(bytes) = to_link_rx.recv().await {
         if handle.send(&bytes).await.is_err() {
             break;
         }
     }
-    let _ = pumping.await;
+    pumping.come_home().await;
 }

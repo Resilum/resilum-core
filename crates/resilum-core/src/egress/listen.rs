@@ -11,7 +11,6 @@ use std::time::Duration;
 use leviculum_std::api::{Destination, DestinationHash, DestinationType, Direction, Identity};
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::task::JoinHandle;
 
 use crate::config::EgressListen;
 use crate::link::Inbound;
@@ -77,16 +76,19 @@ pub async fn run(
         backends.insert(*dest_hash.as_bytes(), backend);
     }
 
+    let sessions = resilum_tasks::Nursery::default();
     while let Some((link_id, dest_hash, from_link)) = inbound.recv().await {
         if let Some(backend) = backends.get(dest_hash.as_bytes()) {
             let handle = engine.link_handle(&link_id);
             match backend.clone() {
-                Backend::External(target) => {
-                    tokio::spawn(session::session_external(handle, from_link, target));
-                }
-                Backend::EmbeddedSocks { allow_private } => {
-                    tokio::spawn(session::session_embedded(handle, from_link, allow_private));
-                }
+                Backend::External(target) => sessions.keep(
+                    "egress: a session out to the configured target",
+                    session::session_external(handle, from_link, target),
+                ),
+                Backend::EmbeddedSocks { allow_private } => sessions.keep(
+                    "egress: a session out through our own socks",
+                    session::session_embedded(handle, from_link, allow_private),
+                ),
             }
         }
     }
@@ -100,8 +102,8 @@ fn announce_loop(
     dest_hash: DestinationHash,
     interval: Duration,
     payload: Vec<u8>,
-) -> JoinHandle<()> {
-    tokio::spawn(async move {
+) -> resilum_tasks::Watched {
+    resilum_tasks::watch("egress: announcing an exit we serve", async move {
         loop {
             match engine
                 .announce_destination(&dest_hash, Some(&payload))

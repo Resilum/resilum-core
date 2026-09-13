@@ -70,11 +70,9 @@ impl DiscoveryPlugin for IrohDiscovery {
             Room::Yes | Room::OnceThisIsLetGo(_) => {}
             Room::No => return,
         }
-        tokio::spawn(dial::dial(
-            active.endpoint.clone(),
-            active.wiring.clone(),
-            addr,
-            peer,
-        ));
+        resilum_tasks::watch(
+            format!("iroh: dialling {}", addr.id.fmt_short()),
+            dial::dial(active.endpoint.clone(), active.wiring.clone(), addr, peer),
+        );
     }
 }

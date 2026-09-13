@@ -21,6 +21,7 @@ fn main() {
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
     tracing_subscriber::fmt().with_env_filter(filter).init();
+    resilum_tasks::panics::are_told_to_the_log();
 
     let argv: Vec<String> = std::env::args().skip(1).collect();
     subcommands::dispatch_or_exit(&argv);

@@ -20,9 +20,10 @@ pub(super) async fn serve(net: Arc<Net>, port: u16) {
             return;
         }
     };
+    let conns = resilum_tasks::Nursery::default();
     while let Ok((client, _)) = listener.accept().await {
         let net = net.clone();
-        tokio::spawn(async move {
+        conns.keep("ygg: one socks connection", async move {
             if let Err(e) = handle_conn(client, net).await {
                 tracing::debug!(error = %e, "ygg socks conn ended");
             }

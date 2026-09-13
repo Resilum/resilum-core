@@ -8,6 +8,7 @@ description = "Resilum node daemon (Linux/server; packaged into the container im
 [dependencies]
 resilum-core = { path = "../resilum-core", features = ["ble", "iroh"] }
 resilum-store = { path = "../resilum-store" }
+resilum-tasks = { path = "../resilum-tasks" }
 resilum-nostr = { path = "../resilum-nostr" }
 ctrlc = { version = "3", features = ["termination"] }
 data-encoding = "2"

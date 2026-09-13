@@ -37,24 +37,32 @@ pub async fn run(
         socks_port.store(addr.port(), Ordering::Relaxed);
     }
     let mut current: Option<Candidate> = None;
+    let sessions = resilum_tasks::Nursery::default();
     while let Ok((tcp, _)) = listener.accept().await {
         match best_available(&registry, &cfg, &own, current.as_ref()) {
             Some(chosen) => {
                 match own.target_of(&chosen) {
-                    Some(target) => tokio::spawn(own_session(target.to_owned(), tcp)),
-                    None => tokio::spawn(session(
-                        engine.clone(),
-                        router.clone(),
-                        active.clone(),
-                        chosen.clone(),
-                        tcp,
-                    )),
-                };
+                    Some(target) => sessions.keep(
+                        "ingress: a connection through our own exit",
+                        own_session(target.to_owned(), tcp),
+                    ),
+                    None => sessions.keep(
+                        "ingress: a connection through a peer's exit",
+                        session(
+                            engine.clone(),
+                            router.clone(),
+                            active.clone(),
+                            chosen.clone(),
+                            tcp,
+                        ),
+                    ),
+                }
                 current = Some(chosen);
             }
-            None => {
-                tokio::spawn(turn_away(tcp, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH));
-            }
+            None => sessions.keep(
+                "ingress: turning a connection away",
+                turn_away(tcp, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH),
+            ),
         }
     }
 }

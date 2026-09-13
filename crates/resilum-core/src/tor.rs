@@ -10,7 +10,6 @@ use std::sync::Arc;
 use arti_client::config::CfgPath;
 use arti_client::{BootstrapBehavior, TorClient, TorClientConfig};
 use tokio::net::TcpListener;
-use tokio::task::JoinHandle;
 
 use socks::handle_conn;
 
@@ -18,7 +17,7 @@ pub type ArtiClient = Arc<TorClient<tor_rtcompat::PreferredRuntime>>;
 
 pub struct EmbeddedTor {
     port: u16,
-    accept: JoinHandle<()>,
+    accept: resilum_tasks::Watched,
     client: ArtiClient,
 }
 
@@ -42,7 +41,7 @@ impl EmbeddedTor {
             .map_err(|e| io::Error::other(format!("arti client: {e}")))?;
 
         let warm = Arc::clone(&client);
-        tokio::spawn(async move {
+        resilum_tasks::watch("tor: bootstrapping the client", async move {
             if let Err(e) = warm.bootstrap().await {
                 tracing::warn!(error = %e, "arti bootstrap failed; retried on first use");
             }
@@ -53,7 +52,9 @@ impl EmbeddedTor {
         let port = listener.local_addr()?.port();
 
         let for_task = Arc::clone(&client);
-        let accept = tokio::spawn(async move { accept_loop(listener, for_task).await });
+        let accept = resilum_tasks::watch("tor: taking socks connections", async move {
+            accept_loop(listener, for_task).await;
+        });
 
         Ok(Self {
             port,
@@ -103,12 +104,13 @@ fn build_config(
 }
 
 async fn accept_loop(listener: TcpListener, client: ArtiClient) {
+    let conns = resilum_tasks::Nursery::default();
     loop {
         let Ok((conn, _peer)) = listener.accept().await else {
             return;
         };
         let client = Arc::clone(&client);
-        tokio::spawn(async move {
+        conns.keep("tor: one socks connection", async move {
             if let Err(e) = handle_conn(conn, client).await {
                 tracing::debug!(error = %e, "arti socks conn ended");
             }

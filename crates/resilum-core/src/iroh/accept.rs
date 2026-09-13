@@ -9,9 +9,10 @@ use super::bridge;
 use super::wiring::Wiring;
 
 pub async fn run(endpoint: Endpoint, wiring: Arc<Wiring>) {
+    let arriving = resilum_tasks::Nursery::default();
     while let Some(incoming) = endpoint.accept().await {
         let wiring = wiring.clone();
-        tokio::spawn(async move {
+        arriving.keep("iroh: one inbound connection", async move {
             match incoming.await {
                 Ok(conn) => bridge::accept_link(&wiring, conn).await,
                 Err(e) => tracing::warn!(error = %e, "iroh inbound connection failed"),

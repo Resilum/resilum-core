@@ -14,7 +14,7 @@ async fn a_connection_with_nowhere_to_go_is_told_why_rather_than_dropped() {
         .expect("a local port to listen on");
     let listening_on = listener.local_addr().expect("the port just bound");
 
-    tokio::spawn(async move {
+    resilum_tasks::watch("a test exit that turns callers away", async move {
         let (tcp, _) = listener.accept().await.expect("the client below");
         turn_away(tcp, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH).await;
     });

@@ -47,58 +47,62 @@ where
     let origins = node.origin_registry.clone();
     let nursery = node.nursery.clone();
     let someone_elses_group = node.ble_someone_elses_group.clone();
-    node.tasks.push(node.runtime.handle().spawn(async move {
-        let Some(radio) = opening.await else {
-            return;
-        };
-        let Some(events) = radio.events_taken_once() else {
-            return;
-        };
-        let beacon = Beacon::fresh(known.can_host_at_all(), hosting.is_up());
-        radio.serve_identity(ours);
-        if let Err(e) = put_us_on_the_air(radio.as_ref(), &beacon) {
-            tracing::warn!(error = ?e, "ble advertise refused");
-        }
-        if let Err(e) = radio.scan(spec::SERVICE) {
-            tracing::warn!(error = ?e, "ble scan refused");
-        }
-        let since = Instant::now();
-        let group_falls_with_the_radio = hosting.clone();
-        let nothing_is_on_the_air_without_a_radio = someone_elses_group.clone();
-        tokio::select! {
-            () = run::run(
-                Ours {
-                    engine: engine.clone(),
-                    radio: radio.clone(),
-                    identity: ours,
-                    beacon,
-                    attachments,
-                    origins,
-                    field: field.clone(),
-                    someone_elses_group,
-                },
-                events,
-                since,
-            ) => {}
-            () = run::keep_deciding(
-                Deciding {
-                    engine,
-                    identity,
-                    router,
-                    radio,
-                    field,
-                    known,
-                    hosting,
-                    us: ours,
-                    beacon,
-                    nursery,
-                },
-                since,
-            ) => {}
-        }
-        group_falls_with_the_radio.stand_down();
-        nothing_is_on_the_air_without_a_radio.forget_it();
-    }));
+    node.tasks.keep(resilum_tasks::watch_on(
+        node.runtime.handle(),
+        "ble: opening the radio",
+        async move {
+            let Some(radio) = opening.await else {
+                return;
+            };
+            let Some(events) = radio.events_taken_once() else {
+                return;
+            };
+            let beacon = Beacon::fresh(known.can_host_at_all(), hosting.is_up());
+            radio.serve_identity(ours);
+            if let Err(e) = put_us_on_the_air(radio.as_ref(), &beacon) {
+                tracing::warn!(error = ?e, "ble advertise refused");
+            }
+            if let Err(e) = radio.scan(spec::SERVICE) {
+                tracing::warn!(error = ?e, "ble scan refused");
+            }
+            let since = Instant::now();
+            let group_falls_with_the_radio = hosting.clone();
+            let nothing_is_on_the_air_without_a_radio = someone_elses_group.clone();
+            tokio::select! {
+                () = run::run(
+                    Ours {
+                        engine: engine.clone(),
+                        radio: radio.clone(),
+                        identity: ours,
+                        beacon,
+                        attachments,
+                        origins,
+                        field: field.clone(),
+                        someone_elses_group,
+                    },
+                    events,
+                    since,
+                ) => {}
+                () = run::keep_deciding(
+                    Deciding {
+                        engine,
+                        identity,
+                        router,
+                        radio,
+                        field,
+                        known,
+                        hosting,
+                        us: ours,
+                        beacon,
+                        nursery,
+                    },
+                    since,
+                ) => {}
+            }
+            group_falls_with_the_radio.stand_down();
+            nothing_is_on_the_air_without_a_radio.forget_it();
+        },
+    ));
 }
 
 fn answer_other_candidates(node: &mut Node, wiring: &Wiring, field: &Field) {
@@ -106,18 +110,24 @@ fn answer_other_candidates(node: &mut Node, wiring: &Wiring, field: &Field) {
     let ours = *destination.hash();
     wiring.engine.register_destination(destination);
     let asked_of_us = wiring.inbox.claim(*ours.as_bytes());
-    node.tasks
-        .push(node.runtime.handle().spawn(exchange::answer(
+    node.tasks.keep(resilum_tasks::watch_on(
+        node.runtime.handle(),
+        "ble: answering where we stand",
+        exchange::answer(
             wiring.engine.clone(),
             asked_of_us,
             node.ble_facts.clone(),
             field.clone(),
             node.nursery.clone(),
-        )));
-    node.tasks
-        .push(node.runtime.handle().spawn(crate::announce_ours::every(
+        ),
+    ));
+    node.tasks.keep(resilum_tasks::watch_on(
+        node.runtime.handle(),
+        "ble: announcing where we answer",
+        crate::announce_ours::every(
             wiring.engine.clone(),
             ours,
             spec::WE_SAY_WHERE_WE_ANSWER_EVERY,
-        )));
+        ),
+    ));
 }

@@ -37,8 +37,9 @@ pub fn on(interface: &str, owner: Ipv4Addr, seconds: fn() -> u64) -> std::io::Re
     let socket = bound_to(interface)?;
     let told_to_stop = Arc::new(AtomicBool::new(false));
     let stopping = told_to_stop.clone();
-    let thread =
-        std::thread::spawn(move || answer_until_told_to_stop(&socket, owner, seconds, &stopping));
+    let thread = resilum_tasks::a_thread_of_its_own("the group's dhcp answers", move || {
+        answer_until_told_to_stop(&socket, owner, seconds, &stopping);
+    })?;
     Ok(Serving {
         told_to_stop,
         thread: Some(thread),

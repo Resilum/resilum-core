@@ -33,12 +33,14 @@ pub(super) fn bring_up(
 
     let storage_root = node.config.storage_path.as_deref();
     let cap_controller = announce_cap::CapController::new(engine.clone());
-    node.tasks
-        .push(tokio::spawn(announce_cap::run(cap_controller.clone())));
-    node.tasks.push(tokio::spawn(announce_trigger::run(
-        engine.clone(),
-        node.discovery_trigger.clone(),
-    )));
+    node.tasks.keep(resilum_tasks::watch(
+        "announce cap: following what each interface carries",
+        announce_cap::run(cap_controller.clone()),
+    ));
+    node.tasks.keep(resilum_tasks::watch(
+        "announce trigger: re-announcing when something changes",
+        announce_trigger::run(engine.clone(), node.discovery_trigger.clone()),
+    ));
 
     #[cfg(feature = "arti")]
     let embedded_tor = if resolve::wants_embedded_arti(&node.config.discovery) {
@@ -89,20 +91,27 @@ pub(super) fn bring_up(
     }
     let plugins = Arc::new(discovery);
     let bus = node.events.subscribe();
-    node.tasks
-        .push(tokio::spawn(discovery::run_consume(plugins.clone(), bus)));
+    node.tasks.keep(resilum_tasks::watch(
+        "discovery: dialling the peers who announce",
+        discovery::run_consume(plugins.clone(), bus),
+    ));
 
     let destination = discovery::build_destination(engine, identity.clone())?;
     covert::bring_up(node, engine, identity, &covert_addresses)?;
-    node.tasks.push(tokio::spawn(discovery::run_produce(
-        engine.clone(),
-        plugins.clone(),
-        destination,
-        node.config.discovery_announce_interval,
-        node.discovery_trigger.clone(),
-    )));
-    node.tasks
-        .push(tokio::spawn(discovery::run_prune_loop(plugins)));
+    node.tasks.keep(resilum_tasks::watch(
+        "discovery: announcing where we can be reached",
+        discovery::run_produce(
+            engine.clone(),
+            plugins.clone(),
+            destination,
+            node.config.discovery_announce_interval,
+            node.discovery_trigger.clone(),
+        ),
+    ));
+    node.tasks.keep(resilum_tasks::watch(
+        "discovery: forgetting peers we have not seen",
+        discovery::run_prune_loop(plugins),
+    ));
 
     #[cfg(feature = "arti")]
     {

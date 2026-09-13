@@ -94,7 +94,7 @@ fn asked_of_the_kernel() -> Result<WhatTheRadioAllows, String> {
 async fn every_combination() -> Result<WhatTheRadioAllows, String> {
     let (connection, handle, _) =
         wl_nl80211::new_connection().map_err(|e| format!("no netlink socket: {e}"))?;
-    tokio::spawn(connection);
+    resilum_tasks::watch("netlink: the connection to the kernel", connection);
     let mut physics = handle.wireless_physic().get().execute().await;
     let mut found = Vec::new();
     while let Some(physic) = physics

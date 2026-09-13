@@ -26,7 +26,7 @@ struct Inner {
     dialled: Mutex<HashSet<Vec<u8>>>,
     origin_registry: Arc<crate::discovery::OriginRegistry>,
     attachments: Arc<Attachments>,
-    nursery: Arc<crate::nursery::Nursery>,
+    nursery: Arc<resilum_tasks::Nursery>,
 }
 
 impl CovertDiscovered {
@@ -37,7 +37,7 @@ impl CovertDiscovered {
         events: Events,
         origin_registry: Arc<crate::discovery::OriginRegistry>,
         attachments: Arc<Attachments>,
-        nursery: Arc<crate::nursery::Nursery>,
+        nursery: Arc<resilum_tasks::Nursery>,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -76,7 +76,9 @@ impl DiscoveryPlugin for CovertDiscovered {
             return;
         }
         let nursery = Arc::clone(&inner.nursery);
-        nursery.keep(async move { resolve_and_attach(inner, pubkey).await });
+        nursery.keep("covert peer resolve and attach", async move {
+            resolve_and_attach(inner, pubkey).await;
+        });
     }
 }
 

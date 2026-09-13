@@ -2,7 +2,7 @@
 //! a placeholder task that holds its slot under supervision.
 
 use crate::spec::Specs;
-use crate::supervisor::Task;
+use resilum_tasks::Task;
 
 /// One supervised task per configured spec (bridges, VPN, covert).
 pub(crate) fn tasks_for(specs: &Specs) -> Vec<Task> {

@@ -23,21 +23,25 @@ pub(super) fn bring_up(
     if rendezvous.is_empty() {
         return Ok(());
     }
-    node.tasks
-        .push(tokio::spawn(discovery::covert::rendezvous::run_announcer(
+    node.tasks.keep(resilum_tasks::watch(
+        "covert: announcing the rendezvous",
+        discovery::covert::rendezvous::run_announcer(
             engine.clone(),
             rendezvous.into_iter().map(|(_, hash)| hash).collect(),
             node.config.discovery_announce_interval,
             node.discovery_trigger.clone(),
-        )));
+        ),
+    ));
     for (cfg, addresses) in node.config.covert_discovery.iter().zip(addresses) {
-        node.tasks
-            .push(tokio::spawn(discovery::covert::rendezvous::run_responder(
+        node.tasks.keep(resilum_tasks::watch(
+            format!("covert: answering over {}", cfg.carrier),
+            discovery::covert::rendezvous::run_responder(
                 engine.clone(),
                 cfg.carrier.clone(),
                 addresses.clone(),
                 node.events.subscribe(),
-            )));
+            ),
+        ));
         if let Some(listener) = start_listener_if_this_host_can(engine, cfg, identity) {
             node.covert_listeners.push(listener);
         }

@@ -35,22 +35,25 @@ pub(super) async fn spawn(
     let asked = peripheral
         .take_requests()
         .ok_or_else(|| RadioError::Backend("the radio hands its requests out once".into()))?;
-    tokio::spawn(run(Held {
-        central: Arc::new(central),
-        peripheral,
-        commands,
-        outbound,
-        told: Reporting {
-            telling,
-            carried,
-            peers: Peers::default(),
-        },
-        heard,
-        watched,
-        asked: Box::new(asked),
-        already_dialling: HashSet::new(),
-        dials_in_flight: JoinSet::new(),
-    }));
+    resilum_tasks::watch(
+        "ble: driving the radio",
+        run(Held {
+            central: Arc::new(central),
+            peripheral,
+            commands,
+            outbound,
+            told: Reporting {
+                telling,
+                carried,
+                peers: Peers::default(),
+            },
+            heard,
+            watched,
+            asked: Box::new(asked),
+            already_dialling: HashSet::new(),
+            dials_in_flight: JoinSet::new(),
+        }),
+    );
     Ok(())
 }
 

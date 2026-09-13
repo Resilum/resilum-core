@@ -16,7 +16,6 @@ use std::sync::Arc;
 
 use futures::StreamExt;
 use netstack_smoltcp::{StackBuilder, TcpListener};
-use tokio::task::JoinHandle;
 
 use self::fakedns::FakeDns;
 use self::flow::FlowCtx;
@@ -45,7 +44,7 @@ pub struct VpnParams {
 /// the tun fd.
 #[must_use]
 pub struct VpnHandle {
-    tasks: Vec<JoinHandle<()>>,
+    tasks: Vec<resilum_tasks::Watched>,
 }
 
 impl VpnHandle {
@@ -108,27 +107,43 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
 
     let mut tasks = Vec::new();
     if let Some(runner) = runner {
-        tasks.push(tokio::spawn(async move {
-            let _ = runner.await;
+        tasks.push(resilum_tasks::watch("vpn: the network stack", async move {
+            if let Err(e) = runner.await {
+                tracing::warn!(error = %e, "the vpn network stack stopped");
+            }
         }));
     }
-    tasks.push(tokio::spawn(tun::tun_to_stack(
-        tun.clone(),
-        sink,
-        ygg.clone(),
-        mtu,
-    )));
-    tasks.push(tokio::spawn(tun::stack_to_tun(tun.clone(), stream)));
+    tasks.push(resilum_tasks::watch(
+        "vpn: tun into the stack",
+        tun::tun_to_stack(tun.clone(), sink, ygg.clone(), mtu),
+    ));
+    tasks.push(resilum_tasks::watch(
+        "vpn: stack back into the tun",
+        tun::stack_to_tun(tun.clone(), stream),
+    ));
     if let Some(ygg) = ygg {
-        tasks.push(tokio::spawn(tun::conduit_to_tun(ygg, tun, mtu)));
+        tasks.push(resilum_tasks::watch(
+            "vpn: the overlay into the tun",
+            tun::conduit_to_tun(ygg, tun, mtu),
+        ));
     }
-    tasks.push(tokio::spawn(udp::serve(udp_socket, fakedns)));
-    tasks.push(tokio::spawn(accept(ctx, tcp_listener)));
+    tasks.push(resilum_tasks::watch(
+        "vpn: udp flows",
+        udp::serve(udp_socket, fakedns),
+    ));
+    tasks.push(resilum_tasks::watch(
+        "vpn: taking tcp flows",
+        accept(ctx, tcp_listener),
+    ));
     Ok(VpnHandle { tasks })
 }
 
 async fn accept(ctx: Arc<FlowCtx>, mut listener: TcpListener) {
+    let flows = resilum_tasks::Nursery::default();
     while let Some((stream, _local, remote)) = listener.next().await {
-        tokio::spawn(flow::serve(ctx.clone(), stream, remote));
+        flows.keep(
+            format!("vpn: a flow to {remote}"),
+            flow::serve(ctx.clone(), stream, remote),
+        );
     }
 }
