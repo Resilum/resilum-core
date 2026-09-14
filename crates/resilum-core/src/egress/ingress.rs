@@ -18,16 +18,19 @@ use crate::socks5_tcp::{
     self, REP_EGRESS_DID_NOT_ANSWER, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH,
 };
 
-pub async fn run(
-    engine: Arc<ReticulumNode>,
-    router: Arc<LinkRouter>,
-    registry: Arc<CandidateRegistry>,
-    active: Arc<ActiveLinks>,
-    socks_port: Arc<AtomicU16>,
-    cfg: IngressConfig,
-    own: OwnExits,
-) {
-    let Some(where_to_listen) = cfg.listen_tcp.clone() else {
+pub struct Wiring {
+    pub engine: Arc<ReticulumNode>,
+    pub router: Arc<LinkRouter>,
+    pub registry: Arc<CandidateRegistry>,
+    pub active: Arc<ActiveLinks>,
+    pub socks_port: Arc<AtomicU16>,
+    pub cfg: IngressConfig,
+    pub own: OwnExits,
+    pub sessions: Arc<resilum_tasks::Nursery>,
+}
+
+pub async fn run(wiring: Wiring) {
+    let Some(where_to_listen) = wiring.cfg.listen_tcp.clone() else {
         return;
     };
     let Ok(listener) = TcpListener::bind(&where_to_listen).await else {
@@ -35,24 +38,23 @@ pub async fn run(
         return;
     };
     if let Ok(addr) = listener.local_addr() {
-        socks_port.store(addr.port(), Ordering::Relaxed);
+        wiring.socks_port.store(addr.port(), Ordering::Relaxed);
     }
     let mut current: Option<Candidate> = None;
-    let sessions = resilum_tasks::Nursery::default();
     while let Ok((tcp, _)) = listener.accept().await {
-        match best_available(&registry, &cfg, &own, current.as_ref()) {
+        match best_available(&wiring.registry, &wiring.cfg, &wiring.own, current.as_ref()) {
             Some(chosen) => {
-                match own.target_of(&chosen) {
-                    Some(target) => sessions.keep(
+                match wiring.own.target_of(&chosen) {
+                    Some(target) => wiring.sessions.keep(
                         "ingress: a connection through our own exit",
                         own_session(target.to_owned(), tcp),
                     ),
-                    None => sessions.keep(
+                    None => wiring.sessions.keep(
                         "ingress: a connection through a peer's exit",
                         session(
-                            engine.clone(),
-                            router.clone(),
-                            active.clone(),
+                            wiring.engine.clone(),
+                            wiring.router.clone(),
+                            wiring.active.clone(),
                             chosen.clone(),
                             tcp,
                         ),
@@ -60,7 +62,7 @@ pub async fn run(
                 }
                 current = Some(chosen);
             }
-            None => sessions.keep(
+            None => wiring.sessions.keep(
                 "ingress: turning a connection away",
                 turn_away(tcp, REP_NO_EGRESS_TO_REACH_THE_INTERNET_THROUGH),
             ),

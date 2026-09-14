@@ -6,6 +6,7 @@ license.workspace = true
 description = "The only crate that spawns: every task and thread is named here, and its ending is reported."
 
 [dependencies]
+futures = { version = "0.3", default-features = false, features = ["std"] }
 tokio = { version = "1", features = ["rt", "time", "macros"] }
 tracing = "0.1"
 

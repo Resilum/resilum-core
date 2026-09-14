@@ -49,9 +49,9 @@ pub async fn run(
     identity: Identity,
     services: Vec<EgressListen>,
     mut inbound: UnboundedReceiver<Inbound>,
+    sessions: Arc<resilum_tasks::Nursery>,
 ) {
     let mut backends: HashMap<[u8; 16], Backend> = HashMap::new();
-    let mut announcers = Vec::new();
     for cfg in &services {
         let dest = build_destination(identity.clone(), &cfg.service);
         let dest_hash = *dest.hash();
@@ -61,12 +61,10 @@ pub async fn run(
             &cfg.exit_country,
             leviculum_core::announce_app_data_budget(true),
         );
-        announcers.push(announce_loop(
-            engine.clone(),
-            dest_hash,
-            cfg.announce_interval,
-            payload,
-        ));
+        sessions.keep(
+            "egress: announcing an exit we serve",
+            announce_loop(engine.clone(), dest_hash, cfg.announce_interval, payload),
+        );
         let backend = match cfg.target.clone() {
             Some(t) => Backend::External(t),
             None => Backend::EmbeddedSocks {
@@ -76,7 +74,6 @@ pub async fn run(
         backends.insert(*dest_hash.as_bytes(), backend);
     }
 
-    let sessions = resilum_tasks::Nursery::default();
     while let Some((link_id, dest_hash, from_link)) = inbound.recv().await {
         if let Some(backend) = backends.get(dest_hash.as_bytes()) {
             let handle = engine.link_handle(&link_id);
@@ -92,32 +89,27 @@ pub async fn run(
             }
         }
     }
-    for announcer in announcers {
-        announcer.abort();
-    }
 }
 
-fn announce_loop(
+async fn announce_loop(
     engine: Arc<ReticulumNode>,
     dest_hash: DestinationHash,
     interval: Duration,
     payload: Vec<u8>,
-) -> resilum_tasks::Watched {
-    resilum_tasks::watch("egress: announcing an exit we serve", async move {
-        loop {
-            match engine
-                .announce_destination(&dest_hash, Some(&payload))
-                .await
-            {
-                Ok(()) => tracing::debug!(
-                    dest = ?data_encoding::HEXLOWER.encode(dest_hash.as_bytes()),
-                    "egress announced",
-                ),
-                Err(e) => tracing::warn!(error = %e, "egress announce failed"),
-            }
-            tokio::time::sleep(interval).await;
+) {
+    loop {
+        match engine
+            .announce_destination(&dest_hash, Some(&payload))
+            .await
+        {
+            Ok(()) => tracing::debug!(
+                dest = ?data_encoding::HEXLOWER.encode(dest_hash.as_bytes()),
+                "egress announced",
+            ),
+            Err(e) => tracing::warn!(error = %e, "egress announce failed"),
         }
-    })
+        tokio::time::sleep(interval).await;
+    }
 }
 
 #[cfg(test)]

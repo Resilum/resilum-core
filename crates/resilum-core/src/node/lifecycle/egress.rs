@@ -46,15 +46,16 @@ pub(super) fn bring_up(
         }
         node.tasks.keep(resilum_tasks::watch(
             "ingress: taking local connections into the mesh",
-            egress::ingress::run(
-                engine.clone(),
-                router.clone(),
-                node.registry.clone(),
+            egress::ingress::run(egress::ingress::Wiring {
+                engine: engine.clone(),
+                router: router.clone(),
+                registry: node.registry.clone(),
                 active,
-                node.socks_port.clone(),
-                ingress.clone(),
-                ours.clone(),
-            ),
+                socks_port: node.socks_port.clone(),
+                cfg: ingress.clone(),
+                own: ours.clone(),
+                sessions: node.nursery.clone(),
+            }),
         ));
         node.tasks.keep(resilum_tasks::watch(
             "egress: watching whether the exits we use still answer",
@@ -76,6 +77,7 @@ pub(super) fn bring_up(
                 identity.clone(),
                 node.config.egress.clone(),
                 inbound_rx,
+                node.nursery.clone(),
             ),
         ));
     }

@@ -91,7 +91,6 @@ impl Node {
     }
 
     pub fn stop(&mut self) -> Result<()> {
-        self.wait_for_tasks_to_let_go_of_the_engine();
         self.router = None;
         self.inbox = None;
         self.identity = None;
@@ -110,8 +109,9 @@ impl Node {
             self.embedded_tor = None;
         }
         self.directories.clear();
+        self.wait_for_tasks_to_let_go_of_the_engine();
         if let Some(leviculum) = self.engine.take() {
-            let mut leviculum = holders::wait_until_only_ours(&self.runtime, leviculum)?;
+            let mut leviculum = holders::only_ours(leviculum)?;
             self.runtime
                 .block_on(leviculum.stop())
                 .map_err(|e| Error::Engine(e.to_string()))?;

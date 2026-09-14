@@ -1,14 +1,13 @@
-use tokio::task::JoinError;
+type Panicked = Box<dyn std::any::Any + Send>;
 
-pub(crate) fn report(name: &str, ending: Result<(), JoinError>) {
+pub(crate) fn report(name: &str, ending: Result<(), Panicked>) {
     match ending {
         Ok(()) => tracing::info!(task = %name, "ended"),
-        Err(join) if join.is_cancelled() => tracing::debug!(task = %name, "cancelled"),
-        Err(join) => tracing::error!(task = %name, reason = %reason(join.into_panic()), "panicked"),
+        Err(payload) => tracing::error!(task = %name, reason = %reason(payload), "panicked"),
     }
 }
 
-pub(crate) fn reason(payload: Box<dyn std::any::Any + Send>) -> String {
+pub(crate) fn reason(payload: Panicked) -> String {
     of_the_payload(payload.as_ref())
 }
 

@@ -1,6 +1,8 @@
 use std::future::Future;
+use std::panic::AssertUnwindSafe;
 
-use tokio::task::{AbortHandle, JoinHandle};
+use futures::FutureExt as _;
+use tokio::task::JoinHandle;
 
 use crate::ending;
 
@@ -25,7 +27,9 @@ impl Watched {
     }
 
     pub async fn come_home(self) {
-        ending::report(&self.name, self.handle.await);
+        if self.handle.await.is_err() {
+            tracing::debug!(task = %self.name, "cancelled");
+        }
     }
 }
 
@@ -55,18 +59,7 @@ pub(crate) async fn reporting<F>(name: String, run: F)
 where
     F: Future<Output = ()> + Send + 'static,
 {
-    let inner = tokio::spawn(run);
-    let taken_along_if_we_are_aborted = TakenAlong(inner.abort_handle());
-    ending::report(&name, inner.await);
-    drop(taken_along_if_we_are_aborted);
-}
-
-struct TakenAlong(AbortHandle);
-
-impl Drop for TakenAlong {
-    fn drop(&mut self) {
-        self.0.abort();
-    }
+    ending::report(&name, AssertUnwindSafe(run).catch_unwind().await);
 }
 
 #[cfg(test)]

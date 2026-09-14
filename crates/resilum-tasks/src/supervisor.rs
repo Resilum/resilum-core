@@ -1,7 +1,9 @@
 use std::future::Future;
+use std::panic::AssertUnwindSafe;
 use std::pin::Pin;
 use std::time::Duration;
 
+use futures::FutureExt as _;
 use tokio::time::Instant;
 
 use crate::ending;
@@ -40,12 +42,10 @@ async fn supervise(task: Task) {
     let mut fails = 0;
     loop {
         let started = Instant::now();
-        let run = tokio::spawn((task.run)());
-        match run.await {
+        match AssertUnwindSafe((task.run)()).catch_unwind().await {
             Ok(()) => tracing::info!(task = %task.name, "run ended"),
-            Err(join) if join.is_cancelled() => return,
-            Err(join) => {
-                let reason = ending::reason(join.into_panic());
+            Err(payload) => {
+                let reason = ending::reason(payload);
                 tracing::error!(task = %task.name, reason, "run panicked");
             }
         }
