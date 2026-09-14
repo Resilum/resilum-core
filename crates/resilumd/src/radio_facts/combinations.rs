@@ -2,7 +2,7 @@ mod from_netlink;
 
 use resilum_core::ble::election::HostsWhileOnARouter;
 
-pub use from_netlink::heard_from_the_kernel;
+pub use self::from_netlink::heard_from_the_kernel;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Role {

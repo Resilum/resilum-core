@@ -31,8 +31,9 @@ pub(super) fn parse_addr(payload: &[u8]) -> Option<EndpointAddr> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use iroh::SecretKey;
+
+    use super::*;
 
     fn some_id() -> EndpointId {
         SecretKey::generate().public()

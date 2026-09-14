@@ -13,10 +13,10 @@ use futures::StreamExt as _;
 use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 
+use self::dialling::Dialled;
+use self::peers::Peers;
 use super::command::Command;
 use crate::ble::radio::{ConnectionId, Outbound, PeerAddress, RadioError, RadioEvent};
-use dialling::Dialled;
-use peers::Peers;
 
 const ATT_HEADER: usize = 3;
 

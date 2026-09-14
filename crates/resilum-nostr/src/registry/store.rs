@@ -6,8 +6,9 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use super::batch::BatchId;
 use resilum_store::Writer;
+
+use super::batch::BatchId;
 
 mod line;
 mod migrate;

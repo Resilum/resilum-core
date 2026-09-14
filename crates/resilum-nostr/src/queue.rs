@@ -11,7 +11,7 @@ use resilum_store::Writer;
 mod entry;
 mod store;
 
-pub use entry::{Direction, Entry, Handoff, Queued};
+pub use self::entry::{Direction, Entry, Handoff, Queued};
 
 pub struct Queue {
     held: Mutex<store::Held>,

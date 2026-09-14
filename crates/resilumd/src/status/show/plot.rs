@@ -4,9 +4,9 @@ use std::collections::HashMap;
 
 use resilum_core::status::NodeStatus;
 
+use self::space::{Span, Written, flat, put, reach_of, room_for};
+pub use self::space::{letter, quickest_way_to, ways_to};
 use super::paint::{a_mark, dimmed};
-use space::{Span, Written, flat, put, reach_of, room_for};
-pub use space::{letter, quickest_way_to, ways_to};
 
 const WIDE: i64 = 58;
 const TALL: i64 = 15;

@@ -1,8 +1,9 @@
 //! The shape the consumer decodes. `resilum_node_status`'s doc comment is the
 //! published copy of it — it is what reaches a caller holding only the header.
 
-use crate::coordinates::Claimed;
 use serde::{Deserialize, Serialize};
+
+use crate::coordinates::Claimed;
 
 #[derive(Serialize, Deserialize)]
 pub struct NodeStatus {

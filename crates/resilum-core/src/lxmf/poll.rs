@@ -13,9 +13,10 @@ use leviculum_core::DestinationHash;
 use leviculum_lxmf::announce::DeliveryAnnounce;
 use leviculum_lxmf::router::{MessageState, RouterEvent};
 use leviculum_lxmf::{Message, Verification};
-use refusal::failed_value;
-pub(super) use refusal::{failed, requeue_refused};
 use serde_json::{Value, json};
+
+use self::refusal::failed_value;
+pub(super) use self::refusal::{failed, requeue_refused};
 
 /// `heard_at` is when this node took the event off the router, in UNIX
 /// seconds. Passed in rather than read here so the rendering stays a pure

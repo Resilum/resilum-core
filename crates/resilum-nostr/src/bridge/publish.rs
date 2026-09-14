@@ -10,10 +10,10 @@ mod settle;
 
 use std::collections::HashMap;
 
-pub(in crate::bridge) use admit::Source;
-pub(in crate::bridge) use publishing::Publishing;
-use round::Publication;
-pub(in crate::bridge) use round::Verdict;
+pub(in crate::bridge) use self::admit::Source;
+pub(in crate::bridge) use self::publishing::Publishing;
+use self::round::Publication;
+pub(in crate::bridge) use self::round::Verdict;
 
 /// Events offered to the relays and not yet answered for, one per event id.
 /// Owned by the loop rather than shared: nothing outside it counts a verdict.

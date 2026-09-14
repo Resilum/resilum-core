@@ -8,11 +8,10 @@ use leviculum_std::driver::ReticulumNode;
 
 use super::Node;
 use crate::config::Config;
-use crate::dispatch;
 use crate::egress::CandidateRegistry;
 use crate::error::{Error, Result};
 use crate::event::Event;
-use crate::mirrors;
+use crate::{dispatch, mirrors};
 
 impl Node {
     pub fn is_running(&self) -> bool {

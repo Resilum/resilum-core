@@ -6,13 +6,13 @@ use std::sync::Arc;
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 
+use self::resolve::resolve_discovery;
 use crate::config::Config;
 #[cfg(feature = "arti")]
 use crate::error::Error;
 use crate::error::Result;
 use crate::node::Node;
 use crate::{announce_cap, announce_trigger, discovery};
-use resolve::resolve_discovery;
 
 fn wants_discovery(config: &Config) -> bool {
     !config.discovery.is_empty()

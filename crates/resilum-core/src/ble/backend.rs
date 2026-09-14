@@ -9,10 +9,10 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::mpsc;
 
+use self::command::Command;
 use super::radio::{ConnectionId, Outbound, PeerAddress, Radio, RadioError, RadioEvent};
 use super::spec;
 use crate::letting_go::OnTheWayOut as _;
-use command::Command;
 
 const COMMANDS_IN_FLIGHT: usize = 64;
 const FRAGMENTS_IN_FLIGHT: usize = 32;

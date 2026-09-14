@@ -19,9 +19,10 @@ pub fn parse(raw: &[u8]) -> Option<(String, Vec<String>)> {
 
 #[cfg(test)]
 mod tests {
+    use proptest::prelude::*;
+
     use super::*;
     use crate::letting_go::ItOnlyMustNotPanic as _;
-    use proptest::prelude::*;
 
     #[test]
     fn round_trips_a_single_v4_addr() {

@@ -19,5 +19,5 @@ mod signed;
 mod subscription;
 mod upstream;
 
-pub use bridge::{BridgeHandle, StartError, spawn};
-pub use config::NostrConfig;
+pub use self::bridge::{BridgeHandle, StartError, spawn};
+pub use self::config::NostrConfig;

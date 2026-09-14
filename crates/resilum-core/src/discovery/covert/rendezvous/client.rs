@@ -4,9 +4,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use leviculum_std::NodeEvent;
 use leviculum_std::driver::ReticulumNode;
-use leviculum_std::{Destination, DestinationType, Direction, Identity, LinkId};
+use leviculum_std::{Destination, DestinationType, Direction, Identity, LinkId, NodeEvent};
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::time;

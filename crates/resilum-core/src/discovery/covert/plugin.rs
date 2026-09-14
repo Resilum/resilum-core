@@ -7,8 +7,7 @@ use std::sync::{Arc, Mutex};
 use leviculum_std::driver::ReticulumNode;
 
 use super::super::DiscoveryPlugin;
-use super::rendezvous;
-use super::{AddressSource, DialableAddress};
+use super::{AddressSource, DialableAddress, rendezvous};
 use crate::config::CovertDiscoveryService;
 use crate::discovery::admit::{self, Room};
 use crate::discovery::attachments::{Attached, Attachments};

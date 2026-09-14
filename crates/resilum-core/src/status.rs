@@ -4,8 +4,8 @@ mod build;
 mod lxmf;
 mod model;
 
-pub use build::snapshot;
-pub use model::{
+pub use self::build::snapshot;
+pub use self::model::{
     BleStatus, CoordinatesStatus, Interface, Link, LxmfStatus, NodeStatus, PlacedPeer, TorStatus,
     Transport,
 };

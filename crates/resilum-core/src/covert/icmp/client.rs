@@ -8,7 +8,6 @@ use std::time::Duration;
 use socket2::{Domain, Protocol, SockAddr, Socket};
 
 use super::socket::HowTheKernelHandsItOver;
-
 use super::wake::{Ready, Wake};
 use super::wire;
 use crate::covert::carrier::CarrierClient;

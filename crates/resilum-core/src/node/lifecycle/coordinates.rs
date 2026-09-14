@@ -5,12 +5,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use pace::{between_asks, forgotten_after, still_resting};
-
 use leviculum_std::api::{Destination, Identity};
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc;
 
+use self::pace::{between_asks, forgotten_after, still_resting};
 use crate::coordinates::{Coordinates, PeerId, exchange};
 use crate::discovery::Attachments;
 use crate::link::{self, Inbound, LinkRouter};

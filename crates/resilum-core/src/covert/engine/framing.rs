@@ -5,8 +5,8 @@ mod send;
 
 use std::time::Duration;
 
-pub use recv::RecvBuffer;
-pub use send::SendBuffer;
+pub use self::recv::RecvBuffer;
+pub use self::send::SendBuffer;
 
 pub const RTO_INITIAL: Duration = Duration::from_secs(2);
 pub const RTO_MIN: Duration = Duration::from_millis(500);

@@ -1,6 +1,6 @@
-use tokio::sync::mpsc;
-
 use std::sync::Mutex;
+
+use tokio::sync::mpsc;
 
 use super::{put_us_on_the_air, what_we_put_on_the_air};
 use crate::ble::beacon::{Beacon, ON_THE_AIR_LEN};

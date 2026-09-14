@@ -50,9 +50,10 @@ async fn addr_len(
 
 #[cfg(test)]
 mod tests {
+    use tokio::sync::mpsc;
+
     use super::*;
     use crate::egress::socks5::{AUTH_NO_AUTH, REPLY_HOST_UNREACHABLE, REPLY_OK};
-    use tokio::sync::mpsc;
 
     #[tokio::test]
     async fn reply_is_drained_and_trailing_bytes_are_returned() {

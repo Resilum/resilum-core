@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use tokio::sync::mpsc;
-
 use resilum_core::ble::radio::{ConnectionId, PeerAddress, RadioEvent, Role};
 use resilum_core::ble::spec;
+use tokio::sync::mpsc;
 
 pub struct Endpoint {
     pub address: PeerAddress,

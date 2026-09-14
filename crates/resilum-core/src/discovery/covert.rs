@@ -7,7 +7,7 @@ mod inproc;
 mod plugin;
 pub mod rendezvous;
 
-pub use addresses::{AddressSource, DialableAddress, Reach};
+pub use self::addresses::{AddressSource, DialableAddress, Reach};
 #[cfg(target_os = "linux")]
-pub use inproc::listen;
-pub use plugin::CovertDiscovered;
+pub use self::inproc::listen;
+pub use self::plugin::CovertDiscovered;

@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use leviculum_std::api::Destination;
+use serde::{Deserialize, Serialize};
 
 use super::{APP_NAME, ASPECT};
 

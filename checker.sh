@@ -27,6 +27,8 @@ done
 
 MAX_LINES=150
 MAX_COMMENT_PCT=15
+GROUPED_STD_OTHERS_OURS='group_imports=StdExternalCrate,imports_granularity=Module'
+. ./tools.env
 
 step() { printf '\n▶ %s\n' "$1"; }
 
@@ -57,6 +59,17 @@ tracked_and_new() {
 
 step "rustfmt"
 if $FORMAT_IN_PLACE; then cargo fmt --all; else cargo fmt --all --check; fi
+
+step "import grouping (rustfmt $RUSTFMT_THAT_GROUPS_IMPORTS)"
+rustup toolchain list | grep -q "^$RUSTFMT_THAT_GROUPS_IMPORTS" ||
+    {
+        printf '  ✗ %s is not installed\n    install: rustup toolchain install %s --profile minimal --component rustfmt\n' \
+            "$RUSTFMT_THAT_GROUPS_IMPORTS" "$RUSTFMT_THAT_GROUPS_IMPORTS"
+        exit 1
+    }
+grouped=(fmt --all)
+$FORMAT_IN_PLACE || grouped+=(--check)
+cargo "+$RUSTFMT_THAT_GROUPS_IMPORTS" "${grouped[@]}" -- --config "$GROUPED_STD_OTHERS_OURS"
 
 step "taplo (TOML)"
 require taplo 'cargo install taplo-cli --locked'
@@ -157,7 +170,7 @@ mapfile -t scripts < <(
 )
 [ "${#scripts[@]}" -gt 0 ] || { printf '  ✗ no scripts found to check\n'; exit 1; }
 printf '  %s\n' "${scripts[@]}"
-shellcheck "${scripts[@]}"
+shellcheck --external-sources "${scripts[@]}"
 
 step "cargo-deny (advisories, bans, licenses, sources)"
 require cargo-deny 'cargo install cargo-deny --locked'
@@ -194,7 +207,7 @@ if command -v hadolint >/dev/null 2>&1; then
     hadolint "${dockerfiles[@]}"
 elif command -v docker >/dev/null 2>&1; then
     for f in "${dockerfiles[@]}"; do
-        docker run --rm -i hadolint/hadolint:v2.14.0 hadolint - <"$f"
+        docker run --rm -i "hadolint/hadolint:$HADOLINT" hadolint - <"$f"
     done
 else
     printf '  ✗ neither hadolint nor docker is installed\n'

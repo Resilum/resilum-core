@@ -73,8 +73,9 @@ impl FakeDns {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use simple_dns::{Name, QCLASS, Question};
+
+    use super::*;
 
     fn query(host: &str, qtype: TYPE) -> Vec<u8> {
         let mut packet = Packet::new_query(0x1234);

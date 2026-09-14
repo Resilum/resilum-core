@@ -5,9 +5,9 @@ mod client;
 mod error;
 mod parse;
 
-pub use client::{Target, connect};
-pub use error::SocksError;
-pub use parse::handshake;
+pub use self::client::{Target, connect};
+pub use self::error::SocksError;
+pub use self::parse::handshake;
 
 pub(crate) const VER: u8 = 0x05;
 const METHOD_NO_AUTH: u8 = 0x00;

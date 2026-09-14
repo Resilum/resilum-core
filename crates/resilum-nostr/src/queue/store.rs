@@ -7,8 +7,9 @@
 
 use std::path::{Path, PathBuf};
 
-use super::{Entry, Handoff};
 use resilum_store::Writer;
+
+use super::{Entry, Handoff};
 
 mod line;
 

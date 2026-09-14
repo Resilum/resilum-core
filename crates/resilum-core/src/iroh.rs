@@ -14,16 +14,15 @@ mod resolvers;
 mod transport;
 mod wiring;
 
-pub(crate) use plugin::IrohDiscovery;
-
 use std::path::Path;
 use std::sync::Arc;
 
 use iroh::Endpoint;
 use leviculum_std::driver::ReticulumNode;
 
+pub(crate) use self::plugin::IrohDiscovery;
+use self::wiring::Wiring;
 use crate::config::IrohConfig;
-use wiring::Wiring;
 
 pub(super) const ORIGIN: &str = "iroh";
 

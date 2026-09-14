@@ -1,7 +1,6 @@
 mod defrag;
 
-pub use defrag::{Arrived, Reassembly};
-
+pub use self::defrag::{Arrived, Reassembly};
 use super::spec;
 
 #[must_use]

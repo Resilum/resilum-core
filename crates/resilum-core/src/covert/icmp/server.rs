@@ -17,12 +17,11 @@ use std::sync::Mutex;
 
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
+pub use super::client::DEFAULT_MTU;
 use super::marker::MARKER_LEN;
 use super::wake::{Ready, Wake};
 use super::wire;
 use crate::covert::carrier::CarrierServer;
-
-pub use super::client::DEFAULT_MTU;
 const IPV4_OVERHEAD: usize = 20 + 8;
 const IPV6_OVERHEAD: usize = 40 + 8;
 

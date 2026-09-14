@@ -16,4 +16,4 @@ mod subscribe;
 mod tie;
 mod to_mesh;
 
-pub use start::{BridgeHandle, StartError, spawn};
+pub use self::start::{BridgeHandle, StartError, spawn};

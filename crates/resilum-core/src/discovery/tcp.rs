@@ -2,8 +2,6 @@
 
 mod plugin;
 
-use super::attachments::{Attached, Attachments};
-
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -11,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::Notify;
 
+use super::attachments::{Attached, Attachments};
 use crate::announce_cap::CapController;
 use crate::config::{DiscoveryService, EndpointFormat};
 use crate::discovery::OriginRegistry;

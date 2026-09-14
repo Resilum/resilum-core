@@ -7,9 +7,8 @@ use resilum_core::covert::icmp::client::IcmpClient;
 use resilum_core::covert::icmp::server::IcmpServer;
 use resilum_core::identity;
 
-use super::hex;
 use super::opts::Options;
-use super::stdio;
+use super::{hex, stdio};
 
 pub fn client(opts: Options) -> i32 {
     let Some(dst) = opts.dst else {

@@ -1,7 +1,8 @@
 //! Nostr relay protocol: frames we send and parse from the relay.
 
-use crate::event::Event;
 use serde_json::{Value, json};
+
+use crate::event::Event;
 
 #[derive(Debug)]
 pub enum Incoming {

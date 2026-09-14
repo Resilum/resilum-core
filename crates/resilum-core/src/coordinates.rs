@@ -7,9 +7,6 @@ mod peer;
 mod placed;
 mod window;
 
-pub use claimed::Claimed;
-pub use placed::Placed;
-
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -17,9 +14,10 @@ use std::time::Duration;
 use violin::heapless::VecD;
 use violin::{Coord, Node};
 
-use beginning::{knowing_nothing_of_where_we_are, without_a_runaway_last_mile};
-
-use peer::Peer;
+use self::beginning::{knowing_nothing_of_where_we_are, without_a_runaway_last_mile};
+pub use self::claimed::Claimed;
+use self::peer::Peer;
+pub use self::placed::Placed;
 
 pub type PeerId = [u8; 16];
 pub type LinkId = usize;

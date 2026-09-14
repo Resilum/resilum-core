@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use resilum_core::Node;
 
-pub use show::run;
+pub use self::show::run;
 
 pub fn file_path(storage_path: Option<&Path>, env: Option<String>) -> PathBuf {
     if let Some(p) = env.filter(|p| !p.is_empty()) {

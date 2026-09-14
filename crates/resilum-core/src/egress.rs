@@ -15,8 +15,8 @@ mod selector;
 mod socks5;
 pub mod vpn;
 
-pub use active::ActiveLinks;
-pub use candidate::{Candidate, CandidateRegistry};
-pub use choose::best_available;
-pub use eligibility::{allowed, eligible};
-pub use selector::choose_best;
+pub use self::active::ActiveLinks;
+pub use self::candidate::{Candidate, CandidateRegistry};
+pub use self::choose::best_available;
+pub use self::eligibility::{allowed, eligible};
+pub use self::selector::choose_best;

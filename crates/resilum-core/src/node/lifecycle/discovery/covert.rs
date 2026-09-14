@@ -5,7 +5,8 @@ use leviculum_std::driver::ReticulumNode;
 use leviculum_std::interfaces::ByteChannelHandle;
 
 use crate::config::CovertDiscoveryService;
-use crate::discovery::{self, covert::AddressSource};
+use crate::discovery::covert::AddressSource;
+use crate::discovery::{self};
 use crate::error::Result;
 use crate::node::Node;
 

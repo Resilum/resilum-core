@@ -3,15 +3,15 @@
 
 use std::sync::Arc;
 
-use leviculum_std::NodeEvent;
 use leviculum_std::driver::ReticulumNode;
-use leviculum_std::{Destination, DestinationHash, DestinationType, Direction, Identity};
+use leviculum_std::{
+    Destination, DestinationHash, DestinationType, Direction, Identity, NodeEvent,
+};
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
 
 use super::super::super::APP_NAME;
-use super::super::AddressSource;
-use super::super::endpoint;
+use super::super::{AddressSource, endpoint};
 use super::ENDPOINT_PATH;
 use crate::config::CovertDiscoveryService;
 use crate::error::{Error, Result};

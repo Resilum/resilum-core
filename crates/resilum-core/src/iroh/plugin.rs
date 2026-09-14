@@ -8,8 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use iroh::Endpoint;
 
-use addr::{encode_addr, parse_addr};
-
+use self::addr::{encode_addr, parse_addr};
 use super::dial;
 use super::wiring::{Wiring, attached_as};
 use crate::discovery::DiscoveryPlugin;

@@ -22,9 +22,8 @@ use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNodeBuilder;
 use serde_json::Value;
 
-pub use handle::LxmfHandle;
-pub use request::RequestError;
-
+pub use self::handle::LxmfHandle;
+pub use self::request::RequestError;
 use crate::config::LxmfConfig;
 
 /// Takes the builder rather than a built node: a processor installed later

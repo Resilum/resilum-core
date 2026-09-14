@@ -17,12 +17,10 @@ use tokio::sync::Notify;
 
 use crate::config::Config;
 use crate::discovery::Service;
-use crate::dispatch;
 use crate::egress::CandidateRegistry;
 use crate::error::{Error, Result};
-use crate::event;
 use crate::link::LinkRouter;
-use crate::mirrors;
+use crate::{dispatch, event, mirrors};
 
 /// A Resilum node: owns the leviculum engine (with its tokio runtime) and an
 /// outbound event queue.

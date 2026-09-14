@@ -5,9 +5,8 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 
-use crate::guard;
 use crate::node::ResilumNode;
-use crate::set_error;
+use crate::{guard, set_error};
 
 /// A JSON snapshot of node state, or null on error with the reason in
 /// `resilum_last_error`. Free with `resilum_string_free`. Shape:

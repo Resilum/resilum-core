@@ -1,14 +1,13 @@
 mod lifecycle;
 mod runtime;
 
-pub use lifecycle::*;
-pub use runtime::*;
-
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
 use resilum_core::{Config, Node};
 
+pub use self::lifecycle::*;
+pub use self::runtime::*;
 use crate::{guard, set_error};
 
 /// An opaque node handle.

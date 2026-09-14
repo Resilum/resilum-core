@@ -7,8 +7,8 @@ mod responder;
 pub(crate) const ENDPOINT_PATH: &str = "endpoint";
 pub(crate) const REQUEST_TIMEOUT_MS: u64 = 15_000;
 
-pub use client::fetch_endpoint;
-pub use responder::{build_destinations, run_announcer, run_responder};
+pub use self::client::fetch_endpoint;
+pub use self::responder::{build_destinations, run_announcer, run_responder};
 
 fn as_one_msgpack_value(payload: &[u8]) -> Result<Vec<u8>, rmp_serde::encode::Error> {
     rmp_serde::to_vec(serde_bytes::Bytes::new(payload))

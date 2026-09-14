@@ -9,10 +9,9 @@ use leviculum_std::api::Destination;
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::broadcast;
 
-use crate::Event;
-use crate::announce_payload;
 use crate::egress::{ActiveLinks, CandidateRegistry};
 use crate::event::{self, Queue};
+use crate::{Event, announce_payload};
 
 const APP_NAME: &str = "resilum";
 

@@ -7,17 +7,18 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use crate::subscription::Subscription;
 use resilum_store::Writer;
+
+use crate::subscription::Subscription;
 
 mod admit;
 mod batch;
 mod query;
 mod store;
 
-pub(crate) use admit::AcceptError;
-pub(crate) use batch::BatchId;
-pub(crate) use query::LiveMark;
+pub(crate) use self::admit::AcceptError;
+pub(crate) use self::batch::BatchId;
+pub(crate) use self::query::LiveMark;
 
 pub(crate) struct Registry {
     held: Mutex<store::Held>,

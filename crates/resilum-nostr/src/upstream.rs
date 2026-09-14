@@ -22,9 +22,8 @@ use resilum_core::letting_go::NoOneIsListening as _;
 use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::protocol::frame::Utf8Bytes;
 
-pub use reconnect::UpstreamRunner;
-
-pub(crate) use reconnect::Deadlines;
+pub(crate) use self::reconnect::Deadlines;
+pub use self::reconnect::UpstreamRunner;
 
 #[derive(Clone)]
 pub struct Upstream {

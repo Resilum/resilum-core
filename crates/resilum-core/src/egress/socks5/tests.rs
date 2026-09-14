@@ -1,6 +1,7 @@
+use tokio::sync::mpsc::{self, UnboundedReceiver};
+
 use super::*;
 use crate::link::LinkMsg;
-use tokio::sync::mpsc::{self, UnboundedReceiver};
 
 fn feed(bytes: &[u8]) -> UnboundedReceiver<LinkMsg> {
     let (tx, rx) = mpsc::unbounded_channel();

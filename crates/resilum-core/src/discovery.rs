@@ -16,23 +16,22 @@ pub mod service;
 pub(crate) mod store;
 mod tcp;
 mod udp;
-pub use attachments::{Attachments, Link};
-pub use build::{BuildParams, build_covert_addresses, build_from_services};
-pub use consume::run_consume;
-pub use directory::ServiceDirectory;
-pub use origin::OriginRegistry;
-pub use produce::{build_destination, run_produce};
-pub use store::run_prune_loop;
-pub use tcp::TcpDiscovered;
-pub use udp::UdpDiscovered;
-
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use leviculum_std::api::Destination;
 
+pub use self::attachments::{Attachments, Link};
+pub use self::build::{BuildParams, build_covert_addresses, build_from_services};
+pub use self::consume::run_consume;
+pub use self::directory::ServiceDirectory;
+pub use self::origin::OriginRegistry;
+pub use self::produce::{build_destination, run_produce};
+pub use self::service::Service;
+pub use self::store::run_prune_loop;
+pub use self::tcp::TcpDiscovered;
+pub use self::udp::UdpDiscovered;
 use crate::config::DiscoveryService;
-pub use service::Service;
 
 pub(super) const APP_NAME: &str = "resilum";
 

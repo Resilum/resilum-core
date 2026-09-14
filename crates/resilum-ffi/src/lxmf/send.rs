@@ -2,9 +2,8 @@ use std::ffi::CString;
 use std::os::raw::c_char;
 
 use super::as_str;
-use crate::guard;
 use crate::node::ResilumNode;
-use crate::set_error;
+use crate::{guard, set_error};
 
 /// Submit an LXMF message. `message_json`:
 /// ```json

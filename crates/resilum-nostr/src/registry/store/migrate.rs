@@ -7,10 +7,9 @@
 //! this runs before `Registry` has a "now" to weigh it against, and a batch
 //! chosen a little conservatively here costs nothing but headroom.
 
-use crate::registry::admit::lowest_open;
-
 use super::line::Loaded;
 use super::{Held, Record};
+use crate::registry::admit::lowest_open;
 
 pub(super) struct Migration {
     pub(super) held: Held,

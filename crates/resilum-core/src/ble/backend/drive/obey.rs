@@ -1,8 +1,7 @@
 use blew::central::ScanFilter;
 use blew::peripheral::AdvertisingConfig;
 
-use super::Held;
-use super::dialling;
+use super::{Held, dialling};
 use crate::ble::radio::{ConnectionId, RadioEvent};
 use crate::letting_go::NoOneIsListening as _;
 

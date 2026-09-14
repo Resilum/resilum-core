@@ -5,7 +5,6 @@ use super::model::{
     BleStatus, CoordinatesStatus, Interface, Link, NodeStatus, PlacedPeer, TorStatus, Transport,
     added_by, hex,
 };
-
 use crate::discovery::Service;
 
 /// Filled under `PathTableEntry::interface_index`, read back under

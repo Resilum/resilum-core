@@ -61,9 +61,10 @@ fn encode_request(target: &Target) -> Result<Vec<u8>, SocksError> {
 
 #[cfg(test)]
 mod tests {
+    use tokio::sync::mpsc;
+
     use super::*;
     use crate::egress::socks5::parse::handshake;
-    use tokio::sync::mpsc;
 
     async fn parse_request(target: Target) -> (String, u16) {
         let (tx, mut rx) = mpsc::unbounded_channel();

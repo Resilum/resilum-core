@@ -22,8 +22,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: The versions tools.env pins, for every step below
+        run: cat tools.env >>"$GITHUB_ENV"
       - name: The toolchain rust-toolchain.toml pins, with its targets
         run: rustup show active-toolchain
+      - name: The dated nightly whose rustfmt groups imports
+        run: >-
+          rustup toolchain install "$RUSTFMT_THAT_GROUPS_IMPORTS"
+          --profile minimal --component rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: gate
@@ -39,13 +45,11 @@ jobs:
       - uses: jaxxstorm/action-install-gh-release@v1.10.0
         with:
           repo: hadolint/hadolint
-          tag: v2.14.0
+          tag: ${{ env.HADOLINT }}
           extension-matching: disable
           rename-to: hadolint
           chmod: 0755
       - name: The rest the checker refuses to run without
-        env:
-          SHELLCHECK: v0.11.0
         run: |
           sudo apt-get install -qq -y musl-tools
           npm i -g markdownlint-cli2 @ast-grep/cli

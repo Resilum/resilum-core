@@ -11,9 +11,7 @@ use tokio::time::timeout;
 
 mod support;
 
-use support::free_port;
-
-use support::temp_dir;
+use self::support::{free_port, temp_dir};
 
 /// A blocking TCP echo server on an ephemeral port.
 fn spawn_echo() -> u16 {

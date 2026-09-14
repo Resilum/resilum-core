@@ -7,8 +7,8 @@ mod render;
 
 use std::path::Path;
 
-use parsing::{RNS_ENV, YGG_ENV};
-use render::{render_rns, render_ygg};
+use self::parsing::{RNS_ENV, YGG_ENV};
+use self::render::{render_rns, render_ygg};
 
 const RNS_CONFIG_DIR_ENV: &str = "RNS_CONFIG_DIR";
 

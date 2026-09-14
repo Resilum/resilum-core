@@ -8,9 +8,6 @@ mod i2p;
 mod tun;
 mod udp;
 
-#[cfg(feature = "i2p")]
-pub use i2p::I2pConduit;
-
 use std::os::fd::RawFd;
 use std::sync::Arc;
 
@@ -19,6 +16,8 @@ use netstack_smoltcp::{StackBuilder, TcpListener};
 
 use self::fakedns::FakeDns;
 use self::flow::FlowCtx;
+#[cfg(feature = "i2p")]
+pub use self::i2p::I2pConduit;
 use crate::config::IngressConfig;
 use crate::egress::{ActiveLinks, CandidateRegistry};
 use crate::link::LinkRouter;

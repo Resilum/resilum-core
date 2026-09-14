@@ -10,7 +10,7 @@ use crate::{Config, Error, Result, identity};
 mod a_data_port;
 mod names;
 mod render;
-use render::render_config;
+use self::render::render_config;
 
 /// Returns the identity too, so egress destinations bind to the same one.
 pub(crate) fn build_node(

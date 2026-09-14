@@ -6,10 +6,9 @@ mod probe;
 #[path = "../support/mod.rs"]
 mod support;
 
-use harness::{services, spawn_tagged_echo, start_client, start_egress};
-use probe::probe_service;
-
-use support::temp_dir;
+use self::harness::{services, spawn_tagged_echo, start_client, start_egress};
+use self::probe::probe_service;
+use self::support::temp_dir;
 
 #[test]
 fn each_service_is_routed_to_its_own_target() {

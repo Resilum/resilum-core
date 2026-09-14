@@ -23,7 +23,7 @@ use tokio::net::UdpSocket;
 use crate::config::IrohConfig;
 
 mod addr;
-use addr::{TRANSPORT_ID, from_custom, to_custom};
+use self::addr::{TRANSPORT_ID, from_custom, to_custom};
 
 /// Build an endpoint whose direct path rides a protected UDP socket, keeping
 /// relay and address lookup from [`super::engine::base_builder`].

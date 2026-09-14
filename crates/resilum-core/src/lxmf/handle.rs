@@ -12,10 +12,9 @@ use std::sync::{Arc, Mutex, mpsc};
 use leviculum_lxmf::{DeliveryMethod, Message};
 use serde_json::json;
 
-pub(super) use build::channel;
-pub(super) use router_state::RouterState;
-pub(super) use sink::EventSink;
-
+pub(super) use self::build::channel;
+pub(super) use self::router_state::RouterState;
+pub(super) use self::sink::EventSink;
 use crate::error::{Error, Result};
 
 /// Capped because a caller can stop polling while the mesh keeps delivering:

@@ -1,9 +1,8 @@
 //! Serialization contract for the JSON snapshot — the consumer decodes this
 //! shape, so a field renamed or dropped here is a silent breakage for it.
 
-use crate::coordinates::Coordinates;
-
 use super::model::{BleStatus, CoordinatesStatus, LxmfStatus, NodeStatus};
+use crate::coordinates::Coordinates;
 
 fn bare_status() -> NodeStatus {
     NodeStatus {

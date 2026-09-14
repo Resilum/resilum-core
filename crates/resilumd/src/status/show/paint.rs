@@ -1,7 +1,8 @@
 //! Colour only where a terminal is watching: `owo-colors` checks the stream,
 //! `NO_COLOR` and `FORCE_COLOR`, so a redirect into a file stays plain.
 
-use owo_colors::{OwoColorize as _, Stream::Stdout};
+use owo_colors::OwoColorize as _;
+use owo_colors::Stream::Stdout;
 
 pub fn a_mark(text: &str, service: Option<&str>) -> String {
     bold(&transport_ink(text, service.unwrap_or("other")))

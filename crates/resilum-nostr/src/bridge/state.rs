@@ -11,6 +11,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use resilum_core::lxmf::LxmfHandle;
 use tokio_tungstenite::tungstenite::protocol::frame::Utf8Bytes;
 
+pub(super) use self::open::{Wiring, open};
 use super::recent::Recent;
 use super::relay::Stores;
 use super::retry::Schedule;
@@ -19,8 +20,6 @@ use crate::config::NostrConfig;
 use crate::queue::Queue;
 use crate::registry::{BatchId, Registry};
 use crate::upstream::Upstream;
-
-pub(super) use open::{Wiring, open};
 
 /// Builds, signs and submits one message, recording its `Tie` before the
 /// message can be delivered. Boxed because the node identity it signs with

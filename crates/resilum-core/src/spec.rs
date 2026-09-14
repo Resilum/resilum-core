@@ -6,7 +6,7 @@ mod covert;
 mod parse;
 mod vpn;
 
-pub use bridge::{BridgeMode, BridgeSpec};
-pub use covert::CovertSpec;
-pub use parse::{Specs, load, siblings_for};
-pub use vpn::{VpnMode, VpnSpec};
+pub use self::bridge::{BridgeMode, BridgeSpec};
+pub use self::covert::CovertSpec;
+pub use self::parse::{Specs, load, siblings_for};
+pub use self::vpn::{VpnMode, VpnSpec};

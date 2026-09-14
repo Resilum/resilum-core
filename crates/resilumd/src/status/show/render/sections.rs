@@ -2,9 +2,8 @@ use resilum_core::status::NodeStatus;
 use resilum_core::text::Text as _;
 
 use super::super::paint::{dimmed, transport};
-use super::super::plot;
-use super::super::tables;
 use super::super::units::shortened;
+use super::super::{plot, tables};
 use super::{heading, side_by_side};
 
 pub fn what_has_moved(out: &mut String, status: &NodeStatus, links_listed: bool) {

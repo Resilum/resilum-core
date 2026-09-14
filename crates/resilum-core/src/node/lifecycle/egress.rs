@@ -4,9 +4,8 @@ use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc;
 
-use crate::egress;
-use crate::link;
 use crate::node::Node;
+use crate::{egress, link};
 
 pub(super) fn bring_up(
     node: &mut Node,

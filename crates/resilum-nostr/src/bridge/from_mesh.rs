@@ -4,11 +4,10 @@ mod ack;
 
 use serde_json::Value;
 
+pub(in crate::bridge) use self::ack::{Verdicts, ack_json};
 use crate::config::NostrConfig;
 use crate::event::{self, Event};
 use crate::upstream::proto;
-
-pub(in crate::bridge) use ack::{Verdicts, ack_json};
 
 /// An event accepted for publishing, already framed for the relay wire.
 #[derive(Debug)]

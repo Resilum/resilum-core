@@ -59,8 +59,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tokio::sync::mpsc;
+
+    use super::*;
 
     #[tokio::test]
     async fn link_data_reaches_the_tcp_peer() {

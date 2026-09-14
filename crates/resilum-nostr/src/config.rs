@@ -4,8 +4,9 @@
 //! A populated `allow_npubs` makes this a personal bridge that only the
 //! listed npubs may use.
 
-use serde::Deserialize;
 use std::time::Duration;
+
+use serde::Deserialize;
 
 use crate::event::{DM_INBOX_RELAYS_KIND, GIFT_WRAP_KIND, LEGACY_DM_KIND};
 

@@ -7,8 +7,7 @@ use std::sync::mpsc::Sender;
 use leviculum_lxmf::{CooperativeStamper, DeliveryStampRequest, PropagationStampRequest};
 use tokio::sync::mpsc::UnboundedReceiver;
 
-pub(super) use jobs::Jobs;
-
+pub(super) use self::jobs::Jobs;
 use super::handle::Command;
 
 /// The two kinds are the same proof of work — `StampExecutor::generate` — over

@@ -2,12 +2,11 @@
 
 mod filter;
 
+use super::super::recent::Recent;
 use crate::config::NostrConfig;
 use crate::event::Event;
 use crate::queue::{Direction, Entry, Handoff, Queued};
 use crate::registry::Registry;
-
-use super::super::recent::Recent;
 
 pub(in crate::bridge) struct Stores<'a> {
     pub(in crate::bridge) cfg: &'a NostrConfig,

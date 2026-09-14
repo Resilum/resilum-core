@@ -14,8 +14,8 @@ use leviculum_std::api::LinkHandle;
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-pub use local::over_a_local_socket;
-pub use targets::resolve_targets;
+pub use self::local::over_a_local_socket;
+pub use self::targets::resolve_targets;
 
 const GREETING_AND_CONNECT_REPLY: usize = 12;
 const CONNECT_REPLY_CODE: usize = 3;

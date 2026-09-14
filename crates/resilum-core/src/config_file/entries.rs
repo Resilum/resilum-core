@@ -5,7 +5,9 @@ mod discovery;
 mod lxmf;
 mod services;
 
-pub(super) use covert::CovertFile;
-pub(super) use discovery::DiscoveryFile;
-pub(super) use lxmf::LxmfFile;
-pub(super) use services::{BleFile, EgressFile, I2pFile, IngressFile, UdpFile, WifiGroupFile};
+pub(super) use self::covert::CovertFile;
+pub(super) use self::discovery::DiscoveryFile;
+pub(super) use self::lxmf::LxmfFile;
+pub(super) use self::services::{
+    BleFile, EgressFile, I2pFile, IngressFile, UdpFile, WifiGroupFile,
+};

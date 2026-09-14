@@ -6,7 +6,7 @@ use resilum_core::Node;
 use resilum_core::ble::election::{Facts, HostsWhileOnARouter};
 use wl_nl80211::Nl80211Attr;
 
-use combinations::WhatTheRadioAllows;
+use self::combinations::WhatTheRadioAllows;
 
 #[derive(Default)]
 pub struct WhatThisHostKnows {

@@ -8,18 +8,17 @@ mod lxmf;
 mod udp;
 mod wifi_group;
 
-pub use ble::BleInterface;
-pub use covert_discovery::CovertDiscoveryService;
-pub use discovery::{DiscoveryService, EndpointFormat, SocksProxy};
-pub use egress::EgressListen;
-pub use ingress::IngressConfig;
-pub use lxmf::LxmfConfig;
-pub use udp::UdpInterface;
-pub use wifi_group::WifiGroup;
-
 use std::path::PathBuf;
 use std::time::Duration;
 
+pub use self::ble::BleInterface;
+pub use self::covert_discovery::CovertDiscoveryService;
+pub use self::discovery::{DiscoveryService, EndpointFormat, SocksProxy};
+pub use self::egress::EgressListen;
+pub use self::ingress::IngressConfig;
+pub use self::lxmf::LxmfConfig;
+pub use self::udp::UdpInterface;
+pub use self::wifi_group::WifiGroup;
 use crate::discovery::Service;
 use crate::spec::Specs;
 

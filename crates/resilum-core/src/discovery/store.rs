@@ -2,14 +2,13 @@ mod hostname;
 mod peers;
 mod records;
 
-pub(crate) use hostname::Advertised;
-#[cfg(all(unix, feature = "ygg"))]
-pub(crate) use hostname::say_the_address_is;
-pub(crate) use peers::Peers;
-
 use std::path::Path;
 use std::sync::Arc;
 
+pub(crate) use self::hostname::Advertised;
+#[cfg(all(unix, feature = "ygg"))]
+pub(crate) use self::hostname::say_the_address_is;
+pub(crate) use self::peers::Peers;
 use crate::wall_clock::unix_now;
 
 pub const TTL_SECONDS: f64 = 24.0 * 60.0 * 60.0;

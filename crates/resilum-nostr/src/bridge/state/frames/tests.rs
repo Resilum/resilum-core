@@ -2,11 +2,9 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
-use crate::registry::BatchId;
-use crate::registry::Registry;
-use crate::subscription::Subscription;
-
 use super::*;
+use crate::registry::{BatchId, Registry};
+use crate::subscription::Subscription;
 
 const KINDS: [u32; 2] = [GIFT_WRAP_KIND, 4];
 const NOW: i64 = 1_787_164_439;

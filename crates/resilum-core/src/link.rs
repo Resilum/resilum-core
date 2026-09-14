@@ -13,10 +13,10 @@ use std::sync::Mutex;
 use leviculum_std::api::{DestinationHash, LinkId};
 use tokio::sync::mpsc;
 
-pub use answer::answered;
-pub use dial::{dial, established};
-pub use inbox::Inbox;
-pub use route::run;
+pub use self::answer::answered;
+pub use self::dial::{dial, established};
+pub use self::inbox::Inbox;
+pub use self::route::run;
 
 /// A message routed to one link session, in arrival order.
 #[derive(Debug, Clone, PartialEq, Eq)]

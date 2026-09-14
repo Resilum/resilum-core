@@ -1,0 +1,22 @@
+---
+id: a-path-into-our-own-module-says-self
+language: Rust
+severity: error
+message: A path into a module of this very file does not say `self::`.
+note: |
+  Without `self::` the path is indistinguishable from one into another crate,
+  and that is exactly how rustfmt reads it: the import lands in the group with
+  the third-party crates instead of with `super::` and `crate::`. Write
+  `use self::telling::…` for a module declared in this file.
+rule:
+  any:
+    - pattern: use $MOD::$$$WHAT;
+    - pattern: pub use $MOD::$$$WHAT;
+    - pattern: pub($$$WHO) use $MOD::$$$WHAT;
+  inside:
+    kind: source_file
+    has:
+      any:
+        - pattern: mod $MOD;
+        - pattern: pub mod $MOD;
+        - pattern: pub($$$SEEN) mod $MOD;

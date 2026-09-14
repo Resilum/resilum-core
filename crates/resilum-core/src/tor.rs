@@ -11,8 +11,7 @@ use arti_client::config::CfgPath;
 use arti_client::{BootstrapBehavior, TorClient, TorClientConfig};
 use tokio::net::TcpListener;
 
-use socks::handle_conn;
-
+use self::socks::handle_conn;
 use crate::letting_go::ItWasAlreadyThere as _;
 
 pub type ArtiClient = Arc<TorClient<tor_rtcompat::PreferredRuntime>>;

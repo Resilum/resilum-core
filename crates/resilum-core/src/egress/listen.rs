@@ -122,8 +122,9 @@ fn announce_loop(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use leviculum_std::api::generate_identity;
+
+    use super::*;
 
     #[test]
     fn destination_hash_is_stable_per_service() {

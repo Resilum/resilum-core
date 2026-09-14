@@ -20,27 +20,27 @@ mod wifi_group;
 #[cfg(unix)]
 mod ygg;
 
-pub use ble::*;
-pub use event::*;
-pub use interface::*;
-pub use iroh::*;
-pub use logging::*;
-pub use lxmf::*;
-pub use node::*;
-pub use platform::*;
-pub use status::*;
-pub use strings::*;
-#[cfg(unix)]
-pub use vpn::*;
-#[cfg(unix)]
-pub use wifi_group::*;
-#[cfg(unix)]
-pub use ygg::*;
-
 use std::cell::RefCell;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int};
 use std::panic::{AssertUnwindSafe, catch_unwind};
+
+pub use self::ble::*;
+pub use self::event::*;
+pub use self::interface::*;
+pub use self::iroh::*;
+pub use self::logging::*;
+pub use self::lxmf::*;
+pub use self::node::*;
+pub use self::platform::*;
+pub use self::status::*;
+pub use self::strings::*;
+#[cfg(unix)]
+pub use self::vpn::*;
+#[cfg(unix)]
+pub use self::wifi_group::*;
+#[cfg(unix)]
+pub use self::ygg::*;
 
 pub const RESILUM_OK: c_int = 0;
 pub const RESILUM_ERR_NULL: c_int = -1;

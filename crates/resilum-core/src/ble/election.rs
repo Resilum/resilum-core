@@ -6,13 +6,14 @@ mod read_here;
 mod reported;
 mod score;
 
-pub use field::Field;
-pub use hosting::HostingTheGroup;
-pub use on_the_air::SomeoneElsesGroup;
-pub use read_here::what_this_host_can_answer;
-pub use reported::WhatThePlatformKnows;
-pub use score::{Candidate, Facts, HostsWhileOnARouter, rank, the_one_to_host, worth_a_handover};
-
+pub use self::field::Field;
+pub use self::hosting::HostingTheGroup;
+pub use self::on_the_air::SomeoneElsesGroup;
+pub use self::read_here::what_this_host_can_answer;
+pub use self::reported::WhatThePlatformKnows;
+pub use self::score::{
+    Candidate, Facts, HostsWhileOnARouter, rank, the_one_to_host, worth_a_handover,
+};
 use crate::ble::links::PeerId;
 
 const CLAIM_DELAY_MS: u64 = 3_000;

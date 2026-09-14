@@ -10,11 +10,11 @@ mod payload;
 mod produce;
 mod registry;
 
-pub use consume::run_consume;
-pub use handover::SharedWithRngit;
-pub use payload::name_hash;
-pub use produce::run_produce;
-pub use registry::{Entry, Registry};
+pub use self::consume::run_consume;
+pub use self::handover::SharedWithRngit;
+pub use self::payload::name_hash;
+pub use self::produce::run_produce;
+pub use self::registry::{Entry, Registry};
 
 pub(crate) const APP_NAME: &str = "resilum";
 pub(crate) const ASPECT: &[&str] = &["mirrors", "list"];

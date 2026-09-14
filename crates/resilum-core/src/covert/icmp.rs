@@ -12,6 +12,6 @@ pub mod socket;
 pub mod wake;
 pub mod wire;
 
-pub use client::IcmpClient;
+pub use self::client::IcmpClient;
 #[cfg(target_os = "linux")]
-pub use server::IcmpServer;
+pub use self::server::IcmpServer;

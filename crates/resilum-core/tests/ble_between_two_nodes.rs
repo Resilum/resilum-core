@@ -4,9 +4,10 @@ mod fake_radio;
 use std::sync::Arc;
 use std::time::Duration;
 
-use fake_radio::{Air, CARRIED_PER_WRITE, FakeRadio};
 use resilum_core::ble::radio::Radio;
 use resilum_core::{BleInterface, Config, Node};
+
+use self::fake_radio::{Air, CARRIED_PER_WRITE, FakeRadio};
 
 fn a_node(tag: &str) -> (Node, tempfile::TempDir) {
     let dir = tempfile::tempdir().expect("a temporary directory");

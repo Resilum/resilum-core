@@ -1,7 +1,7 @@
-use crate::link::LinkMsg;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 use super::{ATYP_DOMAIN, ATYP_V4, ATYP_V6, CMD_CONNECT, METHOD_NO_AUTH, SocksError, VER};
+use crate::link::LinkMsg;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ConnectRequest {

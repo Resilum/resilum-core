@@ -6,14 +6,13 @@ mod admit;
 use std::sync::Arc;
 use std::time::Instant;
 
+pub(in crate::bridge) use self::admit::Stores;
 use super::deliver;
 use super::publish::{Pending, Publishing, Verdict};
 use super::state::{self, State};
 use super::tie::Tie;
 use crate::event::Event;
 use crate::upstream::proto::Incoming;
-
-pub(in crate::bridge) use admit::Stores;
 
 pub(super) fn handle(state: &Arc<State>, pending: &mut Pending, frame: Incoming) {
     match frame {

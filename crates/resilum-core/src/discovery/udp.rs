@@ -7,12 +7,12 @@ use leviculum_std::InterfaceId;
 use leviculum_std::api::InterfaceConfig;
 use leviculum_std::driver::ReticulumNode;
 
+use self::targets::Targets;
 use super::attachments::Attachments;
 use super::covert::AddressSource;
 use crate::config::{DiscoveryService, UdpInterface};
 use crate::discovery::OriginRegistry;
 use crate::letting_go::OnTheWayOut as _;
-use targets::Targets;
 
 pub struct UdpDiscovered {
     inner: Arc<Inner>,

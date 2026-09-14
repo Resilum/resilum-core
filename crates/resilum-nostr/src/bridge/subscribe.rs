@@ -4,14 +4,13 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
+pub(in crate::bridge) use self::outcome::{Outcome, Refusal};
 use super::deliver;
 use super::state::{self, State};
 use crate::config::NostrConfig;
 use crate::event::{self, Event};
 use crate::registry::Registry;
 use crate::subscription::{self, Subscription};
-
-pub(in crate::bridge) use outcome::{Outcome, Refusal};
 
 mod outcome;
 

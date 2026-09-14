@@ -1,18 +1,17 @@
 mod air;
 
-pub use air::Air;
+pub use self::air::Air;
 
 pub const CARRIED_PER_WRITE: usize = 20;
 
 use std::sync::Mutex;
-
-use tokio::sync::mpsc;
 
 use resilum_core::ble::radio::{
     ConnectionId, Outbound, PeerAddress, Radio, RadioError, RadioEvent,
 };
 use resilum_core::ble::spec;
 use resilum_core::letting_go::NoOneIsListening as _;
+use tokio::sync::mpsc;
 
 const DEEP_ENOUGH_FOR_A_TEST: usize = 256;
 

@@ -14,8 +14,8 @@ use std::time::Duration;
 
 use resilum_core::WifiGroup;
 
-pub use hosting::WhetherWeHostTheGroup;
-pub use joining::WhetherWeJoinTheGroup;
+pub use self::hosting::WhetherWeHostTheGroup;
+pub use self::joining::WhetherWeJoinTheGroup;
 
 pub type Lowering = Box<dyn FnOnce() + Send>;
 

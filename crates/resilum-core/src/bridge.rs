@@ -1,8 +1,9 @@
 //! Per-spec bridge tasks. The runtime is not implemented yet; each spec becomes
 //! a placeholder task that holds its slot under supervision.
 
-use crate::spec::Specs;
 use resilum_tasks::Task;
+
+use crate::spec::Specs;
 
 /// One supervised task per configured spec (bridges, VPN, covert).
 pub(crate) fn tasks_for(specs: &Specs) -> Vec<Task> {

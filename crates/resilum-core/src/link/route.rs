@@ -52,8 +52,9 @@ fn route(router: &LinkRouter, inbound: &mpsc::UnboundedSender<Inbound>, ev: &Nod
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use leviculum_std::api::{DestinationHash, LinkId};
+
+    use super::*;
 
     fn lid(b: u8) -> LinkId {
         LinkId::new([b; 16])

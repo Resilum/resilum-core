@@ -14,11 +14,9 @@ use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::protocol::frame::Utf8Bytes;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
 
-use connected::Connected;
-use pump::AfterPump;
-
-pub(crate) use pump::Deadlines;
-
+use self::connected::Connected;
+use self::pump::AfterPump;
+pub(crate) use self::pump::Deadlines;
 use super::{proto, tls};
 
 const MIN_BACKOFF: Duration = Duration::from_secs(1);

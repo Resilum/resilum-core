@@ -1,9 +1,9 @@
 mod stub;
 
+use self::stub::Stub;
 use super::{Handshakes, Told};
 use crate::ble::radio::{ConnectionId, PeerAddress, Role};
 use crate::ble::spec;
-use stub::Stub;
 
 const CONN: ConnectionId = ConnectionId(1);
 const OURS: [u8; spec::IDENTITY_LEN] = [0xA1; spec::IDENTITY_LEN];

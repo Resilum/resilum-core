@@ -8,15 +8,14 @@ use std::time::Duration;
 use leviculum_std::driver::ReticulumNode;
 use tokio::sync::mpsc::Receiver;
 
+use self::dial::HeldOff;
+pub use self::rounds::{Deciding, keep_deciding};
 use super::beacon::Beacon;
 use super::election::{Field, SomeoneElsesGroup};
 use super::handshake::Handshakes;
 use super::links::{Links, PeerId};
 use super::radio::{Radio, RadioEvent};
 use super::spec;
-use dial::HeldOff;
-
-pub use rounds::{Deciding, keep_deciding};
 
 const LOOK_AROUND_EVERY: Duration = Duration::from_secs(5);
 const GIVE_UP_ON_A_HANDSHAKE_AFTER_MS: u64 = 5_000;

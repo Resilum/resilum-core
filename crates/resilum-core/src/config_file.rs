@@ -6,11 +6,11 @@ mod env_expand;
 
 use serde::Deserialize;
 
-use crate::Config;
-use entries::{
+use self::entries::{
     BleFile, CovertFile, DiscoveryFile, EgressFile, I2pFile, IngressFile, LxmfFile, UdpFile,
     WifiGroupFile,
 };
+use crate::Config;
 
 pub fn from_json(json: &str) -> Result<Config, String> {
     serde_json::from_str::<FileConfig>(json)

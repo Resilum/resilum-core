@@ -1,7 +1,6 @@
 //! Event ids already admitted, so a re-served one costs no mesh airtime.
 
-use std::collections::HashMap;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Mutex;
 
 use crate::event::NIP59_BACKDATE;
