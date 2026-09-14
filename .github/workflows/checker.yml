@@ -13,6 +13,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: never
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
 
 jobs:
   checker:
@@ -22,8 +23,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: The versions tools.env pins, for every step below
-        run: cat tools.env >>"$GITHUB_ENV"
+      - name: Every tool and version mise.toml pins
+        uses: jdx/mise-action@v2
       - name: The toolchain rust-toolchain.toml pins, with its targets
         run: rustup show active-toolchain
       - name: The dated nightly whose rustfmt groups imports
@@ -36,30 +37,8 @@ jobs:
           save-if: >-
             ${{ github.ref == 'refs/heads/main'
                 || github.ref == 'refs/heads/stage' }}
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: taplo-cli,cargo-deny,cargo-nextest
-      - uses: jaxxstorm/action-install-gh-release@v1.10.0
-        with:
-          repo: gitleaks/gitleaks
-      - uses: jaxxstorm/action-install-gh-release@v1.10.0
-        with:
-          repo: hadolint/hadolint
-          tag: ${{ env.HADOLINT }}
-          extension-matching: disable
-          rename-to: hadolint
-          chmod: 0755
-      - name: The rest the checker refuses to run without
-        run: |
-          sudo apt-get install -qq -y musl-tools
-          npm i -g markdownlint-cli2 @ast-grep/cli
-          pip install --break-system-packages yamllint
-          release=https://github.com/koalaman/shellcheck/releases/download
-          name="shellcheck-${SHELLCHECK}"
-          curl -fsSL "${release}/${SHELLCHECK}/${name}.linux.x86_64.tar.xz" |
-            sudo tar -xJ --strip-components=1 -C /usr/local/bin \
-              "${name}/shellcheck"
-          shellcheck --version | grep version:
+      - name: The one thing mise does not carry
+        run: sudo apt-get install -qq -y musl-tools
       - name: The same gate that runs before a commit
         run: ./checker.sh
 

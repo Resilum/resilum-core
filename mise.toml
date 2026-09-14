@@ -1,0 +1,15 @@
+min_version = "2025.11.2"
+
+[tools]
+ast-grep = "0.44.1"
+"aqua:EmbarkStudios/cargo-deny" = "0.20.2"
+gitleaks = "8.30.1"
+hadolint = "2.14.0"
+markdownlint-cli2 = "0.23.1"
+shellcheck = "0.11.0"
+taplo = "0.10.0"
+"ubi:nextest-rs/nextest" = { version = "cargo-nextest-0.9.143", exe = "cargo-nextest" }
+yamllint = "1.38.0"
+
+[env]
+RUSTFMT_THAT_GROUPS_IMPORTS = "nightly-2026-09-14"

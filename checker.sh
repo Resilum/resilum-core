@@ -28,7 +28,7 @@ done
 MAX_LINES=150
 MAX_COMMENT_PCT=15
 GROUPED_STD_OTHERS_OURS='group_imports=StdExternalCrate,imports_granularity=Module'
-. ./tools.env
+FROM_MISE='mise install  (versions come from mise.toml)'
 
 step() { printf '\n▶ %s\n' "$1"; }
 
@@ -37,6 +37,13 @@ require() {
     printf '  ✗ %s is not installed\n    install: %s\n' "$1" "$2"
     exit 1
 }
+
+require mise 'https://mise.jdx.dev/getting-started.html'
+what_mise_pins=$(mise env -s bash) || {
+    printf '  ✗ mise will not read mise.toml\n    run: mise trust\n'
+    exit 1
+}
+eval "$what_mise_pins"
 
 build_the_images() {
     require docker 'https://docs.docker.com/engine/install/'
@@ -72,7 +79,7 @@ $FORMAT_IN_PLACE || grouped+=(--check)
 cargo "+$RUSTFMT_THAT_GROUPS_IMPORTS" "${grouped[@]}" -- --config "$GROUPED_STD_OTHERS_OURS"
 
 step "taplo (TOML)"
-require taplo 'cargo install taplo-cli --locked'
+require taplo "$FROM_MISE"
 if $FORMAT_IN_PLACE; then RUST_LOG=warn taplo fmt; else RUST_LOG=warn taplo fmt --check; fi
 
 step "file length (<= $MAX_LINES lines)"
@@ -84,14 +91,14 @@ step "comment density (<= $MAX_COMMENT_PCT% of non-blank lines)"
 cargo run --quiet -p xtask -- comment-density "$MAX_COMMENT_PCT" crates
 
 step "gitleaks (staged and history)"
-require gitleaks 'https://github.com/gitleaks/gitleaks#installing'
+require gitleaks "$FROM_MISE"
 # The baseline holds what is already published, so only new findings fail.
 # Staged first: that is what a commit is about to carry.
 gitleaks git --staged --no-banner --redact
 gitleaks git --baseline-path .gitleaks-baseline.json --no-banner --redact
 
 step "ast-grep (structural lints, lints/)"
-require ast-grep 'cargo install ast-grep --locked  |  npm i -g @ast-grep/cli'
+require ast-grep "$FROM_MISE"
 ast-grep scan
 
 step "clippy (deny warnings)"
@@ -120,7 +127,7 @@ CC_x86_64_unknown_linux_musl=musl-gcc \
     cargo clippy --quiet -p resilumd --target "$MUSL_TARGET" -- -D warnings
 
 step "test"
-require cargo-nextest 'cargo install cargo-nextest --locked  |  cargo binstall cargo-nextest'
+require cargo-nextest "$FROM_MISE"
 cargo nextest run --workspace
 
 step "doc (deny broken links)"
@@ -155,7 +162,7 @@ if [ -n "$foreign" ]; then
 fi
 
 step "shellcheck"
-require shellcheck 'https://github.com/koalaman/shellcheck#installing'
+require shellcheck "$FROM_MISE"
 mapfile -t scripts < <(
     tracked_and_new -z | while IFS= read -r -d '' f; do
         case "$f" in
@@ -173,7 +180,7 @@ printf '  %s\n' "${scripts[@]}"
 shellcheck --external-sources "${scripts[@]}"
 
 step "cargo-deny (advisories, bans, licenses, sources)"
-require cargo-deny 'cargo install cargo-deny --locked'
+require cargo-deny "$FROM_MISE"
 # `-D warnings`, because cargo-deny exits 0 on them. `unmatched-source` fires
 # only under a local [patch] that replaced the git dependency with a path.
 cargo deny check advisories bans licenses sources -D warnings -A unmatched-source
@@ -200,27 +207,18 @@ restore_patch_config
 trap - EXIT
 
 step "hadolint (Dockerfiles)"
+require hadolint "$FROM_MISE"
 mapfile -t dockerfiles < <(tracked_and_new -- 'Dockerfile' '*/Dockerfile' '*.dockerfile')
 [ "${#dockerfiles[@]}" -gt 0 ] || { printf '  ✗ no Dockerfile found to check\n'; exit 1; }
 printf '  %s\n' "${dockerfiles[@]}"
-if command -v hadolint >/dev/null 2>&1; then
-    hadolint "${dockerfiles[@]}"
-elif command -v docker >/dev/null 2>&1; then
-    for f in "${dockerfiles[@]}"; do
-        docker run --rm -i "hadolint/hadolint:$HADOLINT" hadolint - <"$f"
-    done
-else
-    printf '  ✗ neither hadolint nor docker is installed\n'
-    printf '    install: https://github.com/hadolint/hadolint#install (or any docker)\n'
-    exit 1
-fi
+hadolint "${dockerfiles[@]}"
 
 step "yamllint (strict: warnings fail)"
-require yamllint 'pip install yamllint'
+require yamllint "$FROM_MISE"
 yamllint --strict .
 
 step "markdownlint"
-require markdownlint-cli2 'npm i -g markdownlint-cli2'
+require markdownlint-cli2 "$FROM_MISE"
 mapfile -t docs < <(tracked_and_new -- '*.md')
 [ "${#docs[@]}" -gt 0 ] || { printf '  ✗ no markdown found to check\n'; exit 1; }
 markdownlint-cli2 "${docs[@]}"

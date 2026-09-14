@@ -12,6 +12,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: never
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  MISE_TRUSTED_CONFIG_PATHS: ${{ github.workspace }}
 
 jobs:
   warm:
@@ -25,9 +26,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: gate
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-nextest
+      - name: Every tool and version mise.toml pins
+        uses: jdx/mise-action@v2
       - name: What the musl and Android steps of the gate need
         run: sudo apt-get install -qq -y musl-tools
       - name: Everything the gate compiles
