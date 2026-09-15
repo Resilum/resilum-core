@@ -1,6 +1,6 @@
-mod radio;
-
 use super::*;
+
+mod radio;
 
 const A_MESH_OF: usize = 4096;
 

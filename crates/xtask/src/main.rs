@@ -1,10 +1,12 @@
 //! Checks that need more than a shell one-liner, kept in the project's own
 //! language rather than embedded in checker.sh.
 
-mod density;
-
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+mod density;
+mod modules;
+mod out;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -17,12 +19,54 @@ fn main() -> ExitCode {
             Some(limit) => file_length(limit, &args[2..]),
             None => usage(),
         },
+        Some("modules-after-imports") => match args.get(1).map(String::as_str) {
+            Some("--check") => modules_after_imports(false, &args[2..]),
+            Some(_) => modules_after_imports(true, &args[1..]),
+            None => usage(),
+        },
         _ => usage(),
     }
 }
 
+const USAGE: &str = "usage: xtask comment-density|file-length <max> <dir>...
+       xtask modules-after-imports [--check] <dir>...";
+
 fn usage() -> ExitCode {
-    eprintln!("usage: xtask comment-density|file-length <max> <dir>...");
+    out::refused(USAGE);
+    ExitCode::FAILURE
+}
+
+fn modules_after_imports(put_them_there: bool, roots: &[String]) -> ExitCode {
+    let mut out_of_order = Vec::new();
+    for root in roots {
+        for path in rust_files(Path::new(root)) {
+            let Ok(source) = resilum_store::read_text(&path) else {
+                continue;
+            };
+            let Some(put) = modules::put_modules_after_imports(&source) else {
+                continue;
+            };
+            if put_them_there && resilum_store::write_text(&path, &put).is_ok() {
+                continue;
+            }
+            out_of_order.push(path);
+        }
+    }
+    let named = out_of_order
+        .into_iter()
+        .map(|path| format!("  {}", path.display()))
+        .collect();
+    complain(
+        named,
+        "module declarations above the imports; run ./checker.sh",
+    )
+}
+
+fn complain(found: Vec<String>, why: &str) -> ExitCode {
+    if found.is_empty() {
+        return ExitCode::SUCCESS;
+    }
+    out::shown(format_args!("{}\n  ✗ {why}", found.join("\n")));
     ExitCode::FAILURE
 }
 
@@ -39,15 +83,15 @@ fn file_length(limit: usize, roots: &[String]) -> ExitCode {
             }
         }
     }
-    if over.is_empty() {
-        return ExitCode::SUCCESS;
-    }
     over.sort_unstable_by_key(|(lines, _)| std::cmp::Reverse(*lines));
-    for (lines, path) in over {
-        println!("  {lines}\t{}", path.display());
-    }
-    println!("  ✗ file(s) over {limit} lines; split into a directory module");
-    ExitCode::FAILURE
+    let named = over
+        .into_iter()
+        .map(|(lines, path)| format!("  {lines}\t{}", path.display()))
+        .collect();
+    complain(
+        named,
+        &format!("file(s) over {limit} lines; split into a directory module"),
+    )
 }
 
 fn comment_density(limit: usize, roots: &[String]) -> ExitCode {
@@ -67,15 +111,15 @@ fn comment_density(limit: usize, roots: &[String]) -> ExitCode {
             }
         }
     }
-    if over.is_empty() {
-        return ExitCode::SUCCESS;
-    }
     over.sort_unstable_by_key(|(pct, _)| std::cmp::Reverse(*pct));
-    for (pct, path) in over {
-        println!("  {pct}%  {}", path.display());
-    }
-    println!("  ✗ comment density over {limit}%; cut what the code already says");
-    ExitCode::FAILURE
+    let named = over
+        .into_iter()
+        .map(|(pct, path)| format!("  {pct}%  {}", path.display()))
+        .collect();
+    complain(
+        named,
+        &format!("comment density over {limit}%; cut what the code already says"),
+    )
 }
 
 fn rust_files(root: &Path) -> Vec<PathBuf> {

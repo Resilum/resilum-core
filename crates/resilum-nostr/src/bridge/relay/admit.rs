@@ -1,12 +1,12 @@
 //! Whether an event a relay sent becomes something owed to a subscriber.
 
-mod filter;
-
 use super::super::recent::Recent;
 use crate::config::NostrConfig;
 use crate::event::Event;
 use crate::queue::{Direction, Entry, Handoff, Queued};
 use crate::registry::Registry;
+
+mod filter;
 
 pub(in crate::bridge) struct Stores<'a> {
     pub(in crate::bridge) cfg: &'a NostrConfig,

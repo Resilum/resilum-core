@@ -1,12 +1,12 @@
 //! Local network helpers reused across transports (discovery, egress).
 
-mod routable;
-mod yggdrasil;
-
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 
 pub use self::routable::{is_globally_routable, names_one_host};
 pub use self::yggdrasil::yggdrasil_local_ipv6;
+
+mod routable;
+mod yggdrasil;
 
 const V4_PROBE: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)), 80);
 const V6_PROBE: SocketAddr = SocketAddr::new(

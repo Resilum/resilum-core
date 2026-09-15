@@ -2,21 +2,21 @@
 
 use std::path::PathBuf;
 
-use crate::{bind_config, covert, i2pd_export, mirrors, ygg_seed};
+use crate::{bind_config, covert, i2pd_export, mirrors, out, ygg_seed};
 
 pub fn dispatch_or_exit(argv: &[String]) {
     match argv.first().map(String::as_str) {
         Some("generate-identity") => generate_identity(argv),
         Some("i2pd-export-hostname") => {
             let (Some(keys), Some(out)) = (argv.get(1), argv.get(2)) else {
-                eprintln!("usage: resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
+                out::refused("usage: resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
                 std::process::exit(2);
             };
             std::process::exit(i2pd_export::run(keys, out));
         }
         Some("ygg-seed-keys") => {
             let Some(cfg) = argv.get(1) else {
-                eprintln!("usage: resilumd ygg-seed-keys <yggdrasil.conf>");
+                out::refused("usage: resilumd ygg-seed-keys <yggdrasil.conf>");
                 std::process::exit(2);
             };
             std::process::exit(ygg_seed::run(cfg));
@@ -37,7 +37,7 @@ pub fn dispatch_or_exit(argv: &[String]) {
 
 fn generate_identity(argv: &[String]) -> ! {
     let Some(out) = argv.get(1) else {
-        eprintln!("usage: resilumd generate-identity <path>");
+        out::refused("usage: resilumd generate-identity <path>");
         std::process::exit(2);
     };
     let path = PathBuf::from(out);
@@ -54,22 +54,24 @@ fn generate_identity(argv: &[String]) -> ! {
 
 fn probe_net() -> ! {
     let ygg = resilum_core::net::yggdrasil_local_ipv6();
-    println!("yggdrasil_local_ipv6 = {ygg:?}");
+    out::shown_as_a_line(format_args!("yggdrasil_local_ipv6 = {ygg:?}"));
     for i in if_addrs::get_if_addrs().unwrap_or_default() {
-        println!("  {} → {}", i.name, i.ip());
+        out::shown_as_a_line(format_args!("  {} → {}", i.name, i.ip()));
     }
     std::process::exit(0);
 }
 
+const USAGE: &str = "usage: resilumd [--config] <path.yaml>
+       resilumd generate-identity <path>
+       resilumd i2pd-export-hostname <keys.dat> <hostname-out>
+       resilumd ygg-seed-keys <yggdrasil.conf>
+       resilumd render-bind-config [<ygg.conf>] [<rns.conf>]
+       resilumd status [<path.yaml>] [--interfaces] [--links] [--map]
+                       [--all] [--color] [--json]
+       resilumd covert <carrier> <client|server> [flags]";
+
 pub fn usage() -> ! {
-    eprintln!("usage: resilumd [--config] <path.yaml>");
-    eprintln!("       resilumd generate-identity <path>");
-    eprintln!("       resilumd i2pd-export-hostname <keys.dat> <hostname-out>");
-    eprintln!("       resilumd ygg-seed-keys <yggdrasil.conf>");
-    eprintln!("       resilumd render-bind-config [<ygg.conf>] [<rns.conf>]");
-    eprintln!("       resilumd status [<path.yaml>] [--interfaces] [--links] [--map]");
-    eprintln!("                       [--all] [--color] [--json]");
-    eprintln!("       resilumd covert <carrier> <client|server> [flags]");
+    out::refused(USAGE);
     std::process::exit(2);
 }
 

@@ -1,7 +1,5 @@
 //! In-process Tor: bootstraps Arti and exposes a local SOCKS5 listener.
 
-mod socks;
-
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::Path;
@@ -13,6 +11,8 @@ use tokio::net::TcpListener;
 
 use self::socks::handle_conn;
 use crate::letting_go::ItWasAlreadyThere as _;
+
+mod socks;
 
 pub type ArtiClient = Arc<TorClient<tor_rtcompat::PreferredRuntime>>;
 

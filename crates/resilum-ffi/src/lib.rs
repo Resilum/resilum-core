@@ -2,24 +2,6 @@
 //! Opaque-pointer wrappers; every entry point catches panics (unwinding into C
 //! is undefined behaviour).
 
-mod ble;
-mod event;
-mod identity;
-mod interface;
-mod iroh;
-mod logging;
-mod lxmf;
-mod node;
-mod platform;
-mod status;
-mod strings;
-#[cfg(unix)]
-mod vpn;
-#[cfg(unix)]
-mod wifi_group;
-#[cfg(unix)]
-mod ygg;
-
 use std::cell::RefCell;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int};
@@ -41,6 +23,24 @@ pub use self::vpn::*;
 pub use self::wifi_group::*;
 #[cfg(unix)]
 pub use self::ygg::*;
+
+mod ble;
+mod event;
+mod identity;
+mod interface;
+mod iroh;
+mod logging;
+mod lxmf;
+mod node;
+mod platform;
+mod status;
+mod strings;
+#[cfg(unix)]
+mod vpn;
+#[cfg(unix)]
+mod wifi_group;
+#[cfg(unix)]
+mod ygg;
 
 pub const RESILUM_OK: c_int = 0;
 pub const RESILUM_ERR_NULL: c_int = -1;

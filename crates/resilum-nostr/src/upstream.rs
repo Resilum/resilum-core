@@ -11,10 +11,6 @@
 //! drop, so `UpstreamRunner` never tracks what it was subscribed to — the
 //! caller's own state is the only copy, asked fresh on every reconnect.
 
-pub mod proto;
-mod reconnect;
-mod tls;
-
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -24,6 +20,10 @@ use tokio_tungstenite::tungstenite::protocol::frame::Utf8Bytes;
 
 pub(crate) use self::reconnect::Deadlines;
 pub use self::reconnect::UpstreamRunner;
+
+pub mod proto;
+mod reconnect;
+mod tls;
 
 #[derive(Clone)]
 pub struct Upstream {

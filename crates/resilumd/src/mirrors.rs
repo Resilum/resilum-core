@@ -6,18 +6,20 @@ use std::path::Path;
 
 use serde::Deserialize;
 
+const USAGE: &str = "usage: resilumd mirrors find <repo> [--registry <path>]";
+
 pub fn run(argv: &[String]) -> i32 {
     let mut args = argv.iter();
     let Some(subcmd) = args.next() else {
-        eprintln!("usage: resilumd mirrors find <repo> [--registry <path>]");
+        crate::out::refused(USAGE);
         return 2;
     };
     if subcmd != "find" {
-        eprintln!("unknown mirrors subcommand: {subcmd}");
+        crate::out::refused(format_args!("unknown mirrors subcommand: {subcmd}"));
         return 2;
     }
     let Some(repo) = args.next() else {
-        eprintln!("usage: resilumd mirrors find <repo> [--registry <path>]");
+        crate::out::refused(USAGE);
         return 2;
     };
     let mut path = default_registry_path();
@@ -25,24 +27,24 @@ pub fn run(argv: &[String]) -> i32 {
         match flag.as_str() {
             "--registry" => path = args.next().map(std::path::PathBuf::from),
             _ => {
-                eprintln!("unknown flag: {flag}");
+                crate::out::refused(format_args!("unknown flag: {flag}"));
                 return 2;
             }
         }
     }
     let Some(path) = path else {
-        eprintln!("no --registry supplied and no default storage path found");
+        crate::out::refused("no --registry supplied and no default storage path found");
         return 2;
     };
     match load(&path) {
         Ok(entries) => {
             for e in entries.iter().filter(|e| e.repos.iter().any(|r| r == repo)) {
-                println!("rns://{}/mirrors/{}", e.rngit, repo);
+                crate::out::shown_as_a_line(format_args!("rns://{}/mirrors/{}", e.rngit, repo));
             }
             0
         }
         Err(e) => {
-            eprintln!("registry read {}: {e}", path.display());
+            crate::out::refused(format_args!("registry read {}: {e}", path.display()));
             1
         }
     }

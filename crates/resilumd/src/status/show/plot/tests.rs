@@ -1,11 +1,11 @@
-mod marking;
-mod scale;
-
 use resilum_core::coordinates::{Claimed, Coordinates};
 use resilum_core::status::{BleStatus, CoordinatesStatus, Link, NodeStatus, PlacedPeer};
 
 use super::super::tests::without_colour;
 use super::{US, letter, of, quickest_way_to};
+
+mod marking;
+mod scale;
 
 fn nobody_but_us() -> NodeStatus {
     NodeStatus {

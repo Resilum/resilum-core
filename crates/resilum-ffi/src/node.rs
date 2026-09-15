@@ -1,6 +1,3 @@
-mod lifecycle;
-mod runtime;
-
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
@@ -9,6 +6,9 @@ use resilum_core::{Config, Node};
 pub use self::lifecycle::*;
 pub use self::runtime::*;
 use crate::{guard, set_error};
+
+mod lifecycle;
+mod runtime;
 
 /// An opaque node handle.
 pub struct ResilumNode(pub(crate) Node);

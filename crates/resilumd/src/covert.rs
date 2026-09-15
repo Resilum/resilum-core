@@ -11,17 +11,17 @@ const USAGE: &str = "usage: resilumd covert <carrier> <client|server> [flags]";
 pub fn run(argv: &[String]) -> i32 {
     let mut args = argv.iter();
     let Some(carrier) = args.next() else {
-        eprintln!("{USAGE}");
+        crate::out::refused(USAGE);
         return 2;
     };
     let Some(role) = args.next() else {
-        eprintln!("{USAGE}");
+        crate::out::refused(USAGE);
         return 2;
     };
     let options = match opts::parse(args) {
         Ok(o) => o,
         Err(msg) => {
-            eprintln!("{msg}");
+            crate::out::refused(msg);
             return 2;
         }
     };
@@ -29,7 +29,7 @@ pub fn run(argv: &[String]) -> i32 {
         ("icmp", "client") => icmp::client(options),
         ("icmp", "server") => icmp::server(options),
         _ => {
-            eprintln!("unsupported carrier/role: {carrier} {role}");
+            crate::out::refused(format_args!("unsupported carrier/role: {carrier} {role}"));
             2
         }
     }

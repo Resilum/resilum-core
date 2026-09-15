@@ -1,14 +1,14 @@
+use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
+
+use resilum_core::status::NodeStatus;
+
 mod grid;
 mod paint;
 mod plot;
 mod render;
 mod tables;
 mod units;
-
-use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
-
-use resilum_core::status::NodeStatus;
 
 const A_SNAPSHOT_THIS_OLD_IS_NOT_A_LIVE_NODE: Duration = Duration::from_secs(45);
 const WHERE_THE_IMAGE_KEEPS_ITS_CONFIG: &str = "/config/resilumd.yaml";
@@ -33,22 +33,22 @@ pub fn run(argv: &[String]) -> i32 {
     let config = argv.iter().find(|a| !a.starts_with("--"));
     let path = where_it_lands(config.map(String::as_str));
     let Ok(raw) = resilum_store::read_text(&path) else {
-        eprintln!("no status at {}", path.display());
+        crate::out::refused(format_args!("no status at {}", path.display()));
         return 1;
     };
     if json_wanted {
-        println!("{raw}");
+        crate::out::shown_as_a_line(&raw);
     }
     let status: NodeStatus = match serde_json::from_str(&raw) {
         Ok(status) => status,
         Err(error) => {
-            eprintln!("{}: {error}", path.display());
+            crate::out::refused(format_args!("{}: {error}", path.display()));
             return 1;
         }
     };
     let age = age_of(&path);
     if !json_wanted {
-        print!("{}", render::all_of_it(&status, age, &asked));
+        crate::out::shown(render::all_of_it(&status, age, &asked));
     }
     match age {
         Some(age) if age <= A_SNAPSHOT_THIS_OLD_IS_NOT_A_LIVE_NODE && status.running => 0,

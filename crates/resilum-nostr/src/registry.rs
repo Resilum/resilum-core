@@ -9,16 +9,15 @@ use std::time::Duration;
 
 use resilum_store::Writer;
 
+pub(crate) use self::admit::AcceptError;
+pub(crate) use self::batch::BatchId;
+pub(crate) use self::query::LiveMark;
 use crate::subscription::Subscription;
 
 mod admit;
 mod batch;
 mod query;
 mod store;
-
-pub(crate) use self::admit::AcceptError;
-pub(crate) use self::batch::BatchId;
-pub(crate) use self::query::LiveMark;
 
 pub(crate) struct Registry {
     held: Mutex<store::Held>,

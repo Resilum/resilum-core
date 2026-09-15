@@ -3,6 +3,16 @@
 //! byte-channel so an RNS link rides it — the connectivity sibling of the
 //! Yggdrasil underlay, not an anonymity transport.
 
+use std::path::Path;
+use std::sync::Arc;
+
+use iroh::Endpoint;
+use leviculum_std::driver::ReticulumNode;
+
+pub(crate) use self::plugin::IrohDiscovery;
+use self::wiring::Wiring;
+use crate::config::IrohConfig;
+
 mod accept;
 mod bridge;
 mod dial;
@@ -13,16 +23,6 @@ mod resolvers;
 #[cfg(feature = "iroh-protect")]
 mod transport;
 mod wiring;
-
-use std::path::Path;
-use std::sync::Arc;
-
-use iroh::Endpoint;
-use leviculum_std::driver::ReticulumNode;
-
-pub(crate) use self::plugin::IrohDiscovery;
-use self::wiring::Wiring;
-use crate::config::IrohConfig;
 
 pub(super) const ORIGIN: &str = "iroh";
 

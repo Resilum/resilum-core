@@ -1,12 +1,12 @@
 //! The snapshot the node leaves behind for anyone asking from outside it.
 
-mod show;
-
 use std::path::{Path, PathBuf};
 
 use resilum_core::Node;
 
 pub use self::show::run;
+
+mod show;
 
 pub fn file_path(storage_path: Option<&Path>, env: Option<String>) -> PathBuf {
     if let Some(p) = env.filter(|p| !p.is_empty()) {

@@ -1,7 +1,3 @@
-mod poll;
-mod requeue;
-mod send;
-
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int};
 
@@ -10,6 +6,10 @@ pub use self::requeue::*;
 pub use self::send::*;
 use crate::node::ResilumNode;
 use crate::{guard, set_error};
+
+mod poll;
+mod requeue;
+mod send;
 
 /// # Safety
 /// `raw` must be a NUL-terminated string or null. The returned `&str` borrows

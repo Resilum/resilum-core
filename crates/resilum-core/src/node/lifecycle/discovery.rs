@@ -1,6 +1,3 @@
-mod covert;
-mod resolve;
-
 use std::sync::Arc;
 
 use leviculum_std::api::Identity;
@@ -13,6 +10,9 @@ use crate::error::Error;
 use crate::error::Result;
 use crate::node::Node;
 use crate::{announce_cap, announce_trigger, discovery};
+
+mod covert;
+mod resolve;
 
 fn wants_discovery(config: &Config) -> bool {
     !config.discovery.is_empty()

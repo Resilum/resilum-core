@@ -1,6 +1,6 @@
-mod air;
-
 pub use self::air::Air;
+
+mod air;
 
 pub const CARRIED_PER_WRITE: usize = 20;
 

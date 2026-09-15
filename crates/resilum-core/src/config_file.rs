@@ -1,9 +1,6 @@
 //! YAML config, deserialized and mapped onto [`Config`]. Shared by the daemon
 //! and the FFI so both accept the same format.
 
-mod entries;
-mod env_expand;
-
 use serde::Deserialize;
 
 use self::entries::{
@@ -11,6 +8,9 @@ use self::entries::{
     WifiGroupFile,
 };
 use crate::Config;
+
+mod entries;
+mod env_expand;
 
 pub fn from_json(json: &str) -> Result<Config, String> {
     serde_json::from_str::<FileConfig>(json)

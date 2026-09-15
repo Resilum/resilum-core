@@ -1,13 +1,3 @@
-mod ble;
-mod covert_discovery;
-mod discovery;
-mod egress;
-mod how_a_node_starts;
-mod ingress;
-mod lxmf;
-mod udp;
-mod wifi_group;
-
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -21,6 +11,16 @@ pub use self::udp::UdpInterface;
 pub use self::wifi_group::WifiGroup;
 use crate::discovery::Service;
 use crate::spec::Specs;
+
+mod ble;
+mod covert_discovery;
+mod discovery;
+mod egress;
+mod how_a_node_starts;
+mod ingress;
+mod lxmf;
+mod udp;
+mod wifi_group;
 
 /// Default announce interval (600s), overridable by the
 /// `RESILUM_BRIDGE_ANNOUNCE_INTERVAL` env var (seconds).

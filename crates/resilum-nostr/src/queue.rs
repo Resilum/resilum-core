@@ -8,10 +8,10 @@ use std::time::Duration;
 
 use resilum_store::Writer;
 
+pub use self::entry::{Direction, Entry, Handoff, Queued};
+
 mod entry;
 mod store;
-
-pub use self::entry::{Direction, Entry, Handoff, Queued};
 
 pub struct Queue {
     held: Mutex<store::Held>,

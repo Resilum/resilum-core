@@ -1,6 +1,6 @@
-mod choosing;
-
 use super::{Candidate, Facts, HostsWhileOnARouter, rank, worth_a_handover};
+
+mod choosing;
 
 fn candidate(nth: u8, facts: Facts) -> Candidate {
     Candidate {

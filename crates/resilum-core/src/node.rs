@@ -1,11 +1,3 @@
-mod accessors;
-mod attach;
-mod attach_ble;
-mod coordinates;
-mod directory;
-mod interface;
-mod lifecycle;
-
 use std::collections::{BTreeMap, VecDeque};
 use std::sync::atomic::AtomicU16;
 use std::sync::{Arc, Mutex};
@@ -21,6 +13,14 @@ use crate::egress::CandidateRegistry;
 use crate::error::{Error, Result};
 use crate::link::LinkRouter;
 use crate::{dispatch, event, mirrors};
+
+mod accessors;
+mod attach;
+mod attach_ble;
+mod coordinates;
+mod directory;
+mod interface;
+mod lifecycle;
 
 /// A Resilum node: owns the leviculum engine (with its tokio runtime) and an
 /// outbound event queue.

@@ -1,14 +1,14 @@
 //! End-to-end: one egress node registers two services, and each inbound link is
 //! routed to its own service's target (by the destination_hash on the link).
 
+use self::harness::{services, spawn_tagged_echo, start_client, start_egress};
+use self::probe::probe_service;
+use self::support::temp_dir;
+
 mod harness;
 mod probe;
 #[path = "../support/mod.rs"]
 mod support;
-
-use self::harness::{services, spawn_tagged_echo, start_client, start_egress};
-use self::probe::probe_service;
-use self::support::temp_dir;
 
 #[test]
 fn each_service_is_routed_to_its_own_target() {

@@ -1,8 +1,5 @@
 //! Moving a queued message onto another delivery method.
 
-mod events;
-mod queue;
-
 use data_encoding::{BASE64, HEXLOWER};
 use leviculum_lxmf::DeliveryMethod;
 use serde_json::{Value, json};
@@ -10,6 +7,9 @@ use serde_json::{Value, json};
 use super::harness::{Harness, STAMP_COST};
 use super::node::known_peer;
 use crate::lxmf::handle::Command;
+
+mod events;
+mod queue;
 
 /// An id no message in this harness can have: every real one is a hash.
 const ABSENT: [u8; 32] = [9; 32];

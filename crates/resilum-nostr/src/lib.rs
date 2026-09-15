@@ -8,6 +8,9 @@
 //! Everything the bridge is built from stays inside, so the errors those
 //! parts hand each other are not a contract with anyone outside.
 
+pub use self::bridge::{BridgeHandle, StartError, spawn};
+pub use self::config::NostrConfig;
+
 mod bridge;
 mod config;
 mod event;
@@ -18,6 +21,3 @@ mod registry;
 mod signed;
 mod subscription;
 mod upstream;
-
-pub use self::bridge::{BridgeHandle, StartError, spawn};
-pub use self::config::NostrConfig;

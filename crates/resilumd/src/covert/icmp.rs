@@ -12,24 +12,24 @@ use super::{hex, stdio};
 
 pub fn client(opts: Options) -> i32 {
     let Some(dst) = opts.dst else {
-        eprintln!("--dst required for client");
+        crate::out::refused("--dst required for client");
         return 2;
     };
     let Some(hex_str) = opts.server_identity_hex else {
-        eprintln!("--server-identity required for client");
+        crate::out::refused("--server-identity required for client");
         return 2;
     };
     let server = match hex::identity(&hex_str) {
         Ok(id) => id,
         Err(e) => {
-            eprintln!("bad server identity: {e}");
+            crate::out::refused(format_args!("bad server identity: {e}"));
             return 2;
         }
     };
     let addr: IpAddr = match dst.parse() {
         Ok(a) => a,
         Err(_) => {
-            eprintln!("--dst must be an IP address");
+            crate::out::refused("--dst must be an IP address");
             return 2;
         }
     };
@@ -45,7 +45,7 @@ pub fn client(opts: Options) -> i32 {
 
 pub fn server(opts: Options) -> i32 {
     let Some(path) = opts.identity_path else {
-        eprintln!("--identity required for server");
+        crate::out::refused("--identity required for server");
         return 2;
     };
     let identity = identity::load_or_create_at(&path);

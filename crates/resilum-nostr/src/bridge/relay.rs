@@ -1,8 +1,6 @@
 //! Frames from a relay: an event to route onto the mesh, or a verdict on
 //! one that came off it.
 
-mod admit;
-
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -13,6 +11,8 @@ use super::state::{self, State};
 use super::tie::Tie;
 use crate::event::Event;
 use crate::upstream::proto::Incoming;
+
+mod admit;
 
 pub(super) fn handle(state: &Arc<State>, pending: &mut Pending, frame: Incoming) {
     match frame {

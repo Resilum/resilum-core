@@ -1,6 +1,3 @@
-mod pace;
-mod whom;
-
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,6 +12,9 @@ use crate::discovery::Attachments;
 use crate::link::{self, Inbound, LinkRouter};
 use crate::node::Node;
 use crate::wall_clock;
+
+mod pace;
+mod whom;
 
 const ANNOUNCE_EVERY: Duration = Duration::from_secs(600);
 

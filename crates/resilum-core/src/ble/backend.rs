@@ -1,9 +1,3 @@
-mod command;
-mod drive;
-mod served;
-#[cfg(target_os = "android")]
-mod the_jvm;
-
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -13,6 +7,12 @@ use self::command::Command;
 use super::radio::{ConnectionId, Outbound, PeerAddress, Radio, RadioError, RadioEvent};
 use super::spec;
 use crate::letting_go::OnTheWayOut as _;
+
+mod command;
+mod drive;
+mod served;
+#[cfg(target_os = "android")]
+mod the_jvm;
 
 const COMMANDS_IN_FLIGHT: usize = 64;
 const FRAGMENTS_IN_FLIGHT: usize = 32;

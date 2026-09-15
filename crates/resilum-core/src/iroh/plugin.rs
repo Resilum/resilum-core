@@ -2,8 +2,6 @@
 //! peers that advertise theirs on the `resilum.discovery.iroh` aspect. Dormant
 //! until the transport attaches — the endpoint exists only then.
 
-mod addr;
-
 use std::sync::{Arc, Mutex};
 
 use iroh::Endpoint;
@@ -13,6 +11,8 @@ use super::dial;
 use super::wiring::{Wiring, attached_as};
 use crate::discovery::DiscoveryPlugin;
 use crate::discovery::admit::{self, Room};
+
+mod addr;
 
 struct Active {
     endpoint: Endpoint,

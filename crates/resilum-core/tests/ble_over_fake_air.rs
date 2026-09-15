@@ -1,8 +1,3 @@
-#[path = "support/ble_pair.rs"]
-mod ble_pair;
-#[path = "support/fake_radio/mod.rs"]
-mod fake_radio;
-
 use std::time::Duration;
 
 use resilum_core::ble::framing::{Arrived, Reassembly};
@@ -11,6 +6,11 @@ use resilum_core::ble::spec;
 
 use self::ble_pair::{SERVED_IDENTITY, joined, put_on_the_air};
 use self::fake_radio::{Air, CARRIED_PER_WRITE};
+
+#[path = "support/ble_pair.rs"]
+mod ble_pair;
+#[path = "support/fake_radio/mod.rs"]
+mod fake_radio;
 
 #[tokio::test]
 async fn a_packet_written_on_one_side_arrives_whole_on_the_other() {

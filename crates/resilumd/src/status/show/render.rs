@@ -1,5 +1,3 @@
-mod sections;
-
 use std::time::Duration;
 
 use resilum_core::status::NodeStatus;
@@ -7,6 +5,8 @@ use resilum_core::text::Text as _;
 
 use super::A_SNAPSHOT_THIS_OLD_IS_NOT_A_LIVE_NODE;
 use super::paint::{bold, dimmed, green, red, yellow};
+
+mod sections;
 
 pub fn all_of_it(status: &NodeStatus, age: Option<Duration>, asked: &super::Asked) -> String {
     let mut out = String::new();

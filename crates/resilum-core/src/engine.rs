@@ -5,12 +5,12 @@ use std::path::PathBuf;
 use leviculum_std::api::Identity;
 use leviculum_std::driver::ReticulumNodeBuilder;
 
+use self::render::render_config;
 use crate::{Config, Error, Result, identity};
 
 mod a_data_port;
 mod names;
 mod render;
-use self::render::render_config;
 
 /// Returns the identity too, so egress destinations bind to the same one.
 pub(crate) fn build_node(

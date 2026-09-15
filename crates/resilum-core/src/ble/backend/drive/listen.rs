@@ -1,5 +1,3 @@
-mod telling;
-
 use blew::central::CentralEvent;
 use blew::peripheral::{PeripheralRequest, PeripheralStateEvent};
 use blew::types::BleDevice;
@@ -8,6 +6,8 @@ use self::telling::{arrived, arrived_on, met_us, parted, seen};
 use super::Reporting;
 use crate::ble::radio::PeerAddress;
 use crate::ble::spec;
+
+mod telling;
 
 pub(super) async fn what_the_central_heard(told: &mut Reporting, event: CentralEvent) {
     match event {

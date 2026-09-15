@@ -2,11 +2,6 @@
 //! `LinkId`. Responder-side links this node did not open are surfaced so the
 //! listen side can accept and service them.
 
-mod answer;
-mod dial;
-mod inbox;
-mod route;
-
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -17,6 +12,11 @@ pub use self::answer::answered;
 pub use self::dial::{dial, established};
 pub use self::inbox::Inbox;
 pub use self::route::run;
+
+mod answer;
+mod dial;
+mod inbox;
+mod route;
 
 /// A message routed to one link session, in arrival order.
 #[derive(Debug, Clone, PartialEq, Eq)]

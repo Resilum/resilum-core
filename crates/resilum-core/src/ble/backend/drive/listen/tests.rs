@@ -1,6 +1,3 @@
-mod as_a_central;
-mod as_a_peripheral;
-
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -10,6 +7,9 @@ use tokio::sync::mpsc;
 use super::Reporting;
 use crate::ble::backend::drive::peers::Peers;
 use crate::ble::radio::{ConnectionId, PeerAddress, RadioEvent};
+
+mod as_a_central;
+mod as_a_peripheral;
 
 struct Bench {
     told: Reporting,

@@ -1,7 +1,5 @@
 //! TCP discovery plugin (Tor / I2P / Yggdrasil).
 
-mod plugin;
-
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,6 +12,8 @@ use crate::announce_cap::CapController;
 use crate::config::{DiscoveryService, EndpointFormat};
 use crate::discovery::OriginRegistry;
 use crate::discovery::store::{Advertised, Peers};
+
+mod plugin;
 
 pub struct TcpDiscovered {
     cfg: DiscoveryService,

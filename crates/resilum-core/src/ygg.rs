@@ -4,10 +4,6 @@
 //! and, through a local SOCKS proxy, dials ygg peers on the node's behalf — the
 //! same links a node with an ygg tun gets, without needing the tun.
 
-mod accept;
-mod device;
-mod socks;
-
 use std::collections::HashMap;
 use std::net::{IpAddr, Ipv6Addr};
 use std::os::fd::RawFd;
@@ -19,6 +15,10 @@ use tokio_smoltcp::Net;
 
 use crate::discovery::OriginRegistry;
 use crate::letting_go::OnTheWayOut as _;
+
+mod accept;
+mod device;
+mod socks;
 
 type Links = Arc<Mutex<HashMap<IpAddr, ByteChannelHandle>>>;
 

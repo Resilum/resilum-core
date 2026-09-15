@@ -1,6 +1,23 @@
 //! Shared core for a Resilum node, built on the leviculum Reticulum stack.
 //! Consumed directly by a Rust caller, or over the C ABI through `resilum-ffi`.
 
+pub use leviculum_std::socket_hook::OutboundSocketHook;
+
+pub use self::config::{
+    BleInterface, Config, CovertDiscoveryService, DiscoveryService, EgressListen, EndpointFormat,
+    I2pInterface, IngressConfig, LxmfConfig, UdpInterface, WifiGroup,
+};
+pub use self::config_file::{from_json, from_yaml};
+#[cfg(unix)]
+pub use self::egress::vpn::VpnHandle;
+pub use self::error::{Error, Result};
+pub use self::event::Event;
+#[cfg(feature = "iroh")]
+pub use self::iroh::IrohHandle;
+pub use self::node::Node;
+#[cfg(feature = "ygg")]
+pub use self::ygg::YggHandle;
+
 pub mod announce_cap;
 pub mod announce_ours;
 pub mod announce_payload;
@@ -40,20 +57,3 @@ mod wall_clock;
 pub mod wifi_group;
 #[cfg(feature = "ygg")]
 pub mod ygg;
-
-pub use leviculum_std::socket_hook::OutboundSocketHook;
-
-pub use self::config::{
-    BleInterface, Config, CovertDiscoveryService, DiscoveryService, EgressListen, EndpointFormat,
-    I2pInterface, IngressConfig, LxmfConfig, UdpInterface, WifiGroup,
-};
-pub use self::config_file::{from_json, from_yaml};
-#[cfg(unix)]
-pub use self::egress::vpn::VpnHandle;
-pub use self::error::{Error, Result};
-pub use self::event::Event;
-#[cfg(feature = "iroh")]
-pub use self::iroh::IrohHandle;
-pub use self::node::Node;
-#[cfg(feature = "ygg")]
-pub use self::ygg::YggHandle;

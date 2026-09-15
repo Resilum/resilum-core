@@ -1,13 +1,13 @@
+use tokio::sync::mpsc;
+
+use crate::upstream::{Deadlines, Upstream, UpstreamRunner, proto};
+
 mod backoff;
 mod cancellation;
 mod liveness;
 mod reconnect;
 mod shutdown;
 mod tls_provider;
-
-use tokio::sync::mpsc;
-
-use crate::upstream::{Deadlines, Upstream, UpstreamRunner, proto};
 
 type Dialling = (
     Upstream,

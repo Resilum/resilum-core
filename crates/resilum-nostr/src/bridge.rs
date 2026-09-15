@@ -1,5 +1,7 @@
 //! The only place the parts meet.
 
+pub use self::start::{BridgeHandle, StartError, spawn};
+
 mod deliver;
 mod dispatch;
 mod from_mesh;
@@ -15,5 +17,3 @@ mod state;
 mod subscribe;
 mod tie;
 mod to_mesh;
-
-pub use self::start::{BridgeHandle, StartError, spawn};

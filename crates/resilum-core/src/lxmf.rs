@@ -2,16 +2,6 @@
 //! it through an [`LxmfHandle`], and [`send`]/[`poll`] map the FFI's JSON onto
 //! `leviculum_lxmf` types.
 
-mod checkpoint;
-mod handle;
-mod inbox;
-pub mod poll;
-mod processor;
-mod request;
-pub mod requeue;
-pub mod send;
-mod stamp;
-
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -25,6 +15,16 @@ use serde_json::Value;
 pub use self::handle::LxmfHandle;
 pub use self::request::RequestError;
 use crate::config::LxmfConfig;
+
+mod checkpoint;
+mod handle;
+mod inbox;
+pub mod poll;
+mod processor;
+mod request;
+pub mod requeue;
+pub mod send;
+mod stamp;
 
 /// Takes the builder rather than a built node: a processor installed later
 /// could hold a handle to the node it runs inside, and calling one of that

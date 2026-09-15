@@ -1,10 +1,10 @@
-mod fitting;
-mod telling;
-
 use resilum_core::coordinates::Coordinates;
 use resilum_core::status::{BleStatus, CoordinatesStatus, Interface, Link, NodeStatus};
 
 use super::Asked;
+
+mod fitting;
+mod telling;
 
 const PLAINLY: Asked = Asked {
     map: false,

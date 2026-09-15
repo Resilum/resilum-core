@@ -3,9 +3,6 @@
 //! a PipeInterface subprocess (stdin/stdout) or an in-process bridge into
 //! these two seams — the runner itself does no I/O.
 
-mod drive;
-mod threads;
-
 use std::io;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -17,6 +14,9 @@ use leviculum_std::api::Identity;
 use super::carrier::{CarrierClient, CarrierServer};
 use super::engine::client::ClientEngine;
 use super::engine::server::ServerEngine;
+
+mod drive;
+mod threads;
 
 const MIN_POLL: Duration = Duration::from_millis(200);
 const MAX_POLL: Duration = Duration::from_secs(30);

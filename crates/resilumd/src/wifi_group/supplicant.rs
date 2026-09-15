@@ -1,5 +1,3 @@
-mod control;
-
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -7,6 +5,8 @@ use resilum_core::WifiGroup;
 
 use self::control::Control;
 use super::{Raised, RaisesAGroup};
+
+mod control;
 
 const WHERE_IT_LISTENS: &str = "/run/wpa_supplicant";
 const THE_2GHZ_CHANNEL_WE_HOST_ON: &str = "2437";

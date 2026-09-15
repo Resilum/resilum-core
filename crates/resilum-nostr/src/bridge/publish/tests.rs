@@ -1,10 +1,6 @@
 //! The publish round driven through the entry points the loop calls, with
 //! only the relays and the mesh sender standing in.
 
-mod expiry;
-mod queued;
-mod rounds;
-
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -19,6 +15,10 @@ use crate::config::NostrConfig;
 use crate::event::Event;
 use crate::queue::{Direction, Entry, Handoff, Queue, Queued};
 use crate::registry::Registry;
+
+mod expiry;
+mod queued;
+mod rounds;
 
 const RETENTION: Duration = Duration::from_secs(600);
 const PER_SUBSCRIBER: usize = 16;

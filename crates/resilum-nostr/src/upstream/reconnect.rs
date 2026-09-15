@@ -1,8 +1,5 @@
 //! The reconnect loop: dial, reissue subscriptions, pump frames, back off.
 
-mod connected;
-mod pump;
-
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
@@ -18,6 +15,9 @@ use self::connected::Connected;
 use self::pump::AfterPump;
 pub(crate) use self::pump::Deadlines;
 use super::{proto, tls};
+
+mod connected;
+mod pump;
 
 const MIN_BACKOFF: Duration = Duration::from_secs(1);
 const MAX_BACKOFF: Duration = Duration::from_secs(60);

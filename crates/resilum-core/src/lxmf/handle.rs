@@ -1,11 +1,6 @@
 //! The caller's side of the LXMF stack. The router runs inside the engine's
 //! tick, so everything here reaches it over queues.
 
-mod build;
-mod outbound;
-mod router_state;
-mod sink;
-
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 
@@ -16,6 +11,11 @@ pub(super) use self::build::channel;
 pub(super) use self::router_state::RouterState;
 pub(super) use self::sink::EventSink;
 use crate::error::{Error, Result};
+
+mod build;
+mod outbound;
+mod router_state;
+mod sink;
 
 /// Capped because a caller can stop polling while the mesh keeps delivering:
 /// the loss is counted and reported as an `overflow` event rather than growing

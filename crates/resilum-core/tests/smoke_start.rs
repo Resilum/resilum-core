@@ -25,7 +25,6 @@ fn node_starts_on_real_engine() {
 
     let mut node = Node::new(cfg).expect("new");
     let started = node.start();
-    eprintln!("start() -> {started:?}");
     assert!(
         started.is_ok(),
         "engine rejected rendered config: {started:?}"

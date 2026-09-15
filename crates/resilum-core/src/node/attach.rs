@@ -1,10 +1,10 @@
-#[cfg(unix)]
-mod wifi_group;
-
 use leviculum_std::socket_hook::OutboundSocketHook;
 
 use super::Node;
 use crate::error::{Error, Result};
+
+#[cfg(unix)]
+mod wifi_group;
 
 impl Node {
     /// Register a hook run on every outbound socket before it connects, so an

@@ -1,11 +1,3 @@
-pub mod exchange;
-mod field;
-mod hosting;
-mod on_the_air;
-mod read_here;
-mod reported;
-mod score;
-
 pub use self::field::Field;
 pub use self::hosting::HostingTheGroup;
 pub use self::on_the_air::SomeoneElsesGroup;
@@ -15,6 +7,14 @@ pub use self::score::{
     Candidate, Facts, HostsWhileOnARouter, rank, the_one_to_host, worth_a_handover,
 };
 use crate::ble::links::PeerId;
+
+pub mod exchange;
+mod field;
+mod hosting;
+mod on_the_air;
+mod read_here;
+mod reported;
+mod score;
 
 const CLAIM_DELAY_MS: u64 = 3_000;
 const HOLD_DOWN_MS: u64 = 120_000;

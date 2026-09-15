@@ -7,8 +7,6 @@
 
 #![cfg(target_os = "linux")]
 
-mod sniff;
-
 use std::collections::HashMap;
 use std::io;
 use std::net::{IpAddr, SocketAddr};
@@ -22,6 +20,8 @@ use super::marker::MARKER_LEN;
 use super::wake::{Ready, Wake};
 use super::wire;
 use crate::covert::carrier::CarrierServer;
+
+mod sniff;
 const IPV4_OVERHEAD: usize = 20 + 8;
 const IPV6_OVERHEAD: usize = 40 + 8;
 

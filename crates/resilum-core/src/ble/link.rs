@@ -1,5 +1,3 @@
-mod carry;
-
 use std::sync::Arc;
 
 use leviculum_std::driver::ReticulumNode;
@@ -9,6 +7,8 @@ use tokio::sync::mpsc;
 use super::radio::{ConnectionId, Radio, Role};
 use super::spec;
 use crate::letting_go::TheQueueMayBeFull as _;
+
+mod carry;
 
 const PIPE_BUFFER_EQUIVALENT: usize = 64 * 1024;
 const FRAGMENTS_HELD_PER_PEER: usize = 64;

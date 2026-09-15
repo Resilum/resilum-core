@@ -5,9 +5,6 @@
 //! upstream added after they were written by silently picking whichever label
 //! it happened to land on. Failing to compile is the cheaper answer.
 
-mod reason;
-mod refusal;
-
 use data_encoding::{BASE64, HEXLOWER};
 use leviculum_core::DestinationHash;
 use leviculum_lxmf::announce::DeliveryAnnounce;
@@ -17,6 +14,9 @@ use serde_json::{Value, json};
 
 use self::refusal::failed_value;
 pub(super) use self::refusal::{failed, requeue_refused};
+
+mod reason;
+mod refusal;
 
 /// `heard_at` is when this node took the event off the router, in UNIX
 /// seconds. Passed in rather than read here so the rendering stays a pure

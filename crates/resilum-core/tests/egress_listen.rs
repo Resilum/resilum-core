@@ -9,9 +9,9 @@ use leviculum_std::api::Destination;
 use resilum_core::{Config, EgressListen, Node};
 use tokio::time::timeout;
 
-mod support;
-
 use self::support::{free_port, temp_dir};
+
+mod support;
 
 /// A blocking TCP echo server on an ephemeral port.
 fn spawn_echo() -> u16 {

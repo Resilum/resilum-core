@@ -1,5 +1,3 @@
-mod keep;
-
 use std::collections::HashMap;
 use std::os::fd::{FromRawFd as _, RawFd};
 use std::sync::{Arc, Mutex};
@@ -9,6 +7,8 @@ use leviculum_std::interfaces::ByteChannelHandle;
 use tokio::net::{TcpListener, TcpStream};
 
 use crate::discovery::{Attachments, OriginRegistry};
+
+mod keep;
 
 pub const ATTACHED_AS: &str = "wifi";
 

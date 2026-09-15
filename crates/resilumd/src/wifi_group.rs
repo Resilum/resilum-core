@@ -1,3 +1,10 @@
+use std::time::Duration;
+
+use resilum_core::WifiGroup;
+
+pub use self::hosting::WhetherWeHostTheGroup;
+pub use self::joining::WhetherWeJoinTheGroup;
+
 mod address;
 mod dhcp;
 mod hosting;
@@ -9,13 +16,6 @@ pub mod radio_interface;
 mod settings;
 mod settling;
 mod supplicant;
-
-use std::time::Duration;
-
-use resilum_core::WifiGroup;
-
-pub use self::hosting::WhetherWeHostTheGroup;
-pub use self::joining::WhetherWeJoinTheGroup;
 
 pub type Lowering = Box<dyn FnOnce() + Send>;
 

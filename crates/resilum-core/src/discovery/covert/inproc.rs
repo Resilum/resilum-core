@@ -3,8 +3,6 @@
 //! (for embedders that run no separate process). Carrier-agnostic — per-carrier
 //! construction lives in the submodules.
 
-mod icmp;
-
 use std::sync::Arc;
 
 #[cfg(target_os = "linux")]
@@ -16,6 +14,8 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::DialableAddress;
 use crate::letting_go::NoOneIsListening as _;
+
+mod icmp;
 
 pub(in crate::discovery::covert) fn attach(
     engine: &Arc<ReticulumNode>,

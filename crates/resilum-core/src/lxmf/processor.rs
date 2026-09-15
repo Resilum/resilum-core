@@ -9,11 +9,6 @@
 //! its methods open by taking that same mutex — and only channels whose sends
 //! cannot block. Every side effect is a queue push.
 
-mod absorb;
-mod commands;
-mod propagation;
-mod register;
-
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Receiver;
@@ -29,6 +24,11 @@ use super::handle::{Command, EventSink, RouterState};
 use super::inbox::Inbox;
 use super::stamp::Jobs;
 use crate::config::LxmfConfig;
+
+mod absorb;
+mod commands;
+mod propagation;
+mod register;
 
 /// Bounds how long a submitted message waits to be picked up: an event tap
 /// only fires when the core has something to say, so the command queue needs a

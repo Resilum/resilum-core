@@ -1,7 +1,3 @@
-mod dial;
-mod meet;
-mod rounds;
-
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -16,6 +12,10 @@ use super::handshake::Handshakes;
 use super::links::{Links, PeerId};
 use super::radio::{Radio, RadioEvent};
 use super::spec;
+
+mod dial;
+mod meet;
+mod rounds;
 
 const LOOK_AROUND_EVERY: Duration = Duration::from_secs(5);
 const GIVE_UP_ON_A_HANDSHAKE_AFTER_MS: u64 = 5_000;

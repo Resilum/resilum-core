@@ -1,13 +1,6 @@
 //! L3 routing hub: terminate the tun's TCP flows in a userspace netstack and
 //! forward each to its real destination through the egress mesh.
 
-mod fakedns;
-mod flow;
-#[cfg(feature = "i2p")]
-mod i2p;
-mod tun;
-mod udp;
-
 use std::os::fd::RawFd;
 use std::sync::Arc;
 
@@ -21,6 +14,13 @@ pub use self::i2p::I2pConduit;
 use crate::config::IngressConfig;
 use crate::egress::{ActiveLinks, CandidateRegistry};
 use crate::link::LinkRouter;
+
+mod fakedns;
+mod flow;
+#[cfg(feature = "i2p")]
+mod i2p;
+mod tun;
+mod udp;
 
 /// Inputs for a routing hub, assembled by the node from its running state.
 #[non_exhaustive]

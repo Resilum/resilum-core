@@ -1,7 +1,7 @@
-mod defrag;
-
 pub use self::defrag::{Arrived, Reassembly};
 use super::spec;
+
+mod defrag;
 
 #[must_use]
 pub fn payload_per_fragment(bytes_one_write_carries: usize) -> usize {

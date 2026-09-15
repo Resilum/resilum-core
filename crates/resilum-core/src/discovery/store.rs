@@ -1,7 +1,3 @@
-mod hostname;
-mod peers;
-mod records;
-
 use std::path::Path;
 use std::sync::Arc;
 
@@ -10,6 +6,10 @@ pub(crate) use self::hostname::Advertised;
 pub(crate) use self::hostname::say_the_address_is;
 pub(crate) use self::peers::Peers;
 use crate::wall_clock::unix_now;
+
+mod hostname;
+mod peers;
+mod records;
 
 pub const TTL_SECONDS: f64 = 24.0 * 60.0 * 60.0;
 pub const TOP_N_ACTIVE: usize = 10;

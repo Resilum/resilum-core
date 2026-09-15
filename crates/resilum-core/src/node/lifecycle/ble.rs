@@ -1,5 +1,3 @@
-mod a_radio_here;
-
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -15,6 +13,8 @@ use crate::ble::run::{self, Deciding, Ours};
 use crate::ble::spec;
 use crate::link::{Inbox, LinkRouter};
 use crate::node::Node;
+
+mod a_radio_here;
 
 pub(crate) struct Wiring<'a> {
     pub engine: &'a Arc<ReticulumNode>,

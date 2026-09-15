@@ -1,7 +1,7 @@
-mod placing;
-
 use super::beginning::SCATTERED_WITHIN;
 use super::*;
+
+mod placing;
 
 const NEAR: PeerId = [1; 16];
 const FAR: PeerId = [2; 16];

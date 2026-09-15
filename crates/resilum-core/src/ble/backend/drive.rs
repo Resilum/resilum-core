@@ -1,9 +1,3 @@
-mod dialling;
-mod listen;
-mod obey;
-mod peers;
-mod sending;
-
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
@@ -17,6 +11,12 @@ use self::dialling::Dialled;
 use self::peers::Peers;
 use super::command::Command;
 use crate::ble::radio::{ConnectionId, Outbound, PeerAddress, RadioError, RadioEvent};
+
+mod dialling;
+mod listen;
+mod obey;
+mod peers;
+mod sending;
 
 const ATT_HEADER: usize = 3;
 

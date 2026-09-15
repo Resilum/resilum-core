@@ -1,9 +1,6 @@
 //! What every part of the loop reaches for: the two stores, the relay
 //! handles, and the one way onto the mesh.
 
-mod frames;
-mod open;
-
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -20,6 +17,9 @@ use crate::config::NostrConfig;
 use crate::queue::Queue;
 use crate::registry::{BatchId, Registry};
 use crate::upstream::Upstream;
+
+mod frames;
+mod open;
 
 /// Builds, signs and submits one message, recording its `Tie` before the
 /// message can be delivered. Boxed because the node identity it signs with

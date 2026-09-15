@@ -1,6 +1,3 @@
-mod plugin;
-mod targets;
-
 use std::sync::{Arc, Mutex};
 
 use leviculum_std::InterfaceId;
@@ -13,6 +10,9 @@ use super::covert::AddressSource;
 use crate::config::{DiscoveryService, UdpInterface};
 use crate::discovery::OriginRegistry;
 use crate::letting_go::OnTheWayOut as _;
+
+mod plugin;
+mod targets;
 
 pub struct UdpDiscovered {
     inner: Arc<Inner>,

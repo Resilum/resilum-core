@@ -64,6 +64,11 @@ tracked_and_new() {
     git ls-files --cached --others --exclude-standard "$@"
 }
 
+step "module declarations below the imports"
+moving=(run --quiet -p xtask -- modules-after-imports)
+$FORMAT_IN_PLACE || moving+=(--check)
+cargo "${moving[@]}" crates
+
 step "rustfmt"
 if $FORMAT_IN_PLACE; then cargo fmt --all; else cargo fmt --all --check; fi
 

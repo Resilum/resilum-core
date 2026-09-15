@@ -1,7 +1,5 @@
 //! Proof-of-work for peers that price one, mined off the core lock.
 
-mod jobs;
-
 use std::sync::mpsc::Sender;
 
 use leviculum_lxmf::{CooperativeStamper, DeliveryStampRequest, PropagationStampRequest};
@@ -9,6 +7,8 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 pub(super) use self::jobs::Jobs;
 use super::handle::Command;
+
+mod jobs;
 
 /// The two kinds are the same proof of work — `StampExecutor::generate` — over
 /// different bytes: the recipient stamp over the message id, the propagation

@@ -1,8 +1,6 @@
 //! Server engine: demux by session id, unseal on handshake, respond over the
 //! same carrier. Bound to carriers whose reply address is an `IpAddr`.
 
-mod respond;
-
 use std::io;
 use std::net::IpAddr;
 use std::time::Duration;
@@ -12,6 +10,8 @@ use leviculum_std::api::Identity;
 use super::datagram::{self, HEADER_LEN, Kind, overhead};
 use super::session::SessionTable;
 use crate::covert::carrier::CarrierServer;
+
+mod respond;
 
 const WINDOW: usize = 8;
 

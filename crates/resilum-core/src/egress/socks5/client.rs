@@ -2,8 +2,6 @@
 //! The backend reads the greeting and the CONNECT request before it replies, so
 //! both are pipelined.
 
-mod reply;
-
 use std::net::SocketAddr;
 
 use leviculum_std::api::LinkHandle;
@@ -13,6 +11,8 @@ use crate::egress::socks5::{
     ATYP_DOMAIN, ATYP_V4, ATYP_V6, CMD_CONNECT, METHOD_NO_AUTH, SocksError, VER,
 };
 use crate::link::LinkMsg;
+
+mod reply;
 
 /// What to ask the egress to reach: a literal address, or a hostname the egress
 /// resolves itself (used when a FakeDNS synthetic address was dialled).

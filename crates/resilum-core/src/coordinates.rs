@@ -1,12 +1,5 @@
 //! Where this node and its peers sit in latency space.
 
-mod beginning;
-mod claimed;
-pub mod exchange;
-mod peer;
-mod placed;
-mod window;
-
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -18,6 +11,13 @@ use self::beginning::{knowing_nothing_of_where_we_are, without_a_runaway_last_mi
 pub use self::claimed::Claimed;
 use self::peer::Peer;
 pub use self::placed::Placed;
+
+mod beginning;
+mod claimed;
+pub mod exchange;
+mod peer;
+mod placed;
+mod window;
 
 pub type PeerId = [u8; 16];
 pub type LinkId = usize;

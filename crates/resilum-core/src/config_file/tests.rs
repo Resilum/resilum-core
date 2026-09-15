@@ -1,7 +1,7 @@
+use super::{from_json, from_yaml};
+
 mod covert;
 mod plain_ip;
-
-use super::{from_json, from_yaml};
 
 #[test]
 fn from_json_parses_an_embedded_config_shape() {

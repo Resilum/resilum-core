@@ -1,10 +1,3 @@
-pub(crate) mod ble;
-mod coordinates;
-mod discovery;
-mod egress;
-mod holders;
-mod mirrors;
-
 use std::sync::Arc;
 
 use tokio::sync::mpsc;
@@ -13,6 +6,13 @@ use super::Node;
 use crate::error::{Error, Result};
 use crate::event::{self, Event};
 use crate::{bridge, dispatch, engine, link, lxmf};
+
+pub(crate) mod ble;
+mod coordinates;
+mod discovery;
+mod egress;
+mod holders;
+mod mirrors;
 
 impl Node {
     pub fn start(&mut self) -> Result<()> {

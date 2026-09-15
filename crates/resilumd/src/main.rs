@@ -9,6 +9,7 @@ mod health;
 mod i2pd_export;
 mod mirrors;
 mod nostr;
+mod out;
 mod radio_facts;
 mod status;
 mod subcommands;

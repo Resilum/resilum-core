@@ -1,12 +1,12 @@
-mod filter;
-mod route;
-
 use std::time::Duration;
 
 use super::*;
 use crate::queue::Queue;
 use crate::signed::gift_wrap;
 use crate::subscription::Subscription;
+
+mod filter;
+mod route;
 
 const SUBSCRIBER: [u8; 32] = [7u8; 32];
 const SUBSCRIBED_AT: i64 = 1_786_000_000;

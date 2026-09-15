@@ -1,9 +1,6 @@
 //! Egress listen side: register a destination per service, announce each, and
 //! forward every inbound link to its service's local TCP endpoint.
 
-mod policy;
-mod session;
-
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -14,6 +11,9 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::config::EgressListen;
 use crate::link::Inbound;
+
+mod policy;
+mod session;
 
 #[derive(Clone)]
 enum Backend {

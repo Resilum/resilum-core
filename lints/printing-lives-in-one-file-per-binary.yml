@@ -1,0 +1,23 @@
+---
+id: printing-lives-in-one-file-per-binary
+language: Rust
+severity: error
+message: Something prints straight to the terminal.
+note: |
+  Whoever links a crate of ours owns its streams: the covert carrier moves
+  frames through stdout and an embedder over the FFI has its own idea of where
+  output goes, so a stray line corrupts one and is invisible to the other. A
+  library says it with `tracing`. A command says it through its own `out`:
+  `out::shown` for the answer a person asked for, `out::refused` for what was
+  wrong with the asking — one file that can be told to go quiet, or to speak
+  json, without hunting every call site.
+ignores:
+  - "crates/resilumd/src/out.rs"
+  - "crates/xtask/src/out.rs"
+  - "**/build.rs"
+rule:
+  any:
+    - pattern: print!($$$SAID)
+    - pattern: println!($$$SAID)
+    - pattern: eprint!($$$SAID)
+    - pattern: eprintln!($$$SAID)

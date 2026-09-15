@@ -1,8 +1,8 @@
-mod reporting;
-
 use std::path::Path;
 use std::sync::mpsc;
 use std::time::Duration;
+
+mod reporting;
 
 const FOLLOW_THE_ELECTION_EVERY: Duration = Duration::from_secs(5);
 

@@ -1,12 +1,12 @@
-mod combinations;
-mod uplink;
-
 use futures::stream::TryStreamExt as _;
 use resilum_core::Node;
 use resilum_core::ble::election::{Facts, HostsWhileOnARouter};
 use wl_nl80211::Nl80211Attr;
 
 use self::combinations::WhatTheRadioAllows;
+
+mod combinations;
+mod uplink;
 
 #[derive(Default)]
 pub struct WhatThisHostKnows {

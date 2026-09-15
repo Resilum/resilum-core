@@ -3,10 +3,6 @@
 //! so link_rtt is taken from the SOCKS greeting round-trip (mesh only) and e2e
 //! from the full reply; the caller derives the egress leg as their difference.
 
-mod local;
-mod socks;
-mod targets;
-
 use std::net::Ipv4Addr;
 use std::sync::Arc;
 
@@ -16,6 +12,10 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 pub use self::local::over_a_local_socket;
 pub use self::targets::resolve_targets;
+
+mod local;
+mod socks;
+mod targets;
 
 const GREETING_AND_CONNECT_REPLY: usize = 12;
 const CONNECT_REPLY_CODE: usize = 3;

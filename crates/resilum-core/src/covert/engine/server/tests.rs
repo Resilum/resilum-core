@@ -1,9 +1,6 @@
 //! Shared rig: a carrier that records what the server sent, and packet
 //! builders that let a test speak as an owner or as a stranger.
 
-mod admission;
-mod ownership;
-
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::{Arc, Mutex};
 
@@ -13,6 +10,9 @@ use super::super::datagram::{self, Datagram, Kind};
 use super::super::keyx;
 use super::ServerEngine;
 use crate::covert::carrier::CarrierServer;
+
+mod admission;
+mod ownership;
 
 const SESSION: u32 = 7;
 

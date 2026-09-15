@@ -1,6 +1,10 @@
 //! ICMP-echo covert carrier. The server side needs raw sockets, AF_PACKET, a
 //! BPF filter, and netfilter suppression of the kernel's own echo-reply.
 
+pub use self::client::IcmpClient;
+#[cfg(target_os = "linux")]
+pub use self::server::IcmpServer;
+
 pub mod client;
 pub mod marker;
 #[cfg(target_os = "linux")]
@@ -11,7 +15,3 @@ pub mod socket;
 #[cfg(unix)]
 pub mod wake;
 pub mod wire;
-
-pub use self::client::IcmpClient;
-#[cfg(target_os = "linux")]
-pub use self::server::IcmpServer;

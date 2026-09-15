@@ -1,14 +1,14 @@
 //! Splice managed listen-address regions into Yggdrasil and Reticulum configs
 //! from env-provided values.
 
-mod parsing;
-mod regions;
-mod render;
-
 use std::path::Path;
 
 use self::parsing::{RNS_ENV, YGG_ENV};
 use self::render::{render_rns, render_ygg};
+
+mod parsing;
+mod regions;
+mod render;
 
 const RNS_CONFIG_DIR_ENV: &str = "RNS_CONFIG_DIR";
 

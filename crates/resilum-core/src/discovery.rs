@@ -2,20 +2,6 @@
 //! node has ready, and each endpoint in it routes to the plugin for its
 //! service.
 
-pub(crate) mod admit;
-pub(crate) mod attachments;
-mod build;
-mod consume;
-pub mod covert;
-mod directory;
-mod endpoint;
-mod origin;
-mod produce;
-mod quota;
-pub mod service;
-pub(crate) mod store;
-mod tcp;
-mod udp;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -32,6 +18,21 @@ pub use self::store::run_prune_loop;
 pub use self::tcp::TcpDiscovered;
 pub use self::udp::UdpDiscovered;
 use crate::config::DiscoveryService;
+
+pub(crate) mod admit;
+pub(crate) mod attachments;
+mod build;
+mod consume;
+pub mod covert;
+mod directory;
+mod endpoint;
+mod origin;
+mod produce;
+mod quota;
+pub mod service;
+pub(crate) mod store;
+mod tcp;
+mod udp;
 
 pub(super) const APP_NAME: &str = "resilum";
 
