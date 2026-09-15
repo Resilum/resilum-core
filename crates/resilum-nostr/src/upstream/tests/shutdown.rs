@@ -10,7 +10,7 @@ async fn dropping_the_incoming_receiver_ends_the_reconnect_loop() {
         .expect("bind");
     let port = listener.local_addr().expect("addr").port();
 
-    resilum_tasks::watch("a test relay that stays open", async move {
+    let _relay = resilum_tasks::watch("a test relay that stays open", async move {
         let (stream, _) = listener.accept().await.expect("accept");
         let mut ws = tokio_tungstenite::accept_async(stream)
             .await

@@ -23,6 +23,13 @@ pub struct BlewRadio {
     outbound: mpsc::Sender<Outbound>,
     events: Mutex<Option<mpsc::Receiver<RadioEvent>>>,
     carried: Arc<Mutex<HashMap<ConnectionId, usize>>>,
+    driving: resilum_tasks::Watched,
+}
+
+impl Drop for BlewRadio {
+    fn drop(&mut self) {
+        self.driving.abort();
+    }
 }
 
 impl BlewRadio {
@@ -33,12 +40,13 @@ impl BlewRadio {
         let (outbound, waiting) = mpsc::channel(FRAGMENTS_IN_FLIGHT);
         let (telling, events) = mpsc::channel(EVENTS_IN_FLIGHT);
         let carried = Arc::new(Mutex::new(HashMap::new()));
-        drive::spawn(taking, waiting, telling, Arc::clone(&carried)).await?;
+        let driving = drive::spawn(taking, waiting, telling, Arc::clone(&carried)).await?;
         Ok(Self {
             commands,
             outbound,
             events: Mutex::new(Some(events)),
             carried,
+            driving,
         })
     }
 

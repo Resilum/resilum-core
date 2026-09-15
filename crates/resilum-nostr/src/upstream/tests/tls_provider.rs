@@ -17,7 +17,7 @@ async fn a_wss_dial_writes_tls_bytes_instead_of_panicking_for_want_of_a_provider
     let port = listener.local_addr().expect("addr").port();
     let (hello_tx, mut hello_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    resilum_tasks::watch("a test relay that answers a tls hello", async move {
+    let _relay = resilum_tasks::watch("a test relay that answers a tls hello", async move {
         let (mut stream, _) = listener.accept().await.expect("accept");
         let mut first = [0u8; 1];
         let read = stream.read(&mut first).await.unwrap_or(0);

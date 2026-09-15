@@ -22,10 +22,10 @@ struct Active {
 #[derive(Default)]
 pub struct IrohDiscovery {
     active: Mutex<Option<Active>>,
+    dials: Arc<resilum_tasks::Nursery>,
 }
 
 impl IrohDiscovery {
-    /// Wire the live transport in, so announces start producing and consuming.
     pub(super) fn activate(&self, endpoint: Endpoint, wiring: Arc<Wiring>) {
         *self.active.lock().unwrap_or_else(|e| e.into_inner()) = Some(Active { endpoint, wiring });
     }
@@ -69,7 +69,7 @@ impl DiscoveryPlugin for IrohDiscovery {
             Room::Yes | Room::OnceThisIsLetGo(_) => {}
             Room::No => return,
         }
-        resilum_tasks::watch(
+        self.dials.keep(
             format!("iroh: dialling {}", addr.id.fmt_short()),
             dial::dial(active.endpoint.clone(), active.wiring.clone(), addr, peer),
         );

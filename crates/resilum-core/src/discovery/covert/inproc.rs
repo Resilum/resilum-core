@@ -24,9 +24,10 @@ pub(in crate::discovery::covert) fn attach(
     addr: &DialableAddress,
     server_pubkey: &[u8],
     mtu: usize,
+    pumps: &Arc<resilum_tasks::Nursery>,
 ) -> Result<ByteChannelHandle, String> {
     match carrier {
-        "icmp" => icmp::attach(engine, name, addr, server_pubkey, mtu),
+        "icmp" => icmp::attach(engine, name, addr, server_pubkey, mtu, pumps),
         other => Err(format!("covert carrier not supported in-process: {other}")),
     }
 }
@@ -38,9 +39,10 @@ pub fn listen(
     carrier: &str,
     identity: Identity,
     mtu: usize,
+    pumps: &Arc<resilum_tasks::Nursery>,
 ) -> Result<ByteChannelHandle, String> {
     match carrier {
-        "icmp" => icmp::listen(engine, name, identity, mtu),
+        "icmp" => icmp::listen(engine, name, identity, mtu, pumps),
         other => Err(format!("covert carrier not supported in-process: {other}")),
     }
 }
@@ -58,7 +60,12 @@ impl Decoded {
     }
 }
 
-fn bridge<R>(engine: &Arc<ReticulumNode>, name: &str, run: R) -> Result<ByteChannelHandle, String>
+fn bridge<R>(
+    engine: &Arc<ReticulumNode>,
+    name: &str,
+    pumps: &Arc<resilum_tasks::Nursery>,
+    run: R,
+) -> Result<ByteChannelHandle, String>
 where
     R: FnOnce(std::sync::mpsc::Receiver<Vec<u8>>, Decoded) + Send + 'static,
 {
@@ -69,13 +76,13 @@ where
     let (our_read, our_write) = tokio::io::split(our_side);
 
     let (uplink_tx, uplink_rx) = std::sync::mpsc::channel::<Vec<u8>>();
-    resilum_tasks::watch(
+    pumps.keep(
         format!("{name}:carrying out what the node writes"),
         carry_out_what_leviculum_writes(our_read, uplink_tx),
     );
 
     let (out_tx, out_rx) = tokio::sync::mpsc::unbounded_channel::<Vec<u8>>();
-    resilum_tasks::watch(
+    pumps.keep(
         format!("{name}:handing the node what arrived"),
         give_leviculum_what_arrived(our_write, out_rx),
     );

@@ -16,6 +16,7 @@ pub(super) fn attach(
     addr: &DialableAddress,
     server_pubkey: &[u8],
     mtu: usize,
+    pumps: &Arc<resilum_tasks::Nursery>,
 ) -> Result<ByteChannelHandle, String> {
     let addr = addr.ip();
     let server = Identity::from_public_key_bytes(server_pubkey)
@@ -23,7 +24,7 @@ pub(super) fn attach(
     let carrier = IcmpClient::with_mtu(addr, &server.public_key_bytes(), mtu)
         .map_err(|e| format!("open icmp socket: {e}"))?;
     let session = super::random_session_id();
-    super::bridge(engine, name, move |uplink, decoded| {
+    super::bridge(engine, name, pumps, move |uplink, decoded| {
         let ran = runner::run_client(carrier, server, session, uplink, move |bytes| {
             decoded.hand_to_leviculum(bytes);
         });
@@ -39,11 +40,12 @@ pub(super) fn listen(
     name: &str,
     identity: Identity,
     mtu: usize,
+    pumps: &Arc<resilum_tasks::Nursery>,
 ) -> Result<ByteChannelHandle, String> {
     let carrier =
         crate::covert::icmp::server::IcmpServer::with_mtu(&identity.public_key_bytes(), mtu)
             .map_err(|e| format!("open icmp server socket: {e}"))?;
-    super::bridge(engine, name, move |uplink, decoded| {
+    super::bridge(engine, name, pumps, move |uplink, decoded| {
         let ran = runner::run_server(carrier, identity, uplink, move |_session, bytes| {
             decoded.hand_to_leviculum(bytes);
         });

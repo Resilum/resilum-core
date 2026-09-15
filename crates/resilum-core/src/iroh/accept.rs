@@ -8,8 +8,7 @@ use iroh::Endpoint;
 use super::bridge;
 use super::wiring::Wiring;
 
-pub async fn run(endpoint: Endpoint, wiring: Arc<Wiring>) {
-    let arriving = resilum_tasks::Nursery::default();
+pub async fn run(endpoint: Endpoint, wiring: Arc<Wiring>, arriving: Arc<resilum_tasks::Nursery>) {
     while let Some(incoming) = endpoint.accept().await {
         let wiring = wiring.clone();
         arriving.keep("iroh: one inbound connection", async move {

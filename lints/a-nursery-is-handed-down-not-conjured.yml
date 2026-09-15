@@ -1,0 +1,18 @@
+---
+id: a-nursery-is-handed-down-not-conjured
+language: Rust
+severity: error
+message: A nursery is made here, so nobody outside can wait for what it holds.
+note: |
+  A nursery made inside the task that fills it dies with that task: the abort
+  that ends an accept loop never reaches the line that would wait for the
+  connections it started, and `JoinSet`'s own drop cancels without waiting. The
+  children go on holding an engine that `stop()` is trying to unwrap. Take the
+  node's nursery as an argument instead — that one is awaited before the engine
+  is taken apart.
+ignores:
+  - "crates/resilum-tasks/**"
+rule:
+  any:
+    - pattern: resilum_tasks::Nursery::default()
+    - pattern: Nursery::default()

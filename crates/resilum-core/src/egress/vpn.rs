@@ -33,6 +33,7 @@ pub struct VpnParams {
     pub mtu: usize,
     /// Packet fd of a host-managed Yggdrasil conduit; `200::/7` is routed to it.
     pub ygg_fd: Option<RawFd>,
+    pub flows: Arc<resilum_tasks::Nursery>,
     #[cfg(feature = "arti")]
     pub tor: Option<crate::tor::ArtiClient>,
     #[cfg(feature = "i2p")]
@@ -72,6 +73,7 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
         own,
         mtu,
         ygg_fd,
+        flows,
         #[cfg(feature = "arti")]
         tor,
         #[cfg(feature = "i2p")]
@@ -132,13 +134,12 @@ pub fn attach(params: VpnParams, tun_fd: RawFd) -> std::io::Result<VpnHandle> {
     ));
     tasks.push(resilum_tasks::watch(
         "vpn: taking tcp flows",
-        accept(ctx, tcp_listener),
+        accept(ctx, tcp_listener, flows),
     ));
     Ok(VpnHandle { tasks })
 }
 
-async fn accept(ctx: Arc<FlowCtx>, mut listener: TcpListener) {
-    let flows = resilum_tasks::Nursery::default();
+async fn accept(ctx: Arc<FlowCtx>, mut listener: TcpListener, flows: Arc<resilum_tasks::Nursery>) {
     while let Some((stream, _local, remote)) = listener.next().await {
         flows.keep(
             format!("vpn: a flow to {remote}"),

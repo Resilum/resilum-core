@@ -14,7 +14,7 @@ async fn a_relay_that_closes_immediately_gets_backed_off_more_each_time() {
     let port = listener.local_addr().expect("addr").port();
     let (accepted_tx, mut accepted_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    resilum_tasks::watch("a test relay that refuses", async move {
+    let _relay = resilum_tasks::watch("a test relay that refuses", async move {
         loop {
             let Ok((stream, _)) = listener.accept().await else {
                 return;

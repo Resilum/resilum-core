@@ -29,8 +29,8 @@ jobs:
         run: rustup show active-toolchain
       - name: The dated nightly whose rustfmt groups imports
         run: >-
-          rustup toolchain install "$RUSTFMT_THAT_GROUPS_IMPORTS"
-          --profile minimal --component rustfmt
+          mise exec -- sh -c 'rustup toolchain install
+          "$RUSTFMT_THAT_GROUPS_IMPORTS" --profile minimal --component rustfmt'
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: gate

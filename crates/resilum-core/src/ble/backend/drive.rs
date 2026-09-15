@@ -27,7 +27,7 @@ pub(super) async fn spawn(
     outbound: mpsc::Receiver<Outbound>,
     telling: mpsc::Sender<RadioEvent>,
     carried: Arc<Mutex<HashMap<ConnectionId, usize>>>,
-) -> Result<(), RadioError> {
+) -> Result<resilum_tasks::Watched, RadioError> {
     let central = Central::new().await.map_err(cannot)?;
     let peripheral = Peripheral::new().await.map_err(cannot)?;
     let heard = Box::new(central.events());
@@ -35,7 +35,7 @@ pub(super) async fn spawn(
     let asked = peripheral
         .take_requests()
         .ok_or_else(|| RadioError::Backend("the radio hands its requests out once".into()))?;
-    resilum_tasks::watch(
+    Ok(resilum_tasks::watch(
         "ble: driving the radio",
         run(Held {
             central: Arc::new(central),
@@ -53,8 +53,7 @@ pub(super) async fn spawn(
             already_dialling: HashSet::new(),
             dials_in_flight: JoinSet::new(),
         }),
-    );
-    Ok(())
+    ))
 }
 
 pub(super) struct Reporting {

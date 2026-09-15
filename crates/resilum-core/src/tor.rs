@@ -1,5 +1,3 @@
-//! In-process Tor: bootstraps Arti and exposes a local SOCKS5 listener.
-
 use std::io;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::Path;
@@ -23,18 +21,12 @@ pub struct EmbeddedTor {
 }
 
 impl EmbeddedTor {
-    /// Start Arti and expose its SOCKS listener. `state_root`, when set, roots
-    /// its cache/state there — a sandboxed host lacks a writable OS-default dir
-    /// for them.
-    ///
-    /// The directory bootstrap runs off this call: where Tor is blocked it
-    /// retries indefinitely, and this has to return.
-    pub async fn spawn(state_root: Option<&Path>) -> io::Result<Self> {
-        // Arti needs rustls' process-default CryptoProvider installed, else TLS
-        // panics mid-bootstrap.
-        rustls::crypto::ring::default_provider()
-            .install_default()
-            .it_was_already_there();
+    pub async fn start_without_waiting_for_the_directory(
+        a_dir_of_ours_to_keep_state_in: Option<&Path>,
+        conns: Arc<resilum_tasks::Nursery>,
+    ) -> io::Result<Self> {
+        the_tls_arti_panics_without();
+        let state_root = a_dir_of_ours_to_keep_state_in;
         let config =
             build_config(state_root).map_err(|e| io::Error::other(format!("arti config: {e}")))?;
         let client: ArtiClient = TorClient::builder()
@@ -44,7 +36,7 @@ impl EmbeddedTor {
             .map_err(|e| io::Error::other(format!("arti client: {e}")))?;
 
         let warm = Arc::clone(&client);
-        resilum_tasks::watch("tor: bootstrapping the client", async move {
+        conns.keep("tor: bootstrapping the client", async move {
             if let Err(e) = warm.bootstrap().await {
                 tracing::warn!(error = %e, "arti bootstrap failed; retried on first use");
             }
@@ -55,8 +47,9 @@ impl EmbeddedTor {
         let port = listener.local_addr()?.port();
 
         let for_task = Arc::clone(&client);
+        let taking = Arc::clone(&conns);
         let accept = resilum_tasks::watch("tor: taking socks connections", async move {
-            accept_loop(listener, for_task).await;
+            accept_loop(listener, for_task, taking).await;
         });
 
         Ok(Self {
@@ -101,13 +94,25 @@ fn build_config(
         .state_dir(CfgPath::new(
             root.join("tor/state").to_string_lossy().into_owned(),
         ));
-    // Arti's default fs-permission checks reject a sandboxed data dir; trust ours.
-    builder.storage().permissions().dangerously_trust_everyone();
+    trust_the_sandboxed_dir_we_handed_it(&mut builder);
     builder.build()
 }
 
-async fn accept_loop(listener: TcpListener, client: ArtiClient) {
-    let conns = resilum_tasks::Nursery::default();
+fn trust_the_sandboxed_dir_we_handed_it(builder: &mut arti_client::config::TorClientConfigBuilder) {
+    builder.storage().permissions().dangerously_trust_everyone();
+}
+
+fn the_tls_arti_panics_without() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .it_was_already_there();
+}
+
+async fn accept_loop(
+    listener: TcpListener,
+    client: ArtiClient,
+    conns: Arc<resilum_tasks::Nursery>,
+) {
     loop {
         let Ok((conn, _peer)) = listener.accept().await else {
             return;
@@ -133,7 +138,7 @@ mod tests {
 
         let tor = tokio::time::timeout(
             Duration::from_secs(10),
-            EmbeddedTor::spawn(Some(dir.path())),
+            EmbeddedTor::start_without_waiting_for_the_directory(Some(dir.path()), Arc::default()),
         )
         .await
         .expect("spawn must not wait for the directory")
