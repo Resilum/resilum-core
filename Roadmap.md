@@ -19,7 +19,6 @@ that closes them.
 
 ## Concurrency
 
-- Blocking `fsync` runs inside the async task serving the announce bus
 - The "already connected" check and the insert are split by an `.await`
 - `active` is read outside the `handles` mutex
 - `notify_waiters` during `announce_all` is lost rather than queued
@@ -32,13 +31,14 @@ that closes them.
 - `resilum-ffi` has 34 C ABI entry points and three smoke tests
 - The tor, ygg and i2p transports and the shared SOCKS5 client have no tests
 - Test parallelism is unbounded
-- Parsers fed from the network have examples but no property or fuzz tests
+- Parsers fed from the network have property tests in five places and no fuzz
+  target anywhere
 
 ## Operability
 
 - Overlay daemons are started with `&` from the entrypoint; their death is
   neither logged nor visible to the healthcheck
-- A failed SOCKS ingress bind is not logged and the task dies for good
+- A failed SOCKS ingress bind ends the task for good, with no retry
 - Concurrent sessions are logged without a correlation id
 - The daemon config is not validated at startup: unknown keys and unknown values
   pass silently, and a malformed `socks:` value disables proxying fail-open
