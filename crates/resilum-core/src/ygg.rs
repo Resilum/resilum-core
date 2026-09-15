@@ -68,18 +68,29 @@ impl Drop for YggHandle {
     }
 }
 
-/// Attach the Yggdrasil conduit `ygg_fd` (the engine's `address` is `ygg_address`).
-/// Accepts RNS links on `rns_port`; if `socks_port` is set, runs a loopback SOCKS
-/// proxy there so discovery can dial ygg peers. Must run inside the node runtime.
-pub fn attach(
-    engine: Arc<ReticulumNode>,
-    origin: Arc<OriginRegistry>,
-    ygg_fd: RawFd,
-    ygg_address: &str,
-    rns_port: u16,
-    socks_port: Option<u16>,
-    on_detach: Box<dyn FnOnce() + Send>,
-) -> std::io::Result<YggHandle> {
+#[non_exhaustive]
+pub struct Attaching<'what> {
+    pub engine: Arc<ReticulumNode>,
+    pub origin: Arc<OriginRegistry>,
+    pub ygg_fd: RawFd,
+    pub ygg_address: &'what str,
+    pub rns_port: u16,
+    pub socks_port: Option<u16>,
+    pub on_detach: Box<dyn FnOnce() + Send>,
+    pub conns: Arc<resilum_tasks::Nursery>,
+}
+
+pub fn attach(attaching: Attaching<'_>) -> std::io::Result<YggHandle> {
+    let Attaching {
+        engine,
+        origin,
+        ygg_fd,
+        ygg_address,
+        rns_port,
+        socks_port,
+        on_detach,
+        conns,
+    } = attaching;
     let address: Ipv6Addr = ygg_address
         .parse()
         .map_err(|_| std::io::Error::other(format!("invalid ygg address: {ygg_address}")))?;
@@ -100,7 +111,7 @@ pub fn attach(
     if let Some(port) = socks_port {
         tasks.push(resilum_tasks::watch(
             "ygg: the socks proxy onto the overlay",
-            socks::serve(net.clone(), port),
+            socks::serve(net.clone(), port, conns),
         ));
     }
     Ok(YggHandle {

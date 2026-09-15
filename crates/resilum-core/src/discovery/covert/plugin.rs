@@ -124,6 +124,7 @@ async fn resolve_and_attach(inner: Arc<Inner>, pubkey: Vec<u8>) {
         &addr,
         &pubkey,
         inner.cfg.mtu,
+        &inner.nursery,
     ) {
         Ok(handle) => {
             tracing::info!(%name, carrier = %carrier, addr = %addr, "covert peer attached");

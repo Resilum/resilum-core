@@ -6,7 +6,7 @@ async fn is_up_clears_even_when_run_is_cancelled_mid_connection() {
         .expect("bind");
     let port = listener.local_addr().expect("addr").port();
 
-    resilum_tasks::watch("a test relay that accepts once", async move {
+    let _relay = resilum_tasks::watch("a test relay that accepts once", async move {
         let (stream, _) = listener.accept().await.expect("accept");
         let _ws = tokio_tungstenite::accept_async(stream)
             .await

@@ -65,7 +65,7 @@ async fn a_connection_through_our_own_exit_reaches_the_local_socket() {
         .await
         .expect("a local port for the exit");
     let exit_address = exit.local_addr().expect("the port just bound");
-    resilum_tasks::watch("a test exit answering a greeting", async move {
+    let _exit = resilum_tasks::watch("a test exit answering a greeting", async move {
         let (mut served, _) = exit.accept().await.expect("the session below");
         let mut asked = [0u8; 3];
         served.read_exact(&mut asked).await.expect("the greeting");
@@ -76,7 +76,7 @@ async fn a_connection_through_our_own_exit_reaches_the_local_socket() {
         .await
         .expect("a local port for the client");
     let client_address = client_side.local_addr().expect("the port just bound");
-    resilum_tasks::watch("a test client taking the exit", async move {
+    let _client = resilum_tasks::watch("a test client taking the exit", async move {
         let (tcp, _) = client_side.accept().await.expect("the client below");
         session(&exit_address.to_string(), tcp)
             .await

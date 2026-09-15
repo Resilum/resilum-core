@@ -70,19 +70,30 @@ impl Drop for IrohHandle {
     }
 }
 
-/// Build the endpoint from `cfg`, accept inbound iroh links, dial the bootstrap
-/// peers, and wire the warm-discovery plugin (if any) to the live transport.
-/// `dir` holds the persisted secret. Must run inside the node runtime.
-pub async fn attach(
-    engine: Arc<ReticulumNode>,
-    dir: &Path,
-    cfg: &IrohConfig,
-    discovery: Option<Arc<IrohDiscovery>>,
-    protect: Option<leviculum_std::socket_hook::OutboundSocketHook>,
-    attachments: Arc<crate::discovery::Attachments>,
-    origin: Arc<crate::discovery::OriginRegistry>,
-) -> Result<IrohHandle, String> {
-    let secret = key::load_or_create(dir);
+#[non_exhaustive]
+pub struct Attaching<'what> {
+    pub engine: Arc<ReticulumNode>,
+    pub where_the_secret_lives: &'what Path,
+    pub cfg: &'what IrohConfig,
+    pub discovery: Option<Arc<IrohDiscovery>>,
+    pub protect: Option<leviculum_std::socket_hook::OutboundSocketHook>,
+    pub attachments: Arc<crate::discovery::Attachments>,
+    pub origin: Arc<crate::discovery::OriginRegistry>,
+    pub arriving: Arc<resilum_tasks::Nursery>,
+}
+
+pub async fn attach(attaching: Attaching<'_>) -> Result<IrohHandle, String> {
+    let Attaching {
+        engine,
+        where_the_secret_lives,
+        cfg,
+        discovery,
+        protect,
+        attachments,
+        origin,
+        arriving,
+    } = attaching;
+    let secret = key::load_or_create(where_the_secret_lives);
     let endpoint = engine::build(secret, cfg, protect).await?;
     let wiring = Arc::new(Wiring {
         engine,
@@ -91,7 +102,7 @@ pub async fn attach(
     });
     let mut tasks = vec![resilum_tasks::watch(
         "iroh: taking inbound connections",
-        accept::run(endpoint.clone(), wiring.clone()),
+        accept::run(endpoint.clone(), wiring.clone(), arriving),
     )];
     for peer in &cfg.bootstrap {
         tasks.push(resilum_tasks::watch(

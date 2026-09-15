@@ -1,0 +1,18 @@
+---
+id: a-watched-task-is-kept-or-it-is-lost
+language: Rust
+severity: error
+message: The task this starts is dropped on the floor.
+note: |
+  `watch` hands back the only way to abort the task or wait for it, and letting
+  that go does not stop anything — the task runs on, holding whatever it
+  captured, long after whoever started it is gone. Keep it: `Watching::keep` on
+  the node, a field that outlives the work, or `Nursery::keep` when the task is
+  one of many short-lived ones.
+ignores:
+  - "crates/resilum-tasks/**"
+rule:
+  any:
+    - pattern: resilum_tasks::watch($$$STARTED);
+    - pattern: resilum_tasks::watch_on($$$STARTED);
+    - pattern: watch($$$STARTED);

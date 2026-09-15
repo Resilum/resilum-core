@@ -46,7 +46,12 @@ pub(super) fn bring_up(
     let embedded_tor = if resolve::wants_embedded_arti(&node.config.discovery) {
         Some(
             node.runtime
-                .block_on(crate::tor::EmbeddedTor::spawn(storage_root))
+                .block_on(
+                    crate::tor::EmbeddedTor::start_without_waiting_for_the_directory(
+                        storage_root,
+                        node.nursery.clone(),
+                    ),
+                )
                 .map_err(|e| Error::Engine(format!("arti bootstrap: {e}")))?,
         )
     } else {

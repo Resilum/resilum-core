@@ -12,7 +12,7 @@ use tokio_smoltcp::Net;
 
 use crate::socks5_tcp::{self, REP_ATYP_NOT_SUPPORTED, REP_CONNECTION_REFUSED, REP_OK};
 
-pub(super) async fn serve(net: Arc<Net>, port: u16) {
+pub(super) async fn serve(net: Arc<Net>, port: u16, conns: Arc<resilum_tasks::Nursery>) {
     let listener = match TcpListener::bind((Ipv4Addr::LOCALHOST, port)).await {
         Ok(listener) => listener,
         Err(e) => {
@@ -20,7 +20,6 @@ pub(super) async fn serve(net: Arc<Net>, port: u16) {
             return;
         }
     };
-    let conns = resilum_tasks::Nursery::default();
     while let Ok((client, _)) = listener.accept().await {
         let net = net.clone();
         conns.keep("ygg: one socks connection", async move {

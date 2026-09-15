@@ -43,7 +43,9 @@ pub(super) fn bring_up(
                 node.events.subscribe(),
             ),
         ));
-        if let Some(listener) = start_listener_if_this_host_can(engine, cfg, identity) {
+        if let Some(listener) =
+            start_listener_if_this_host_can(engine, cfg, identity, &node.nursery)
+        {
             node.covert_listeners.push(listener);
         }
     }
@@ -55,9 +57,17 @@ fn start_listener_if_this_host_can(
     engine: &Arc<ReticulumNode>,
     cfg: &CovertDiscoveryService,
     identity: &Identity,
+    pumps: &Arc<resilum_tasks::Nursery>,
 ) -> Option<ByteChannelHandle> {
     let name = format!("CovertListen[{}]", cfg.carrier);
-    match discovery::covert::listen(engine, &name, &cfg.carrier, identity.clone(), cfg.mtu) {
+    match discovery::covert::listen(
+        engine,
+        &name,
+        &cfg.carrier,
+        identity.clone(),
+        cfg.mtu,
+        pumps,
+    ) {
         Ok(handle) => {
             tracing::info!(%name, "covert listener attached");
             Some(handle)
@@ -74,6 +84,7 @@ fn start_listener_if_this_host_can(
     _engine: &Arc<ReticulumNode>,
     _cfg: &CovertDiscoveryService,
     _identity: &Identity,
+    _pumps: &Arc<resilum_tasks::Nursery>,
 ) -> Option<ByteChannelHandle> {
     None
 }
