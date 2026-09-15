@@ -12,6 +12,7 @@ mod coordinates;
 mod discovery;
 mod egress;
 mod holders;
+mod instance_name;
 mod mirrors;
 
 impl Node {
@@ -115,6 +116,8 @@ impl Node {
             self.runtime
                 .block_on(leviculum.stop())
                 .map_err(|e| Error::Engine(e.to_string()))?;
+            drop(leviculum);
+            instance_name::wait_until_free(&self.config.instance_name);
             event::push(&self.event_queue, Event::Stopped);
         }
         Ok(())
